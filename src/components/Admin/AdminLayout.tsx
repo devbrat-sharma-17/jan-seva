@@ -4,9 +4,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { getCurrentAdminUser, logoutAdminUser } from '../../services/authService';
-import { getAdminNotifications } from '../../services/adminService';
+import { getCurrentAdminUser } from '../../services/authService';
+import {
+  getUnreadNotificationCount,
+  subscribeToNotificationReadState,
+} from '../../services/notificationService';
+import { subscribeToComplaints } from '../../services/complaintService';
 import { BrandHomeLink } from '../ui/BrandHomeLink';
+import { PortalUserMenu } from '../portal/PortalUserMenu';
+import { NetworkBanner, NetworkStatusIndicator } from '../portal/NetworkStatus';
+import { SessionWarning } from '../portal/SessionWarning';
+import { ErrorBoundary } from '../portal/ErrorBoundary';
 import { AdminIcon, type AdminIconName } from './AdminIcon';
 import type { AdminUser } from '../../types/admin';
 import './AdminLayout.css';
@@ -36,18 +44,34 @@ const BOTTOM_NAV_ITEMS = NAV_ITEMS.slice(0, 5);
 export function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [user, setUser] = useState<AdminUser | null>(null);
+  const [user, setUser] = useState<AdminUser | null>(() => getCurrentAdminUser());
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [notifCount, setNotifCount] = useState(0);
 
+  // The route guard has already established the session; this only reads
+  // the profile that goes with it.
   useEffect(() => {
-    const admin = getCurrentAdminUser();
-    if (!admin) {
-      navigate('/admin/login', { replace: true });
-      return;
-    }
-    setUser(admin);
-  }, [navigate]);
+    setUser(getCurrentAdminUser());
+  }, [location.pathname]);
+
+  /* The unread count used to be recomputed inside render, which walked
+     every complaint in the store on every keystroke in the search box.
+     It is derived once and refreshed when the records actually change. */
+  useEffect(() => {
+    const refresh = () => setNotifCount(getUnreadNotificationCount());
+    refresh();
+
+    // Two things move this number: the records the alerts derive from,
+    // and the read markers. Without the second, marking an alert read
+    // left the badge showing it until a complaint happened to change.
+    const unsubRecords = subscribeToComplaints(refresh);
+    const unsubRead = subscribeToNotificationReadState(refresh);
+    return () => {
+      unsubRecords();
+      unsubRead();
+    };
+  }, []);
 
   // A route change means the drawer has done its job.
   useEffect(() => {
@@ -69,11 +93,6 @@ export function AdminLayout() {
     };
   }, [drawerOpen]);
 
-  const handleLogout = () => {
-    logoutAdminUser();
-    navigate('/admin/login');
-  };
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -83,15 +102,6 @@ export function AdminLayout() {
   };
 
   if (!user) return null;
-
-  const notifCount = getAdminNotifications().filter((n) => !n.read).length;
-  const initials = user.name
-    .replace(/^(Dr\.|Er\.|Shri|Smt\.)\s*/, '')
-    .split(' ')
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
 
   const isCurrent = (path: string) =>
     location.pathname === path ||
@@ -103,6 +113,11 @@ export function AdminLayout() {
       <a href="#admin-main" className="admin-skip-link">
         Skip to content
       </a>
+
+      <div className="admin-layout__notices">
+        <SessionWarning />
+        <NetworkBanner />
+      </div>
 
       {drawerOpen && (
         <div className="admin-scrim" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
@@ -145,20 +160,9 @@ export function AdminLayout() {
         </nav>
 
         <div className="admin-sidebar__foot">
-          <div className="admin-sidebar__user">
-            <span className="admin-sidebar__avatar" aria-hidden="true">
-              {initials}
-            </span>
-            <span className="admin-sidebar__user-text">
-              <span className="admin-sidebar__user-name">{user.name}</span>
-              <span className="admin-sidebar__user-role">{user.roleTitle}</span>
-            </span>
-          </div>
-
-          <button type="button" className="admin-sidebar__signout" onClick={handleLogout}>
-            <AdminIcon name="signout" size={16} />
-            <span>Sign out</span>
-          </button>
+          <p className="admin-sidebar__note">
+            Authorised personnel only. Citizen identifiers are shown masked.
+          </p>
         </div>
       </aside>
 
@@ -188,9 +192,11 @@ export function AdminLayout() {
           </form>
 
           <div className="admin-topbar__right">
-            <span className="admin-topbar__demo" title="This build runs on sample data">
+            <span className="admin-topbar__demo" title="Every figure in this build is sample data">
               Demo data
             </span>
+
+            <NetworkStatusIndicator />
 
             <button
               type="button"
@@ -205,11 +211,21 @@ export function AdminLayout() {
                 </span>
               )}
             </button>
+
+            <PortalUserMenu
+              name={user.name}
+              roleTitle={user.roleTitle}
+              scope={`${user.city} · city-wide access`}
+              signInPath="/admin/login"
+            />
           </div>
         </header>
 
         <main className="admin-content" id="admin-main">
-          <Outlet />
+          {/* A failing chart or map leaves the navigation intact. */}
+          <ErrorBoundary area="this section" variant="page">
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
 

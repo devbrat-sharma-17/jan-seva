@@ -2,9 +2,10 @@
 // Admin — department standings and comparison
 // ============================================================
 
-import { useState, useMemo } from 'react';
+import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getAllDepartmentRankings } from '../../../services/adminService';
+import { useLiveData } from '../../../hooks/useLiveData';
 import { AdminIcon } from '../AdminIcon';
 import './DepartmentViews.css';
 
@@ -20,7 +21,7 @@ const SORT_OPTIONS: Array<{ value: SortKey; label: string }> = [
 
 export function DepartmentOverview() {
   const [sortBy, setSortBy] = useState<SortKey>('score');
-  const rankings = useMemo(() => getAllDepartmentRankings(sortBy), [sortBy]);
+  const rankings = useLiveData(useCallback(() => getAllDepartmentRankings(sortBy), [sortBy]));
 
   return (
     <div className="admin-page">

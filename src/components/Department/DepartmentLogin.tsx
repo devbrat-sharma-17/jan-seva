@@ -1,6 +1,16 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { loginDepartmentUser, loginWithQuickPersona } from '../../services/authService';
+// ============================================================
+// Department Operations — sign-in
+// ============================================================
+// A department ID and password are required. The role cards that used to
+// sign people in on one tap now only *select* a role: they fill the ID
+// field, and the password is still yours to enter. Quick Demo remains,
+// clearly fenced and labelled.
+
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { loginDepartment, startDepartmentDemoSession } from '../../services/authService';
+import { getThrottleState } from '../../services/loginThrottle';
+import { DEMO_PASSWORD_HINT } from '../../data/demoDirectory';
 import { DEPARTMENTS, getAllDepartments } from '../../data/departments';
 import type { DepartmentId, DepartmentRole } from '../../types/department';
 import { BrandMark } from '../ui/BrandMark';
@@ -23,30 +33,37 @@ function ArrowIcon() {
   );
 }
 
-function ChevronIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
-
 export function DepartmentLogin() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const departments = useMemo(() => getAllDepartments(), []);
 
   const [selectedDeptId, setSelectedDeptId] = useState<DepartmentId>('roads');
   const [selectedRole, setSelectedRole] = useState<DepartmentRole>('nodal');
   const [identifier, setIdentifier] = useState('PWD-001');
   const [password, setPassword] = useState('');
-  const [showCredentials, setShowCredentials] = useState(false);
-  /** Which control is mid-flight, so only that button shows a spinner. */
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lockSeconds, setLockSeconds] = useState(0);
+  const [showDemo, setShowDemo] = useState(false);
 
+  const passwordRef = useRef<HTMLInputElement>(null);
   const identifierRef = useRef<HTMLInputElement>(null);
 
   const currentDept = DEPARTMENTS[selectedDeptId] ?? DEPARTMENTS.roads;
+
+  const returnTo = searchParams.get('from') || '/department/dashboard';
+  const wasExpired = searchParams.get('reason') === 'expired';
+
+  useEffect(() => {
+    if (lockSeconds <= 0) return;
+    const timer = setInterval(() => {
+      const state = getThrottleState(identifier);
+      setLockSeconds(state.secondsRemaining);
+      if (!state.locked) setError(null);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lockSeconds, identifier]);
 
   /** Staff record the chosen department/role pair resolves to. */
   const staffFor = (deptId: DepartmentId, role: DepartmentRole) => {
@@ -56,8 +73,8 @@ export function DepartmentLogin() {
 
   const activeStaff = staffFor(selectedDeptId, selectedRole);
 
-  /* The department chip, the role card and the credentials field are three
-     views of one decision, so changing any of them re-syncs the others. */
+  /* Department, role and the ID field are three views of one decision, so
+     changing any of them re-syncs the others. */
   const selectDepartment = (deptId: DepartmentId) => {
     setSelectedDeptId(deptId);
     setIdentifier(staffFor(deptId, selectedRole).id);
@@ -68,39 +85,37 @@ export function DepartmentLogin() {
     setSelectedRole(role);
     setIdentifier(staffFor(selectedDeptId, role).id);
     setError(null);
-  };
-
-  const handleRoleSignIn = (role: DepartmentRole) => {
-    selectRole(role);
-    setBusy(role);
-    setError(null);
-    try {
-      loginWithQuickPersona(selectedDeptId, role);
-      navigate('/department/dashboard');
-    } catch {
-      setError('Could not open a session for that role. Please try again.');
-      setBusy(null);
-    }
+    // The ID is filled in; the password is the part still owed.
+    passwordRef.current?.focus();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!identifier.trim()) {
-      setError('Enter your department ID or staff email.');
-      identifierRef.current?.focus();
+    setBusy('credentials');
+    setError(null);
+
+    const result = await loginDepartment({ identifier, password }, selectedDeptId);
+
+    if (result.ok) {
+      setPassword('');
+      navigate(returnTo, { replace: true });
       return;
     }
 
-    setBusy('credentials');
-    setError(null);
-    try {
-      await loginDepartmentUser(selectedDeptId, identifier, password);
-      navigate('/department/dashboard');
-    } catch {
-      setError('Those credentials were not recognised for this department.');
-      setBusy(null);
-    }
+    setBusy(null);
+    setError(result.message);
+    setLockSeconds(result.secondsRemaining ?? 0);
+    setPassword('');
+    if (result.reason === 'missing_fields') identifierRef.current?.focus();
   };
+
+  const handleQuickDemo = () => {
+    setBusy('demo');
+    startDepartmentDemoSession(selectedDeptId, selectedRole);
+    navigate(returnTo, { replace: true });
+  };
+
+  const locked = lockSeconds > 0;
 
   return (
     <div
@@ -148,9 +163,15 @@ export function DepartmentLogin() {
             </span>
             <h1 className="deptlogin__title">Department sign-in</h1>
             <p className="deptlogin__subtitle">
-              Gwalior Municipal Corporation &middot; civic issue triage and field operations.
+              Authorised department staff only.
             </p>
           </header>
+
+          {wasExpired && !error && (
+            <p className="dept-alert dept-alert--warning" role="status">
+              <span>Your session expired. Please sign in again.</span>
+            </p>
+          )}
 
           {error && (
             <p className="dept-alert dept-alert--error" role="alert">
@@ -158,7 +179,7 @@ export function DepartmentLogin() {
             </p>
           )}
 
-          {/* Step 1 — department. One control, one row, no wrapping. */}
+          {/* Step 1 — department. */}
           <section className="deptlogin__step">
             <h2 className="deptlogin__step-label" id="deptlogin-dept-label">
               <span className="deptlogin__step-num">1</span>
@@ -187,25 +208,25 @@ export function DepartmentLogin() {
             <p className="deptlogin__dept-meta">{currentDept.name}</p>
           </section>
 
-          {/* Step 2 — role. This is the primary way in, so it gets the
-              full-width targets and the real officer names. */}
+          {/* Step 2 — role. Selecting one fills the ID; it does not sign
+              anybody in on its own. */}
           <section className="deptlogin__step">
             <h2 className="deptlogin__step-label" id="deptlogin-role-label">
               <span className="deptlogin__step-num">2</span>
-              Continue as
+              Your role
             </h2>
 
-            <div className="deptlogin__roles" aria-labelledby="deptlogin-role-label">
+            <div className="deptlogin__roles" role="group" aria-labelledby="deptlogin-role-label">
               {ROLES.map((role) => {
                 const staff = staffFor(selectedDeptId, role.id);
-                const isBusy = busy === role.id;
+                const selected = selectedRole === role.id;
                 return (
                   <button
                     key={role.id}
                     type="button"
-                    className={`deptlogin__role${selectedRole === role.id ? ' is-selected' : ''}`}
-                    onClick={() => handleRoleSignIn(role.id)}
-                    disabled={busy !== null}
+                    aria-pressed={selected}
+                    className={`deptlogin__role${selected ? ' is-selected' : ''}`}
+                    onClick={() => selectRole(role.id)}
                   >
                     <span className="deptlogin__role-avatar" aria-hidden="true">
                       {staff.name
@@ -218,12 +239,16 @@ export function DepartmentLogin() {
 
                     <span className="deptlogin__role-text">
                       <span className="deptlogin__role-title">{role.label}</span>
-                      <span className="deptlogin__role-name">{staff.name}</span>
+                      <span className="deptlogin__role-name">{staff.id}</span>
                       <span className="deptlogin__role-blurb">{role.blurb}</span>
                     </span>
 
                     <span className="deptlogin__role-go" aria-hidden="true">
-                      {isBusy ? <span className="deptlogin__spinner" /> : <ArrowIcon />}
+                      {selected && (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
                     </span>
                   </button>
                 );
@@ -231,81 +256,112 @@ export function DepartmentLogin() {
             </div>
           </section>
 
-          {/* Secondary path, collapsed by default — the demo almost never
-              needs it, and open it doubled the height of the card. */}
-          <section className="deptlogin__alt">
+          {/* Step 3 — credentials. */}
+          <section className="deptlogin__step">
+            <h2 className="deptlogin__step-label" id="deptlogin-creds-label">
+              <span className="deptlogin__step-num">3</span>
+              Sign in
+            </h2>
+
+            <form className="deptlogin__form" onSubmit={handleSubmit} aria-labelledby="deptlogin-creds-label">
+              <div className="dept-field">
+                <label className="dept-field__label" htmlFor="deptlogin-id">
+                  Department ID or staff email
+                </label>
+                <input
+                  id="deptlogin-id"
+                  ref={identifierRef}
+                  type="text"
+                  className="dept-input"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder={activeStaff.id}
+                  autoComplete="username"
+                  spellCheck={false}
+                  disabled={locked}
+                  required
+                />
+              </div>
+
+              <div className="dept-field">
+                <label className="dept-field__label" htmlFor="deptlogin-pw">
+                  Password
+                </label>
+                <input
+                  id="deptlogin-pw"
+                  ref={passwordRef}
+                  type="password"
+                  className="dept-input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  disabled={locked}
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="dept-action-btn dept-action-btn--primary dept-action-btn--block"
+                disabled={busy !== null || locked}
+              >
+                {busy === 'credentials' ? (
+                  <>
+                    <span className="deptlogin__spinner" aria-hidden="true" />
+                    <span>Signing in&hellip;</span>
+                  </>
+                ) : locked ? (
+                  <span>Locked for {lockSeconds}s</span>
+                ) : (
+                  <>
+                    <span>Sign in to {currentDept.shortName}</span>
+                    <ArrowIcon />
+                  </>
+                )}
+              </button>
+            </form>
+          </section>
+
+          {/* ---- Demo affordances, fenced off from the form above ---- */}
+          <section className="deptlogin__demo-zone">
+            <p className="deptlogin__demo-head">
+              <span className="deptlogin__demo-chip">Demo mode</span>
+              <span>Sample data only. No real municipal records are shown.</span>
+            </p>
+
             <button
               type="button"
-              className="deptlogin__alt-toggle"
-              aria-expanded={showCredentials}
-              aria-controls="deptlogin-credentials"
-              onClick={() => setShowCredentials((v) => !v)}
+              className="deptlogin__demo-btn"
+              onClick={handleQuickDemo}
+              disabled={busy !== null}
             >
-              <span>Sign in with a staff ID instead</span>
-              <span className={`deptlogin__alt-chevron${showCredentials ? ' is-open' : ''}`}>
-                <ChevronIcon />
-              </span>
+              {busy === 'demo'
+                ? 'Opening…'
+                : `Quick demo — open as ${activeStaff.roleTitle}, ${currentDept.shortName}`}
             </button>
 
-            <div id="deptlogin-credentials" hidden={!showCredentials}>
-              <form className="deptlogin__form" onSubmit={handleSubmit}>
-                <div className="dept-field">
-                  <label className="dept-field__label" htmlFor="deptlogin-id">
-                    Department ID or staff email
-                  </label>
-                  <input
-                    id="deptlogin-id"
-                    ref={identifierRef}
-                    type="text"
-                    className="dept-input"
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder={activeStaff.id}
-                    autoComplete="username"
-                    spellCheck={false}
-                  />
-                  <span className="dept-field__hint">
-                    Signs you in as {activeStaff.name} &middot; {activeStaff.roleTitle}
-                  </span>
-                </div>
+            <button
+              type="button"
+              className="deptlogin__demo-toggle"
+              aria-expanded={showDemo}
+              onClick={() => setShowDemo((v) => !v)}
+            >
+              {showDemo ? 'Hide demo credentials' : 'Show demo credentials'}
+            </button>
 
-                <div className="dept-field">
-                  <label className="dept-field__label" htmlFor="deptlogin-pw">
-                    Password
-                  </label>
-                  <input
-                    id="deptlogin-pw"
-                    type="password"
-                    className="dept-input"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    autoComplete="current-password"
-                  />
-                  <span className="dept-field__hint">
-                    Demonstration build — passwords are not checked against a directory.
-                  </span>
+            {showDemo && (
+              <dl className="deptlogin__demo-creds">
+                <div>
+                  <dt>ID</dt>
+                  <dd>{activeStaff.id}</dd>
                 </div>
-
-                <button
-                  type="submit"
-                  className="dept-action-btn dept-action-btn--primary dept-action-btn--block"
-                  disabled={busy !== null}
-                >
-                  {busy === 'credentials' ? (
-                    <>
-                      <span className="deptlogin__spinner" aria-hidden="true" />
-                      <span>Signing in&hellip;</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Sign in to {currentDept.shortName}</span>
-                      <ArrowIcon />
-                    </>
-                  )}
-                </button>
-              </form>
-            </div>
+                <div>
+                  <dt>Password</dt>
+                  <dd>{DEMO_PASSWORD_HINT}</dd>
+                </div>
+              </dl>
+            )}
           </section>
 
           <footer className="deptlogin__foot">

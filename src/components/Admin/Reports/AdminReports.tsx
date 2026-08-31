@@ -2,7 +2,8 @@
 // Admin Reports Generator — JAN-SEVA Phase 5
 // ============================================================
 
-import { useState, useMemo } from 'react';
+import { useCallback, useState } from 'react';
+import { useLiveData } from '../../../hooks/useLiveData';
 import {
   getCityOverview,
   getCivicHealthScore,
@@ -20,11 +21,20 @@ export function AdminReports() {
     'daily',
   );
 
-  const overview = useMemo(() => getCityOverview(), []);
-  const health = useMemo(() => getCivicHealthScore(), []);
-  const rankings = useMemo(() => getAllDepartmentRankings(), []);
-  const escSummary = useMemo(() => getEscalationSummary(), []);
-  const feedbackSummary = useMemo(() => getFeedbackSummary(), []);
+  const report = useLiveData(
+    useCallback(
+      () => ({
+        overview: getCityOverview(),
+        health: getCivicHealthScore(),
+        rankings: getAllDepartmentRankings(),
+        escSummary: getEscalationSummary(),
+        feedbackSummary: getFeedbackSummary(),
+      }),
+      []
+    )
+  );
+
+  const { overview, health, rankings, escSummary, feedbackSummary } = report;
 
   const handlePrint = () => {
     window.print();
@@ -50,7 +60,7 @@ export function AdminReports() {
         </button>{' '}
       </div>{' '}
       {/* Report Type Selector */}
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+      <div className="admin-u-row">
         {' '}
         <button
           type="button"
@@ -86,76 +96,45 @@ export function AdminReports() {
         </button>{' '}
       </div>{' '}
       {/* Report Preview Document */}
-      <div
-        className="admin-panel"
-        style={{
-          border: '2px solid var(--color-border-strong)',
-          padding: '2.5rem',
-          background: 'var(--color-surface)',
-          borderRadius: '1rem',
-          maxWidth: '900px',
-        }}
-      >
+      <div className="admin-panel admin-report-sheet">
         {' '}
         {/* Document Header */}
         <div
-          style={{
-            borderBottom: '2px solid var(--color-navy)',
-            paddingBottom: '1.25rem',
-            marginBottom: '1.5rem',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-          }}
+          className="admin-report-head"
         >
           {' '}
           <div>
             {' '}
             <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                marginBottom: '0.25rem',
-              }}
+              className="admin-report-brand"
             >
               {' '}
               <BrandMark size={26} />{' '}
               <span
-                style={{
-                  fontSize: '1.25rem',
-                  fontWeight: 800,
-                  color: 'var(--color-text)',
-                  letterSpacing: '0.04em',
-                }}
+                className="admin-report-wordmark"
               >
                 {' '}
                 JAN-SEVA CIVIC OPERATIONS
               </span>{' '}
             </div>{' '}
-            <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+            <div className="admin-u-label">
               {' '}
               Gwalior Municipal Corporation, Madhya Pradesh
             </div>{' '}
           </div>{' '}
-          <div style={{ textAlign: 'right' }}>
+          <div className="admin-u-right">
             {' '}
             <div
-              style={{
-                fontSize: '0.75rem',
-                textTransform: 'uppercase',
-                color: 'var(--color-text-muted)',
-                fontWeight: 700,
-              }}
+              className="admin-report-meta-label"
             >
               {' '}
               Report Generated
             </div>{' '}
-            <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-text)' }}>
+            <div className="admin-u-figure">
               {' '}
               {formatDate(new Date().toISOString())}
             </div>{' '}
-            <div style={{ fontSize: '0.6875rem', color: 'var(--slate-400)' }}>
+            <div className="admin-u-sub">
               Platform Reference: JS-GWL-REP-2026
             </div>{' '}
           </div>{' '}
@@ -165,29 +144,19 @@ export function AdminReports() {
           <div>
             {' '}
             <h2
-              style={{
-                fontSize: '1.25rem',
-                fontWeight: 800,
-                color: 'var(--color-text)',
-                marginBottom: '1rem',
-              }}
+              className="admin-report-h2"
             >
               {' '}
               Executive Daily Civic Summary
             </h2>{' '}
             <p
-              style={{
-                fontSize: '0.875rem',
-                color: 'var(--slate-700)',
-                lineHeight: 1.6,
-                marginBottom: '1.5rem',
-              }}
+              className="admin-report-intro"
             >
               {' '}
               This operational summary covers city-wide grievance ingestion, real-time resolution
               metrics, and platform health across all municipal divisions for the active period.
             </p>{' '}
-            <div className="kpi-grid" style={{ marginBottom: '1.5rem' }}>
+            <div className="kpi-grid admin-u-gap-lg">
               {' '}
               <div className="kpi-card">
                 {' '}
@@ -224,23 +193,13 @@ export function AdminReports() {
           <div>
             {' '}
             <h2
-              style={{
-                fontSize: '1.25rem',
-                fontWeight: 800,
-                color: 'var(--color-text)',
-                marginBottom: '1rem',
-              }}
+              className="admin-report-h2"
             >
               {' '}
               Department Ranking & Performance Evaluation
             </h2>{' '}
             <p
-              style={{
-                fontSize: '0.875rem',
-                color: 'var(--slate-700)',
-                lineHeight: 1.6,
-                marginBottom: '1.5rem',
-              }}
+              className="admin-report-intro"
             >
               {' '}
               Standardized weighted evaluation across all 5 municipal departments covering
@@ -283,17 +242,12 @@ export function AdminReports() {
           <div>
             {' '}
             <h2
-              style={{
-                fontSize: '1.25rem',
-                fontWeight: 800,
-                color: 'var(--color-text)',
-                marginBottom: '1rem',
-              }}
+              className="admin-report-h2"
             >
               {' '}
               SLA Compliance & Escalation Audit
             </h2>{' '}
-            <div className="kpi-grid" style={{ marginBottom: '1.5rem' }}>
+            <div className="kpi-grid admin-u-gap-lg">
               {' '}
               <div className="kpi-card kpi-card--red">
                 {' '}
@@ -317,22 +271,17 @@ export function AdminReports() {
           <div>
             {' '}
             <h2
-              style={{
-                fontSize: '1.25rem',
-                fontWeight: 800,
-                color: 'var(--color-text)',
-                marginBottom: '1rem',
-              }}
+              className="admin-report-h2"
             >
               {' '}
               Citizen Satisfaction & Quality Audit
             </h2>{' '}
-            <div className="kpi-grid" style={{ marginBottom: '1.5rem' }}>
+            <div className="kpi-grid admin-u-gap-lg">
               {' '}
               <div className="kpi-card">
                 {' '}
                 <div className="kpi-card__label">City Average</div>{' '}
-                <div className="kpi-card__value" style={{ color: 'var(--color-warning)' }}>
+                <div className="kpi-card__value admin-u-warning">
                   {' '}
                   {feedbackSummary.overallRating} ★
                 </div>{' '}
@@ -353,17 +302,7 @@ export function AdminReports() {
           </div>
         )}
         {/* Document Footer */}
-        <div
-          style={{
-            borderTop: '1px solid var(--color-border)',
-            paddingTop: '1.25rem',
-            marginTop: '2rem',
-            display: 'flex',
-            justifyContent: 'space-between',
-            fontSize: '0.6875rem',
-            color: 'var(--slate-400)',
-          }}
-        >
+        <div className="admin-report-foot">
           {' '}
           <span>JAN-SEVA Governance System · Official Administrative Use</span>{' '}
           <span>Single Source of Truth: Gwalior Civic Repository</span>{' '}

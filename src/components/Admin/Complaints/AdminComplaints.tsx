@@ -2,9 +2,11 @@
 // Admin Complaints View — JAN-SEVA Phase 5
 // ============================================================
 
-import { useState, useMemo } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getFilteredComplaints } from '../../../services/adminService';
+import { useLiveData } from '../../../hooks/useLiveData';
+import { computeSlaHealth } from '../../../services/slaService';
 import { DEPARTMENTS } from '../../../data/departments';
 import { StatusPill } from '../../TrackComplaint/StatusPill';
 import { formatRelative } from '../../../services/timeService';
@@ -27,9 +29,25 @@ export function AdminComplaints() {
     search: searchParams.get('search') || '',
   });
 
-  const complaints = useMemo(() => {
-    return getFilteredComplaints(filters);
-  }, [filters]);
+  /* The global search box in the top bar pushes a new `?search=` onto
+     this same route. Without this the component stays mounted, keeps its
+     first-render filters, and the search appears to do nothing. */
+  useEffect(() => {
+    const fromUrl: AdminComplaintFilters = {
+      department: (searchParams.get('department') as DepartmentId) || undefined,
+      status: searchParams.get('status') || undefined,
+      priority: searchParams.get('priority') || undefined,
+      category: searchParams.get('category') || undefined,
+      locality: searchParams.get('locality') || undefined,
+      slaStatus: searchParams.get('slaStatus') || undefined,
+      search: searchParams.get('search') || '',
+    };
+    setFilters(fromUrl);
+  }, [searchParams]);
+
+  const complaints = useLiveData(
+    useCallback(() => getFilteredComplaints(filters), [filters])
+  );
 
   const handleFilterChange = (key: keyof AdminComplaintFilters, value: string) => {
     const updated = { ...filters, [key]: value || undefined };
@@ -173,8 +191,8 @@ export function AdminComplaints() {
               {' '}
               {complaints.map((c) => {
                 const isBreached =
-                  c.sla.status === 'exceeded' || new Date(c.sla.dueAt).getTime() < Date.now();
-                const isApproaching = c.sla.status === 'approaching';
+                  computeSlaHealth(c)?.status === 'exceeded';
+                const isApproaching = computeSlaHealth(c)?.status === 'approaching';
                 const severity = c.aiAnalysis?.severity || 'medium';
 
                 return (
@@ -186,10 +204,10 @@ export function AdminComplaints() {
                     </td>{' '}
                     <td>
                       {' '}
-                      <div style={{ fontWeight: 700, marginBottom: '2px' }}>
+                      <div className="admin-cell-title">
                         {c.issue.title}
                       </div>{' '}
-                      <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>
+                      <div className="admin-u-sub">
                         {' '}
                         {c.location.locality}, {c.location.city}
                       </div>{' '}
@@ -229,7 +247,7 @@ export function AdminComplaints() {
                     </td>{' '}
                     <td>
                       {' '}
-                      <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                      <span className="admin-u-note">
                         {' '}
                         {formatRelative(c.createdAt)}
                       </span>{' '}
@@ -246,7 +264,7 @@ export function AdminComplaints() {
         {' '}
         {complaints.map((c) => {
           const isBreached =
-            c.sla.status === 'exceeded' || new Date(c.sla.dueAt).getTime() < Date.now();
+            computeSlaHealth(c)?.status === 'exceeded';
           const severity = c.aiAnalysis?.severity || 'medium';
 
           return (
@@ -271,7 +289,7 @@ export function AdminComplaints() {
                 </span>{' '}
                 <span> {c.location.locality}</span>{' '}
                 {isBreached && (
-                  <span style={{ color: 'var(--red-600)', fontWeight: 700 }}>SLA Breached</span>
+                  <span className="admin-u-danger">SLA Breached</span>
                 )}
                 <span> {formatRelative(c.createdAt)}</span>{' '}
               </div>{' '}

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { DeptModal } from './DeptModal';
+import { useEvidencePhotos } from '../../../hooks/useEvidencePhotos';
+import { EVIDENCE_ACCEPT } from '../../../services/imageService';
 import type { Complaint } from '../../../types';
 
 interface ProgressUpdateModalProps {
@@ -18,32 +20,17 @@ export function ProgressUpdateModal({
   onSubmitUpdate,
 }: ProgressUpdateModalProps) {
   const [note, setNote] = useState('');
-  const [photos, setPhotos] = useState<string[]>([]);
   const [isInternal, setIsInternal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const evidence = useEvidencePhotos(MAX_PHOTOS);
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    Array.from(files)
-      .slice(0, MAX_PHOTOS - photos.length)
-      .forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (event.target?.result) {
-            setPhotos((prev) => [...prev, String(event.target?.result)]);
-          }
-        };
-        reader.readAsDataURL(file);
-      });
-
-    // Let the same file be picked again after it is removed.
-    e.target.value = '';
-  };
-
-  const handleRemovePhoto = (index: number) => {
-    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  /* Dismissing discards the attempt. Keeping compressed photos around
+     after a cancel meant reopening the modal on a different complaint
+     showed the previous one's evidence. */
+  const handleClose = () => {
+    setNote('');
+    evidence.reset();
+    onClose();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,9 +39,9 @@ export function ProgressUpdateModal({
 
     setSubmitting(true);
     try {
-      await onSubmitUpdate(note.trim(), photos, isInternal);
+      await onSubmitUpdate(note.trim(), evidence.values, isInternal);
       setNote('');
-      setPhotos([]);
+      evidence.reset();
       onClose();
     } finally {
       setSubmitting(false);
@@ -64,11 +51,17 @@ export function ProgressUpdateModal({
   return (
     <DeptModal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title="Post a progress update"
       subtitle={`${complaint.id} · ${complaint.issue.title}`}
     >
       <form onSubmit={handleSubmit} className="dept-modal__form">
+        {evidence.error && (
+          <p className="dept-alert dept-alert--error" role="alert">
+            <span>{evidence.error}</span>
+          </p>
+        )}
+
         <div className="dept-field">
           <label className="dept-field__label" htmlFor="progress-note">
             Field log
@@ -86,16 +79,18 @@ export function ProgressUpdateModal({
 
         <div className="dept-field">
           <span className="dept-field__label">Field photos</span>
-          <span className="dept-field__hint">Optional · up to {MAX_PHOTOS}</span>
+          <span className="dept-field__hint">
+            Optional · up to {MAX_PHOTOS} · JPG, PNG or WEBP
+          </span>
 
           <div className="dept-photo-upload-row">
-            {photos.map((photo, index) => (
+            {evidence.photos.map((photo, index) => (
               <div key={index} className="dept-photo-preview-item">
-                <img src={photo} alt={`Field update ${index + 1}`} />
+                <img src={photo.dataUrl} alt={`Field update ${index + 1}`} />
                 <button
                   type="button"
                   className="dept-photo-remove-btn"
-                  onClick={() => handleRemovePhoto(index)}
+                  onClick={() => evidence.remove(index)}
                   aria-label={`Remove photo ${index + 1}`}
                 >
                   ✕
@@ -103,20 +98,24 @@ export function ProgressUpdateModal({
               </div>
             ))}
 
-            {photos.length < MAX_PHOTOS && (
+            {!evidence.atLimit && (
               <label className="dept-photo-upload-btn">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept={EVIDENCE_ACCEPT}
                   capture="environment"
-                  onChange={handlePhotoUpload}
+                  onChange={(e) => {
+                    void evidence.addFiles(e.target.files);
+                    // Let the same file be picked again after removal.
+                    e.target.value = '';
+                  }}
                   hidden
                 />
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                   <circle cx="12" cy="13" r="4" />
                 </svg>
-                <span>Add photo</span>
+                <span>{evidence.busy ? 'Processing…' : 'Add photo'}</span>
               </label>
             )}
           </div>
@@ -135,13 +134,13 @@ export function ProgressUpdateModal({
         </div>
 
         <div className="dept-modal__footer">
-          <button type="button" className="dept-modal-btn dept-modal-btn--secondary" onClick={onClose}>
+          <button type="button" className="dept-modal-btn dept-modal-btn--secondary" onClick={handleClose}>
             Cancel
           </button>
           <button
             type="submit"
             className="dept-modal-btn dept-modal-btn--primary"
-            disabled={submitting || !note.trim()}
+            disabled={submitting || evidence.busy || !note.trim()}
           >
             {submitting ? 'Posting…' : 'Post update'}
           </button>

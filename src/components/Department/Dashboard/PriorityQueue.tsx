@@ -1,7 +1,9 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { Complaint } from '../../../types';
 
 import { explainPriority } from '../../../services/aiService';
+import { computeSlaHealth } from '../../../services/slaService';
 import { formatRelative } from '../../../services/timeService';
 
 interface PriorityQueueProps {
@@ -10,8 +12,15 @@ interface PriorityQueueProps {
   subtitle?: string;
   /** Show the "view the whole queue" link. Off inside the queue page itself. */
   showViewAll?: boolean;
-  /** Rows to render. The dashboard previews six; the queue page shows all. */
+  /** Fixed row count, for the dashboard preview. Omit to paginate. */
   limit?: number;
+  /**
+   * Rows added per "show more". Set on the full queue page, where the
+   * list is unbounded and every row carries a thumbnail, four pills and
+   * a rationale line — a few hundred of those is a lot of DOM to build
+   * for work nobody has scrolled to yet.
+   */
+  pageSize?: number;
   emptyTitle?: string;
   emptyDesc?: string;
 }
@@ -21,32 +30,53 @@ export function PriorityQueue({
   title,
   subtitle,
   showViewAll = false,
-  limit = 6,
+  limit,
+  pageSize,
   emptyTitle = 'Nothing in the queue',
   emptyDesc = 'Every complaint for this department is resolved or assigned.',
 }: PriorityQueueProps) {
   const navigate = useNavigate();
+  const [shown, setShown] = useState(pageSize ?? limit ?? 6);
 
-  // Operational ordering: SLA breach, then approaching, then a requested
-  // reinspection, then untriaged, then AI severity, then age.
-  const sorted = [...complaints]
-    .filter((c) => c.status !== 'resolved')
-    .sort((a, b) => {
-      const weight = (c: Complaint) => {
-        let w = c.aiAnalysis?.priorityScore || 50;
-        if (c.sla.status === 'exceeded') w += 100;
-        if (c.sla.status === 'approaching') w += 40;
-        if (c.feedback?.reinspectionRequested) w += 50;
-        if (c.status === 'pending') w += 20;
-        return w;
-      };
-      const diff = weight(b) - weight(a);
-      if (diff !== 0) return diff;
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    });
+  // Changing a filter should start the list from the top again, not keep
+  // showing however many pages the previous filter had been expanded to.
+  useEffect(() => {
+    setShown(pageSize ?? limit ?? 6);
+  }, [pageSize, limit, complaints]);
 
-  const visible = sorted.slice(0, limit);
+  /* Operational ordering: SLA breach, then approaching, then a requested
+     reinspection, then untriaged, then AI severity, then age. Health is
+     computed against the clock rather than read from the persisted
+     `sla.status`, which is a snapshot from whenever the record was last
+     written and drifts within hours. */
+  const { sorted, healthById } = useMemo(() => {
+    const now = Date.now();
+    const health = new Map<string, ReturnType<typeof computeSlaHealth>>();
+    complaints.forEach((c) => health.set(c.id, computeSlaHealth(c, now)));
+
+    const list = complaints
+      .filter((c) => c.status !== 'resolved')
+      .sort((a, b) => {
+        const weight = (c: Complaint) => {
+          const status = health.get(c.id)?.status;
+          let w = c.aiAnalysis?.priorityScore || 50;
+          if (status === 'exceeded') w += 100;
+          if (status === 'approaching') w += 40;
+          if (c.feedback?.reinspectionRequested) w += 50;
+          if (c.status === 'pending') w += 20;
+          return w;
+        };
+        const diff = weight(b) - weight(a);
+        if (diff !== 0) return diff;
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      });
+
+    return { sorted: list, healthById: health };
+  }, [complaints]);
+
   const openTotal = sorted.length;
+  const visible = sorted.slice(0, shown);
+  const hasMore = openTotal > visible.length;
 
   if (visible.length === 0) {
     return (
@@ -89,6 +119,7 @@ export function PriorityQueue({
       <ul className="dept-queue__list">
         {visible.map((complaint) => {
           const priority = explainPriority(complaint);
+          const slaStatus = healthById.get(complaint.id)?.status;
           const photoUrl = complaint.photos[0];
           const urgent = priority.level === 'critical' || priority.level === 'high';
           const linkedCount = complaint.duplicate?.supportingCount || 2;
@@ -103,7 +134,7 @@ export function PriorityQueue({
               >
                 <span className="dept-row__thumb">
                   {photoUrl ? (
-                    <img src={photoUrl} alt="" loading="lazy" />
+                    <img src={photoUrl} alt="" loading="lazy" decoding="async" />
                   ) : (
                     <span className="dept-row__thumb-fallback" aria-hidden="true">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -150,10 +181,10 @@ export function PriorityQueue({
                     <span className={`dept-status-pill dept-status-pill--${complaint.status}`}>
                       {complaint.status.replace('-', ' ')}
                     </span>
-                    {complaint.sla.status === 'exceeded' && (
+                    {slaStatus === 'exceeded' && (
                       <span className="dept-sla-pill dept-sla-pill--breached">SLA breached</span>
                     )}
-                    {complaint.sla.status === 'approaching' && (
+                    {slaStatus === 'approaching' && (
                       <span className="dept-sla-pill dept-sla-pill--atrisk">SLA at risk</span>
                     )}
                   </span>
@@ -172,10 +203,24 @@ export function PriorityQueue({
         })}
       </ul>
 
-      {showViewAll && openTotal > visible.length && (
-        <p className="dept-queue__more">
-          Showing the {visible.length} most urgent of {openTotal} open complaints.
-        </p>
+      {hasMore && (
+        <div className="dept-queue__more">
+          <p className="dept-queue__more-text">
+            Showing the {visible.length} most urgent of {openTotal} open complaints.
+          </p>
+
+          {/* The dashboard preview links onward instead; only the full
+              queue grows in place. */}
+          {pageSize !== undefined && (
+            <button
+              type="button"
+              className="dept-action-btn dept-action-btn--secondary dept-action-btn--sm"
+              onClick={() => setShown((n) => n + pageSize)}
+            >
+              Show {Math.min(pageSize, openTotal - visible.length)} more
+            </button>
+          )}
+        </div>
       )}
     </section>
   );

@@ -124,7 +124,7 @@ export interface DepartmentRanking {
   accent: string;
   rank: number;
   performanceScore: number;
-  tier: 'star' | 'performing' | 'needs-attention' | 'critical';
+  tier: 'star' | 'performing' | 'needs-attention' | 'critical' | 'no-data';
   tierLabel: string;
   tierBadge: string;
   resolutionRate: number;

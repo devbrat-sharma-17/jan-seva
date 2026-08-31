@@ -65,72 +65,48 @@ export function InitiativeManager() {
       </div>{' '}
       {/* Initiatives Grid */}
       <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '1.5rem',
-        }}
+        className="admin-card-grid"
       >
         {' '}
         {initiatives.map((ini) => (
           <div
             key={ini.id}
-            className="admin-panel"
-            style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+            className="admin-panel admin-u-fill"
+
           >
             {' '}
             <div>
               {' '}
               <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '0.75rem',
-                }}
+                className="admin-u-split"
               >
                 {' '}
-                <span className="admin-dept-pill" style={{ textTransform: 'capitalize' }}>
+                <span className="admin-dept-pill admin-u-capitalize">
                   {' '}
                   {ini.department}
                 </span>{' '}
                 <span
-                  style={{
-                    fontSize: '0.6875rem',
-                    fontWeight: 700,
-                    padding: '0.2rem 0.5rem',
-                    borderRadius: '9999px',
-                    background: ini.status === 'active' ? 'var(--color-success-bg)' : 'var(--color-surface-sunken)',
-                    color: ini.status === 'active' ? 'var(--color-success-fg)' : 'var(--color-text-muted)',
-                  }}
+                  className={`admin-ini__status${
+                    ini.status === 'active' ? ' admin-ini__status--active' : ''
+                  }`}
                 >
                   {' '}
                   {ini.status.toUpperCase()}
                 </span>{' '}
               </div>{' '}
               <h3
-                style={{
-                  fontSize: '1.125rem',
-                  fontWeight: 800,
-                  color: 'var(--color-text)',
-                  margin: '0 0 0.5rem',
-                }}
+                className="admin-ini__title"
               >
                 {' '}
                 {ini.title}
               </h3>{' '}
               <p
-                style={{
-                  fontSize: '0.8125rem',
-                  color: 'var(--color-text-secondary)',
-                  lineHeight: 1.5,
-                  margin: '0 0 1rem',
-                }}
+                className="admin-ini__desc"
               >
                 {' '}
                 {ini.description}
               </p>{' '}
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
+              <div className="admin-u-note admin-u-gap-md">
                 {' '}
                 <strong>Location:</strong> {ini.location}
               </div>{' '}
@@ -138,34 +114,19 @@ export function InitiativeManager() {
             <div>
               {' '}
               <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  marginBottom: '4px',
-                }}
+                className="admin-ini__progress-head"
               >
                 {' '}
-                <span style={{ color: 'var(--color-text-muted)' }}>Mission Progress</span>{' '}
-                <span style={{ color: 'var(--color-civic-blue-dark)' }}>{ini.progress}%</span>{' '}
+                <span className="admin-u-muted">Mission Progress</span>{' '}
+                <span className="admin-u-info">{ini.progress}%</span>{' '}
               </div>{' '}
               <div
-                style={{
-                  height: '8px',
-                  background: 'var(--color-surface-sunken)',
-                  borderRadius: '4px',
-                  overflow: 'hidden',
-                }}
+                className="admin-ini__track"
               >
                 {' '}
                 <div
-                  style={{
-                    height: '100%',
-                    width: `${ini.progress}%`,
-                    background: 'var(--color-civic-blue-dark)',
-                    borderRadius: '4px',
-                  }}
+                  className="admin-ini__fill"
+                  style={{ width: `${ini.progress}%` }}
                 />{' '}
               </div>{' '}
             </div>{' '}
@@ -179,7 +140,7 @@ export function InitiativeManager() {
           <div className="admin-modal-box" onClick={(e) => e.stopPropagation()}>
             {' '}
             <h3 className="admin-modal-title">Launch Civic Initiative</h3>{' '}
-            <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', margin: 0 }}>
+            <p className="admin-u-caption">
               {' '}
               Create a new municipal campaign to target clustered civic grievances.
             </p>{' '}
@@ -193,12 +154,7 @@ export function InitiativeManager() {
                   placeholder="e.g. Ward 14 Pothole Rapid Fill Drive"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem 0.75rem',
-                    border: '1px solid var(--color-border-strong)',
-                    borderRadius: '0.5rem',
-                  }}
+                  className="admin-input"
                   required
                 />{' '}
               </div>{' '}
@@ -225,12 +181,7 @@ export function InitiativeManager() {
                   placeholder="e.g. Maharaj Bada, Phool Bagh Corridor"
                   value={newLocation}
                   onChange={(e) => setNewLocation(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem 0.75rem',
-                    border: '1px solid var(--color-border-strong)',
-                    borderRadius: '0.5rem',
-                  }}
+                  className="admin-input"
                   required
                 />{' '}
               </div>{' '}

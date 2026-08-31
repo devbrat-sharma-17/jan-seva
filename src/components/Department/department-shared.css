@@ -423,9 +423,12 @@
 }
 
 /* ============================================================
-   STATE SCREENS — loading, empty, not-found
+   STATE SCREENS — empty and not-found
    ------------------------------------------------------------
-   .dept-loading was rendered by five pages and styled by none.
+   Loading is handled by the shared skeletons in components/portal,
+   which hold the shape of the content they stand in for. A centred
+   spinner told the reader nothing and let the layout jump when the
+   real content arrived.
    ============================================================ */
 
 .dept-state {
@@ -474,33 +477,9 @@
   max-inline-size: 44ch;
 }
 
-.dept-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-  min-height: 12rem;
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--color-text-muted);
-}
-
-.dept-loading::before {
-  content: '';
-  width: 1.125rem;
-  height: 1.125rem;
-  border-radius: 50%;
-  border: 2px solid var(--color-border-strong);
-  border-top-color: var(--dept-accent);
-  animation: dept-spin 700ms linear infinite;
-}
-
+/* Still used by the sign-in spinner. */
 @keyframes dept-spin {
   to { transform: rotate(360deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .dept-loading::before { animation-duration: 2.4s; }
 }
 
 /* ============================================================

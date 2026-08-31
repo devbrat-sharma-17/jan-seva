@@ -211,87 +211,31 @@
    Department benchmark (head of department only)
    ------------------------------------------------------------ */
 
-.dept-benchmark {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  counter-reset: rank;
-}
+/* ------------------------------------------------------------
+   Rank, no-data states, and the score-vs-badge balance
+   ------------------------------------------------------------ */
 
-.dept-benchmark__row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-}
-
-.dept-benchmark__row.is-current {
-  background: var(--dept-accent-bg);
-  border-color: var(--dept-accent);
-}
-
-.dept-benchmark__rank {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 50%;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+.dept-score__rank {
+  margin: var(--space-1) 0 0;
   font-size: var(--text-xs);
-  font-weight: var(--font-extrabold);
-  color: var(--color-text-secondary);
-  flex-shrink: 0;
-}
-
-.dept-benchmark__text {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-  flex: 1;
-}
-
-.dept-benchmark__name {
-  font-size: var(--text-sm);
-  font-weight: var(--font-bold);
-  color: var(--color-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.dept-benchmark__sub {
-  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
   color: var(--color-text-muted);
 }
 
-.dept-benchmark__score {
-  display: flex;
-  align-items: baseline;
-  gap: 3px;
-  font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: var(--font-extrabold);
-  color: var(--color-text);
-  flex-shrink: 0;
-}
-
-.dept-benchmark__row.is-current .dept-benchmark__score {
-  color: var(--dept-accent);
-}
-
-.dept-benchmark__score span {
-  font-family: var(--font-body);
-  font-size: var(--text-xs);
-  font-weight: var(--font-regular);
+/* A department with nothing to measure gets a neutral chip, not a
+   red one. "No data" is not a failing grade. */
+.dept-score__tier--no-data {
+  background: var(--color-surface-sunken);
   color: var(--color-text-muted);
+}
+
+.dept-breakdown__card--nodata {
+  opacity: 0.72;
+  border-style: dashed;
+}
+
+.dept-perf-note {
+  margin-top: var(--space-4);
 }
 
 @media (prefers-reduced-motion: reduce) {

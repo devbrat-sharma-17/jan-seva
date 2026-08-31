@@ -132,3 +132,64 @@ export function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+// ------------------------------------------------------------
+// Department evidence uploads
+// ------------------------------------------------------------
+//
+// Field and resolution photos took whatever a FileReader would read: a
+// renamed executable, a 40 MB RAW file or an SVG carrying script all went
+// straight into the store as a data URL. These are checked before decode.
+//
+//   Client-side validation is a usability filter, not a security control.
+//   A real upload endpoint must re-check the type by sniffing content,
+//   cap the size, strip metadata and serve from a separate origin.
+
+/** What the file picker offers. Formats a canvas can actually decode. */
+export const EVIDENCE_ACCEPT = 'image/jpeg,image/png,image/webp';
+
+const EVIDENCE_MIME = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const EVIDENCE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
+
+/** Field photos are evidence, not portfolio shots. */
+const EVIDENCE_MAX_INPUT_BYTES = 12 * 1024 * 1024;
+
+/** Below this a "photo" is a placeholder, an icon, or a tracking pixel. */
+const EVIDENCE_MIN_EDGE = 200;
+
+/**
+ * Validates and compresses one evidence photo, returning a data URL ready
+ * to persist. Throws `ImageError` with copy safe to show an officer.
+ */
+export async function prepareEvidencePhoto(file: File): Promise<CompressedImage> {
+  if (!file) throw new ImageError('No photo was selected.');
+
+  const type = (file.type || '').toLowerCase();
+  const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+
+  // Both must agree. A .png that reports image/svg+xml, or an .exe that
+  // reports image/jpeg, fails here rather than reaching the decoder.
+  if (!EVIDENCE_MIME.includes(type)) {
+    throw new ImageError('Only JPG, PNG and WEBP photos can be attached.');
+  }
+
+  if (!EVIDENCE_EXTENSIONS.includes(extension)) {
+    throw new ImageError('That file name does not look like a photo. Use a .jpg, .png or .webp file.');
+  }
+
+  if (file.size === 0) {
+    throw new ImageError('That file is empty.');
+  }
+
+  if (file.size > EVIDENCE_MAX_INPUT_BYTES) {
+    throw new ImageError('That photo is too large. Please choose one under 12 MB.');
+  }
+
+  const compressed = await compressImage(file);
+
+  if (compressed.width < EVIDENCE_MIN_EDGE || compressed.height < EVIDENCE_MIN_EDGE) {
+    throw new ImageError('That image is too small to be usable as evidence.');
+  }
+
+  return compressed;
+}

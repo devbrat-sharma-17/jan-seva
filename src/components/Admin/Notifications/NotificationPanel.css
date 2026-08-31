@@ -1,0 +1,162 @@
+/* ============================================================
+   Admin alerts
+   ============================================================ */
+
+.admin-notifs {
+  padding: var(--space-4);
+  border-radius: var(--admin-radius);
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-card);
+  box-shadow: var(--shadow-xs);
+  margin-bottom: var(--admin-stack);
+}
+
+.admin-notifs__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.admin-notifs__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: var(--weight-extrabold);
+  color: var(--admin-fg);
+}
+
+.admin-notifs__badge {
+  padding: 0.125rem var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  color: var(--color-error-fg);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+}
+
+.admin-notifs__mark-all {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--admin-border-strong);
+  background: transparent;
+  color: var(--admin-fg-secondary);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.admin-notifs__mark-all:hover {
+  background: var(--admin-surface-sunken);
+}
+
+.admin-notifs__empty {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--admin-fg-muted);
+}
+
+.admin-notifs__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.admin-notif {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-sunken);
+}
+
+/* Read alerts stay in the list — the condition has not gone away — but
+   step back so unread ones keep the eye. */
+.admin-notif.is-read {
+  opacity: 0.6;
+}
+
+.admin-notif__dot {
+  flex: 0 0 auto;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--admin-fg-muted);
+}
+
+.admin-notif--critical .admin-notif__dot { background: var(--color-error); }
+.admin-notif--high .admin-notif__dot { background: var(--saffron-500); }
+.admin-notif--medium .admin-notif__dot { background: var(--color-warning); }
+.admin-notif--low .admin-notif__dot { background: var(--color-success); }
+
+.admin-notif__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.admin-notif__body:hover .admin-notif__title {
+  text-decoration: underline;
+}
+
+.admin-notif__title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--admin-fg);
+}
+
+.admin-notif__message {
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  color: var(--admin-fg-secondary);
+}
+
+.admin-notif__toggle {
+  flex: 0 0 auto;
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  background: none;
+  color: var(--admin-blue-dark);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-notif__toggle:hover {
+  text-decoration: underline;
+}
+
+.admin-notif__toggle:focus-visible,
+.admin-notifs__mark-all:focus-visible,
+.admin-notif__body:focus-visible {
+  outline: 2px solid var(--admin-blue);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 30rem) {
+  .admin-notif {
+    flex-wrap: wrap;
+  }
+
+  .admin-notif__toggle {
+    margin-left: auto;
+  }
+}

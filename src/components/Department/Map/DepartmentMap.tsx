@@ -22,26 +22,22 @@ const LEGEND = [
 
 export function DepartmentMap() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<DepartmentUser | null>(() => getCurrentDepartmentUser());
+  const [user] = useState<DepartmentUser | null>(() => getCurrentDepartmentUser());
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('active');
 
-  useEffect(() => {
-    setUser(getCurrentDepartmentUser());
-  }, []);
+  const departmentId = user?.departmentId;
 
   useEffect(() => {
-    if (!user) return;
-    const load = () => setComplaints(getComplaintsByDepartment(user.departmentId));
+    if (!departmentId) return;
+    const load = () => setComplaints(getComplaintsByDepartment(departmentId));
     load();
-    const unsubscribe = subscribeToComplaints(load);
-    return () => unsubscribe();
-  }, [user?.departmentId]);
+    return subscribeToComplaints(load);
+  }, [departmentId]);
 
-  if (!user) {
-    return <div className="dept-loading">Loading map</div>;
-  }
+  // The route guard has already established the session.
+  if (!user) return null;
 
   const deptConfig = getDepartmentConfig(user.departmentId);
 

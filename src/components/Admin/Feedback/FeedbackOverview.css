@@ -1,0 +1,197 @@
+/* ============================================================
+   Citizen feedback
+   ------------------------------------------------------------
+   Replaces ~23 inline style objects that hard-coded pixel heights,
+   grid templates and hex-adjacent colours no token governed and no
+   other screen could reuse.
+   ============================================================ */
+
+.fb-columns {
+  display: grid;
+  gap: var(--admin-stack);
+}
+
+@media (min-width: 60rem) {
+  .fb-columns {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ------------------------------------------------------------
+   Resolution pipeline
+   ------------------------------------------------------------ */
+
+.fb-pipeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-3);
+}
+
+.fb-pipeline__step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-sunken);
+}
+
+.fb-pipeline__step--warning {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+}
+
+.fb-pipeline__step--good {
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+}
+
+.fb-pipeline__step--bad {
+  background: var(--color-error-bg);
+  border-color: var(--color-error-border);
+}
+
+.fb-pipeline__value {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-extrabold);
+  line-height: 1;
+  color: var(--admin-fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.fb-pipeline__label {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  color: var(--admin-fg-secondary);
+}
+
+/* ------------------------------------------------------------
+   Rating spread
+   ------------------------------------------------------------ */
+
+.fb-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.fb-bar__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.fb-bar__label {
+  font-weight: var(--weight-semibold);
+  color: var(--admin-fg);
+}
+
+.fb-bar__detail {
+  font-weight: var(--weight-regular);
+  font-size: var(--text-xs);
+  color: var(--admin-fg-muted);
+}
+
+.fb-bar__count {
+  font-variant-numeric: tabular-nums;
+  color: var(--admin-fg-secondary);
+}
+
+.fb-bar__track {
+  height: 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--admin-surface-sunken);
+  overflow: hidden;
+}
+
+.fb-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--admin-fg-muted);
+  transition: width var(--transition-slow);
+}
+
+.fb-bar--good .fb-bar__fill { background: var(--color-success); }
+.fb-bar--neutral .fb-bar__fill { background: var(--color-warning); }
+.fb-bar--bad .fb-bar__fill { background: var(--color-error); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fb-bar__fill { transition: none; }
+}
+
+/* ------------------------------------------------------------
+   Themes
+   ------------------------------------------------------------ */
+
+.fb-themes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.fb-theme {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-sunken);
+  color: var(--admin-fg-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+
+.fb-theme--positive {
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+  color: var(--color-success-fg);
+}
+
+.fb-theme--negative {
+  background: var(--color-error-bg);
+  border-color: var(--color-error-border);
+  color: var(--color-error-fg);
+}
+
+.fb-theme__count {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.6);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------
+   Department table cells
+   ------------------------------------------------------------ */
+
+.fb-rating {
+  font-weight: var(--weight-bold);
+  color: var(--admin-fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.fb-standing {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+
+.fb-standing--high { color: var(--color-success-fg); }
+.fb-standing--good { color: var(--admin-blue-dark); }
+.fb-standing--low { color: var(--color-warning-fg); }
+.fb-standing--none { color: var(--admin-fg-muted); }

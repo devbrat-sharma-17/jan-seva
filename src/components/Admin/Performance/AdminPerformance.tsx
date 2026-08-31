@@ -2,21 +2,19 @@
 // Admin Performance Analytics — JAN-SEVA Phase 5
 // ============================================================
 
-import { useState, useMemo } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 import { getTrendData, getAllDepartmentRankings } from '../../../services/adminService';
+import { useLiveData } from '../../../hooks/useLiveData';
 import type { TrendPeriod } from '../../../types/admin';
 import './AdminPerformance.css';
 
 export function AdminPerformance() {
   const [period, setPeriod] = useState<TrendPeriod>('7d');
 
-  const trendSeries = useMemo(() => {
-    return getTrendData(period);
-  }, [period]);
-
-  const rankings = useMemo(() => {
-    return getAllDepartmentRankings();
-  }, []);
+  // Both re-derive when a department writes; `useMemo(..., [])` left the
+  // standings frozen at whatever they were when the page mounted.
+  const trendSeries = useLiveData(useCallback(() => getTrendData(period), [period]));
+  const rankings = useLiveData(useCallback(() => getAllDepartmentRankings(), []));
 
   const receivedSeries = trendSeries.find((s) => s.id === 'received');
   const resolvedSeries = trendSeries.find((s) => s.id === 'resolved');
@@ -44,7 +42,7 @@ export function AdminPerformance() {
           </p>{' '}
         </div>{' '}
         {/* Time Period Selector */}
-        <div style={{ display: 'flex', gap: '0.375rem' }}>
+        <div className="admin-u-row-tight">
           {' '}
           {(['7d', '30d', '90d'] as TrendPeriod[]).map((p) => (
             <button
@@ -72,12 +70,12 @@ export function AdminPerformance() {
               {' '}
               <div className="admin-chart-legend-item">
                 {' '}
-                <span className="admin-chart-legend-dot" style={{ background: 'var(--color-civic-blue)' }} />{' '}
+                <span className="admin-chart-legend-dot admin-swatch--received" />{' '}
                 <span>Received</span>{' '}
               </div>{' '}
               <div className="admin-chart-legend-item">
                 {' '}
-                <span className="admin-chart-legend-dot" style={{ background: 'var(--color-success)' }} />{' '}
+                <span className="admin-chart-legend-dot admin-swatch--resolved" />{' '}
                 <span>Resolved</span>{' '}
               </div>{' '}
             </div>{' '}
@@ -97,13 +95,13 @@ export function AdminPerformance() {
                     <div className="admin-chart-bars-pair">
                       {' '}
                       <div
-                        className="admin-bar-fill"
-                        style={{ height: `${recHeight}%`, background: 'var(--color-civic-blue)' }}
+                        className="admin-bar-fill admin-bar-fill--received"
+                        style={{ height: `${recHeight}%` }}
                         title={`${item.label}: ${item.value} received`}
                       />{' '}
                       <div
-                        className="admin-bar-fill"
-                        style={{ height: `${resHeight}%`, background: 'var(--color-success)' }}
+                        className="admin-bar-fill admin-bar-fill--resolved"
+                        style={{ height: `${resHeight}%` }}
                         title={`${item.label}: ${resItem?.value || 0} resolved`}
                       />{' '}
                     </div>{' '}
@@ -121,60 +119,39 @@ export function AdminPerformance() {
             {' '}
             <h3 className="admin-chart-title">Department SLA Compliance vs 90% Benchmark</h3>{' '}
           </div>{' '}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+          <div className="admin-u-stack">
             {' '}
             {rankings.map((dept) => (
               <div key={dept.departmentId}>
                 {' '}
                 <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: '0.8125rem',
-                    marginBottom: '4px',
-                  }}
+                  className="admin-sla-bar__head"
                 >
                   {' '}
-                  <span style={{ fontWeight: 700, color: 'var(--color-text)' }}>{dept.shortName}</span>{' '}
+                  <span className="admin-u-strong">{dept.shortName}</span>{' '}
                   <span
-                    style={{
-                      fontWeight: 700,
-                      color: dept.slaCompliance >= 90 ? 'var(--green-500)' : 'var(--amber-600)',
-                    }}
+                    className={
+                      dept.slaCompliance >= 90 ? 'admin-u-good' : 'admin-u-warning'
+                    }
                   >
                     {' '}
                     {dept.slaCompliance}%
                   </span>{' '}
                 </div>{' '}
                 <div
-                  style={{
-                    height: '8px',
-                    background: 'var(--color-surface-sunken)',
-                    borderRadius: '4px',
-                    position: 'relative',
-                  }}
+                  className="admin-sla-bar__track"
                 >
                   {' '}
                   <div
-                    style={{
-                      height: '100%',
-                      width: `${dept.slaCompliance}%`,
-                      background: dept.slaCompliance >= 90 ? 'var(--green-500)' : 'var(--color-warning)',
-                      borderRadius: '4px',
-                    }}
+                    className={`admin-sla-bar__fill${
+                      dept.slaCompliance >= 90 ? ' is-met' : ' is-short'
+                    }`}
+                    style={{ width: `${dept.slaCompliance}%` }}
                   />{' '}
                   {/* 90% benchmark indicator */}
                   <div
-                    style={{
-                      position: 'absolute',
-                      left: '90%',
-                      top: '-2px',
-                      bottom: '-2px',
-                      width: '2px',
-                      background: 'var(--color-text)',
-                      opacity: 0.3,
-                    }}
-                    title="90% Target Benchmark"
+                    className="admin-sla-bar__benchmark"
+                    title="90% target benchmark"
                   />{' '}
                 </div>{' '}
               </div>

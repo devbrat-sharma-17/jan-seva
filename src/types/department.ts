@@ -91,18 +91,34 @@ export interface DepartmentMetrics {
   backlogCount: number;
 }
 
+/** One scored dimension. `hasData` false means it was not measurable. */
+export interface PerformanceComponent {
+  score: number;
+  max: number;
+  label: string;
+  value: string;
+  hasData: boolean;
+}
+
 export interface PerformanceScoreBreakdown {
   totalScore: number;
-  tier: 'star' | 'performing' | 'needs-attention' | 'critical';
+  /**
+   * `no-data` is a real outcome, not a failure. A department with no
+   * complaints has no performance, and must not be shown a tier it did
+   * not earn in either direction.
+   */
+  tier: 'star' | 'performing' | 'needs-attention' | 'critical' | 'no-data';
   tierLabel: string;
   tierBadge: string;
+  /** Points on the 100-point scale that had data behind them. */
+  dataCoverage: number;
   components: {
-    resolutionRate: { score: number; max: number; label: string; value: string };
-    slaCompliance: { score: number; max: number; label: string; value: string };
-    resolutionSpeed: { score: number; max: number; label: string; value: string };
-    citizenSatisfaction: { score: number; max: number; label: string; value: string };
-    backlogControl: { score: number; max: number; label: string; value: string };
-    escalationRate: { score: number; max: number; label: string; value: string };
+    resolutionRate: PerformanceComponent;
+    slaCompliance: PerformanceComponent;
+    resolutionSpeed: PerformanceComponent;
+    citizenSatisfaction: PerformanceComponent;
+    backlogControl: PerformanceComponent;
+    escalationRate: PerformanceComponent;
   };
 }
 

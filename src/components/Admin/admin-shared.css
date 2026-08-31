@@ -701,3 +701,413 @@
 .admin-compare-card .admin-complaints-table tbody tr {
   cursor: default;
 }
+
+/* ============================================================
+   Admin utility layer
+   ------------------------------------------------------------
+   The table and card screens had accumulated ~100 inline `style`
+   objects carrying hard-coded font sizes and colour literals — the
+   same six or seven patterns, written out again at each call site,
+   none of them reachable by a theme change.
+
+   These are those patterns, named once and resolved to tokens.
+   Genuinely computed values (a bar width, a map pin position) stay
+   inline, because that is what inline style is for.
+   ============================================================ */
+
+/* --- Text roles --- */
+
+.admin-u-strong {
+  font-weight: var(--weight-bold);
+  color: var(--admin-fg);
+}
+
+.admin-u-sub {
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--admin-fg-muted);
+}
+
+.admin-u-note {
+  font-size: var(--text-xs);
+  color: var(--admin-fg-muted);
+}
+
+.admin-u-caption {
+  font-size: var(--text-sm);
+  color: var(--admin-fg-muted);
+}
+
+.admin-u-muted {
+  color: var(--admin-fg-muted);
+}
+
+/* --- Semantic emphasis. Meaning, not colour. --- */
+
+.admin-u-danger {
+  color: var(--color-error-fg);
+  font-weight: var(--weight-bold);
+}
+
+.admin-u-warning {
+  color: var(--color-warning-fg);
+  font-weight: var(--weight-bold);
+}
+
+.admin-u-good {
+  color: var(--color-success-fg);
+  font-weight: var(--weight-bold);
+}
+
+.admin-u-info {
+  color: var(--admin-blue-dark);
+  font-weight: var(--weight-bold);
+}
+
+/* --- Layout --- */
+
+.admin-u-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.admin-u-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.admin-u-right {
+  text-align: right;
+}
+
+.admin-u-capitalize {
+  text-transform: capitalize;
+}
+
+/* --- Table cells --- */
+
+.admin-cell-title {
+  font-weight: var(--weight-bold);
+  color: var(--admin-fg);
+}
+
+.admin-cell-muted {
+  color: var(--admin-fg-muted);
+}
+
+.admin-cell-empty {
+  color: var(--admin-fg-muted);
+  font-style: italic;
+}
+
+.admin-table-link {
+  color: var(--admin-blue-dark);
+  font-weight: var(--weight-bold);
+  text-decoration: none;
+}
+
+.admin-table-link:hover {
+  text-decoration: underline;
+}
+
+/* --- A KPI card that filters the list below it --- */
+
+.kpi-card--clickable {
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.kpi-card--clickable:hover {
+  border-color: var(--admin-blue);
+  box-shadow: var(--shadow-sm);
+}
+
+.kpi-card--clickable:focus-visible {
+  outline: 2px solid var(--admin-blue);
+  outline-offset: 2px;
+}
+
+.kpi-card__value--danger { color: var(--color-error-fg); }
+.kpi-card__value--warning { color: var(--color-warning-fg); }
+.kpi-card__value--good { color: var(--color-success-fg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .kpi-card--clickable { transition: none; }
+}
+
+/* --- Second-pass utilities (from the inline-style sweep) --- */
+
+.admin-u-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--admin-fg-secondary);
+}
+
+.admin-u-figure {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--admin-fg);
+}
+
+.admin-u-gap-sm { margin-bottom: var(--space-3); }
+.admin-u-gap-md { margin-bottom: var(--space-4); }
+.admin-u-gap-lg { margin-bottom: var(--space-6); }
+
+.admin-u-row-tight {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.admin-u-fill {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.admin-u-split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.admin-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+  gap: var(--space-6);
+}
+
+/* On-dark surfaces (the map's detail panel) */
+
+.admin-u-ondark-accent { color: var(--blue-300); }
+
+.admin-u-sub-ondark {
+  font-size: var(--text-xs);
+  color: var(--blue-300);
+}
+
+.admin-u-label-ondark {
+  margin-bottom: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--admin-border-strong);
+}
+
+/* --- Chart legend swatches --- */
+
+.admin-swatch--received { background: var(--admin-blue); }
+.admin-swatch--resolved { background: var(--color-success); }
+
+.admin-bar-fill--received { background: var(--admin-blue); }
+.admin-bar-fill--resolved { background: var(--color-success); }
+
+/* --- SLA compliance bars, with the 90% target marked --- */
+
+.admin-sla-bar__head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.admin-sla-bar__track {
+  position: relative;
+  height: 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--admin-surface-sunken);
+}
+
+.admin-sla-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-warning);
+  transition: width var(--transition-slow);
+}
+
+.admin-sla-bar__fill.is-met { background: var(--color-success); }
+.admin-sla-bar__fill.is-short { background: var(--color-warning); }
+
+/* The target line sits above the fill so a bar at 95% still shows it. */
+.admin-sla-bar__benchmark {
+  position: absolute;
+  left: 90%;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--admin-fg);
+  opacity: 0.3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-sla-bar__fill { transition: none; }
+}
+
+/* ------------------------------------------------------------
+   Printable report sheet
+   ------------------------------------------------------------ */
+
+.admin-report-sheet {
+  max-width: 56rem;
+  padding: clamp(var(--space-5), 4vw, var(--space-10));
+  border: 2px solid var(--admin-border-strong);
+  border-radius: var(--admin-radius);
+  background: var(--admin-surface-card);
+}
+
+.admin-report-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-5);
+  margin-bottom: var(--space-6);
+  border-bottom: 2px solid var(--admin-navy);
+}
+
+.admin-report-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.admin-report-wordmark {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-wide);
+  color: var(--admin-fg);
+}
+
+.admin-report-meta-label {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--admin-fg-muted);
+}
+
+.admin-report-h2 {
+  margin-bottom: var(--space-4);
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-extrabold);
+  color: var(--admin-fg);
+}
+
+.admin-report-intro {
+  margin-bottom: var(--space-6);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--admin-fg-secondary);
+}
+
+/* --- Initiative cards --- */
+
+.admin-ini__status {
+  padding: 0.2rem var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--admin-surface-sunken);
+  color: var(--admin-fg-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+}
+
+.admin-ini__status--active {
+  background: var(--color-success-bg);
+  color: var(--color-success-fg);
+}
+
+.admin-ini__title {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-extrabold);
+  color: var(--admin-fg);
+}
+
+.admin-ini__desc {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--admin-fg-secondary);
+}
+
+.admin-ini__progress-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+}
+
+.admin-ini__track {
+  height: 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--admin-surface-sunken);
+  overflow: hidden;
+}
+
+.admin-ini__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--admin-blue-dark);
+  transition: width var(--transition-slow);
+}
+
+/* --- Map detail card --- */
+
+.admin-mapcard__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.admin-mapcard__id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-extrabold);
+  color: var(--admin-blue-dark);
+}
+
+.admin-mapcard__close {
+  padding: var(--space-1);
+  border: 0;
+  background: none;
+  color: var(--admin-fg-muted);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.admin-mapcard__close:hover {
+  color: var(--admin-fg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-ini__fill { transition: none; }
+}
+
+.admin-report-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-top: var(--space-5);
+  margin-top: var(--space-8);
+  border-top: 1px solid var(--admin-border);
+  font-size: var(--text-xs);
+  color: var(--admin-fg-muted);
+}

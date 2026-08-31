@@ -5,27 +5,32 @@ import { getDepartmentConfig } from '../../../data/departments';
 import { getDepartmentEscalations, subscribeToComplaints } from '../../../services/complaintService';
 
 import type { Complaint } from '../../../types';
+import { SkeletonQueue, LoadingAnnouncement } from '../../portal/Skeletons';
 import type { DepartmentUser } from '../../../types/department';
 import './DepartmentEscalations.css';
 
 export function DepartmentEscalations() {
-  const [user, setUser] = useState<DepartmentUser | null>(() => getCurrentDepartmentUser());
-  const [escalations, setEscalations] = useState<Complaint[]>([]);
+  const [user] = useState<DepartmentUser | null>(() => getCurrentDepartmentUser());
+  const [escalations, setEscalations] = useState<Complaint[] | null>(null);
+
+  const departmentId = user?.departmentId;
 
   useEffect(() => {
-    setUser(getCurrentDepartmentUser());
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-    const load = () => setEscalations(getDepartmentEscalations(user.departmentId));
+    if (!departmentId) return;
+    const load = () => setEscalations(getDepartmentEscalations(departmentId));
     load();
-    const unsubscribe = subscribeToComplaints(load);
-    return () => unsubscribe();
-  }, [user?.departmentId]);
+    return subscribeToComplaints(load);
+  }, [departmentId]);
 
-  if (!user) {
-    return <div className="dept-loading">Loading escalations</div>;
+  if (!user) return null;
+
+  if (escalations === null) {
+    return (
+      <div className="dept-page dept-page--narrow">
+        <LoadingAnnouncement label="escalations" />
+        <SkeletonQueue rows={3} />
+      </div>
+    );
   }
 
   const deptConfig = getDepartmentConfig(user.departmentId);

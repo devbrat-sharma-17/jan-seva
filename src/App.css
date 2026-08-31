@@ -18,3 +18,10 @@
   /* The skip link target must clear the fixed header */
   scroll-margin-top: var(--header-total);
 }
+
+/* Holds the viewport while a lazily-loaded portal chunk arrives, so the
+   footer does not jump up into the middle of the screen for a frame. */
+.route-fallback {
+  min-height: 100dvh;
+  background: var(--color-bg);
+}

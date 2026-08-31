@@ -356,3 +356,108 @@
     transition: none;
   }
 }
+
+/* ------------------------------------------------------------
+   Sign-in notice (session expired, etc.)
+   ------------------------------------------------------------ */
+
+.admin-login__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  color: var(--color-warning-fg);
+  font-size: var(--text-sm);
+}
+
+.admin-login__notice svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ------------------------------------------------------------
+   Demo zone
+   ------------------------------------------------------------
+   Visually fenced from the credential form above it, so a one-click
+   entry never reads as the authentication step.
+   ------------------------------------------------------------ */
+
+.admin-login__demo-zone {
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  border: 1px dashed var(--admin-border-strong);
+  border-radius: var(--admin-radius);
+  background: var(--admin-surface-sunken);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.admin-login__demo-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  color: var(--admin-fg-muted);
+}
+
+.admin-login__demo-chip {
+  padding: 0.125rem var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  color: var(--color-warning-fg);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.admin-login__demo-toggle {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--admin-blue);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.admin-login__demo-toggle:focus-visible {
+  outline: 2px solid var(--admin-blue);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.admin-login__demo-creds {
+  margin: 0;
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.admin-login__demo-creds > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.admin-login__demo-creds dt {
+  color: var(--admin-fg-muted);
+}
+
+.admin-login__demo-creds dd {
+  margin: 0;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-weight: var(--weight-semibold);
+  color: var(--admin-fg);
+}

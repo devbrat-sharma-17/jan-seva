@@ -407,46 +407,102 @@
   transform: translateX(2px);
 }
 
-/* Secondary credentials path -------------------------------- */
+/* Demo zone -------------------------------------------------
+   Dashed border and a warning-toned chip keep the shortcut visually
+   distinct from the credential form it sits under.
+   ----------------------------------------------------------- */
 
-.deptlogin__alt {
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-4);
+.deptlogin__demo-zone {
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-sunken);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
-.deptlogin__alt-toggle {
+.deptlogin__demo-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  color: var(--color-text-muted);
+}
+
+.deptlogin__demo-chip {
+  padding: 0.125rem var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  color: var(--color-warning-fg);
+  font-weight: var(--font-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.deptlogin__demo-btn {
   width: 100%;
-  min-height: 2.5rem;
-  padding: 0 var(--space-1);
-  background: none;
-  border: none;
-  border-radius: var(--radius-md);
+  min-height: var(--tap-target, 2.75rem);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text);
   font-family: inherit;
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
-  color: var(--color-text-secondary);
   cursor: pointer;
-  transition: color var(--transition-fast);
+  transition: background var(--transition-fast);
 }
 
-.deptlogin__alt-toggle:hover {
+.deptlogin__demo-btn:hover:not(:disabled) {
+  background: var(--color-surface-sunken);
+}
+
+.deptlogin__demo-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.deptlogin__demo-toggle {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--dept-accent);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  text-decoration: underline;
+  cursor: pointer;
 }
 
-.deptlogin__alt-chevron {
+.deptlogin__demo-creds {
+  margin: 0;
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.deptlogin__demo-creds > div {
   display: flex;
-  transition: transform var(--transition-fast);
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 
-.deptlogin__alt-chevron.is-open {
-  transform: rotate(180deg);
+.deptlogin__demo-creds dt {
+  color: var(--color-text-muted);
+}
+
+.deptlogin__demo-creds dd {
+  margin: 0;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
 }
 
 .deptlogin__form {
@@ -491,7 +547,6 @@
   .deptlogin__spinner { animation-duration: 2.4s; }
   .deptlogin__role,
   .deptlogin__dept,
-  .deptlogin__alt-chevron,
   .deptlogin__role-go {
     transition: none;
   }

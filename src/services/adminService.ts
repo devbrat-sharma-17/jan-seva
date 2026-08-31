@@ -23,9 +23,7 @@ import type {
   FeedbackSummary,
   FeedbackTheme,
   EscalationSummary,
-  AdminAuditEvent,
   AdminAuditAction,
-  AdminNotification,
   TrendSeries,
   TrendPeriod,
   AdminComplaintFilters,
@@ -40,14 +38,20 @@ import {
 } from './complaintService';
 
 import { calculatePerformanceScore } from './performanceService';
+import { computeSlaHealth } from './slaService';
 import { DEPARTMENTS } from '../data/departments';
-import { readJSON, writeJSON } from './storage';
+import {
+  recordAuditEvent,
+  getAuditTrail as readAuditTrail,
+  getAuditTrailForComplaint as readComplaintAuditTrail,
+  subscribeToAuditTrail,
+} from './auditService';
+import type { AuditEvent } from '../types/audit';
 
 // ============================================================
 // Constants
 // ============================================================
 
-const ADMIN_AUDIT_STORAGE_KEY = 'jan_seva_admin_audit_v1';
 const DEPARTMENT_IDS: DepartmentId[] = ['roads', 'sanitation', 'water', 'electrical', 'infrastructure'];
 
 /**
@@ -81,8 +85,13 @@ export function getCityOverview(): CityOverviewKPIs {
   let pendingCitizenVerification = 0;
   let citizenVerified = 0;
   let slaBreached = 0;
+  let resolvedOnTime = 0;
 
   for (const c of all) {
+    // Derived from `dueAt` against the clock. The persisted `sla.status`
+    // is a snapshot from write time and goes stale within hours.
+    const health = computeSlaHealth(c, now);
+
     if (c.status === 'resolved') {
       resolved++;
       if (c.resolution?.citizenVerifiedResolved) {
@@ -90,21 +99,23 @@ export function getCityOverview(): CityOverviewKPIs {
       } else {
         pendingCitizenVerification++;
       }
+      if (health && health.msRemaining >= 0) resolvedOnTime++;
       if (c.resolution?.resolvedAt) {
         const created = new Date(c.createdAt).getTime();
         const res = new Date(c.resolution.resolvedAt).getTime();
-        totalResolutionHoursSum += Math.max(1, Math.round((res - created) / (3600 * 1000)));
-        resolvedWithTimestamp++;
+        if (res > created) {
+          totalResolutionHoursSum += Math.max(1, Math.round((res - created) / (3600 * 1000)));
+          resolvedWithTimestamp++;
+        }
       }
     } else {
       active++;
-      if (c.status === 'escalated') escalated++;
-      const dueTime = new Date(c.sla.dueAt).getTime();
-      if (c.sla.status === 'exceeded' || dueTime < now) {
-        slaBreached++;
-        if (c.status !== 'escalated') escalated++;
-      }
+      if (health?.status === 'exceeded') slaBreached++;
     }
+
+    // One complaint, one escalation. Counting the status and the breach
+    // separately made a single escalated complaint appear as two.
+    if (c.status === 'escalated' || c.sla.escalatedAt) escalated++;
 
     if (c.feedback?.rating) {
       totalRatingSum += c.feedback.rating;
@@ -113,9 +124,14 @@ export function getCityOverview(): CityOverviewKPIs {
   }
 
   const total = all.length;
-  const slaCompliancePercent = total > 0
-    ? Math.max(0, Math.round(((total - slaBreached) / total) * 100))
-    : 100;
+
+  // Measured over complaints whose SLA outcome is settled — resolved, or
+  // already breached. Work still inside its window has neither met nor
+  // missed the target, and counting it as compliant flatters the number.
+  const slaSettled = resolved + slaBreached;
+  const slaCompliancePercent = slaSettled > 0
+    ? Math.round((resolvedOnTime / slaSettled) * 100)
+    : 0;
   const citizenSatisfactionAverage = ratingsCount > 0
     ? Number((totalRatingSum / ratingsCount).toFixed(1))
     : 0;
@@ -263,11 +279,11 @@ export function getCityNeedsAttention(): AttentionItem[] {
     const metrics = getDepartmentMetrics(deptId);
     const score = calculatePerformanceScore(metrics);
 
-    // SLA breaches
+    // SLA health from `dueAt` against the clock. The persisted
+    // `sla.status` is a snapshot from write time and goes stale.
     const breached = deptComplaints.filter(c => {
       if (c.status === 'resolved') return false;
-      const dueTime = new Date(c.sla.dueAt).getTime();
-      return c.sla.status === 'exceeded' || dueTime < now;
+      return computeSlaHealth(c, now)?.status === 'exceeded';
     });
     if (breached.length > 0) {
       items.push({
@@ -287,9 +303,7 @@ export function getCityNeedsAttention(): AttentionItem[] {
     // SLA approaching
     const approaching = deptComplaints.filter(c => {
       if (c.status === 'resolved') return false;
-      const dueTime = new Date(c.sla.dueAt).getTime();
-      const isApproaching = c.sla.status === 'approaching' || (dueTime - now < 6 * 3600 * 1000 && dueTime > now);
-      return isApproaching;
+      return computeSlaHealth(c, now)?.status === 'approaching';
     });
     if (approaching.length > 0) {
       items.push({
@@ -383,52 +397,82 @@ export function getCityNeedsAttention(): AttentionItem[] {
 export function getAllDepartmentRankings(sortBy: 'score' | 'sla' | 'resolution' | 'satisfaction' | 'backlog' = 'score'): DepartmentRanking[] {
   const rankings: DepartmentRanking[] = [];
 
+  // Read the store once. This loop used to call `getStoredComplaints()`
+  // inside each of five iterations, parsing the whole repository five
+  // times for one render of the standings table.
+  const allComplaints = getStoredComplaints();
+
   for (const deptId of DEPARTMENT_IDS) {
     const dept = DEPARTMENTS[deptId];
     const metrics = getDepartmentMetrics(deptId);
     const score = calculatePerformanceScore(metrics);
+    const components = score.components;
 
-    // Determine reasons behind the score
+    /* Reasons and recognitions are only drawn from dimensions that have
+       data. Without this guard, a department with nothing filed against
+       it collected "Fast resolution speed" and "Zero escalations" for
+       having done no work, while one awaiting its first citizen rating
+       was marked down for "satisfaction 0/5". */
     const reasons: string[] = [];
     const recognitions: string[] = [];
 
-    // Resolution rate analysis
-    if (metrics.resolutionRatePercent >= 95) recognitions.push('Excellent resolution rate');
-    else if (metrics.resolutionRatePercent < 80) reasons.push(`Resolution rate at ${metrics.resolutionRatePercent}% — below target`);
+    if (components.resolutionRate.hasData) {
+      if (metrics.resolutionRatePercent >= 95) recognitions.push('Excellent resolution rate');
+      else if (metrics.resolutionRatePercent < 80) {
+        reasons.push(`Resolution rate ${metrics.resolutionRatePercent}%, below target`);
+      }
+    }
 
-    // SLA analysis
-    if (metrics.slaCompliancePercent >= 95) recognitions.push('Top SLA compliance');
-    else if (metrics.slaCompliancePercent < 80) reasons.push(`SLA compliance at ${metrics.slaCompliancePercent}% — needs improvement`);
+    if (components.slaCompliance.hasData) {
+      if (metrics.slaCompliancePercent >= 95) recognitions.push('Top SLA compliance');
+      else if (metrics.slaCompliancePercent < 80) {
+        reasons.push(`SLA compliance ${metrics.slaCompliancePercent}%, needs improvement`);
+      }
+    }
 
-    // Resolution speed
-    if (metrics.averageResolutionHours <= 24) recognitions.push('Fast resolution speed');
-    else if (metrics.averageResolutionHours > 48) reasons.push(`Average resolution ${metrics.averageResolutionHours}h — above 48h target`);
+    if (components.resolutionSpeed.hasData) {
+      if (metrics.averageResolutionHours <= 24) recognitions.push('Fast turnaround');
+      else if (metrics.averageResolutionHours > 48) {
+        reasons.push(`Average turnaround ${metrics.averageResolutionHours}h, over the 48h target`);
+      }
+    }
 
-    // Citizen satisfaction
-    if (metrics.citizenSatisfactionAverage >= 4.5) recognitions.push('High citizen satisfaction');
-    else if (metrics.citizenSatisfactionAverage < 3.5) reasons.push(`Citizen satisfaction ${metrics.citizenSatisfactionAverage}/5 — below threshold`);
+    if (components.citizenSatisfaction.hasData) {
+      if (metrics.citizenSatisfactionAverage >= 4.5) recognitions.push('High citizen satisfaction');
+      else if (metrics.citizenSatisfactionAverage < 3.5) {
+        reasons.push(`Citizen satisfaction ${metrics.citizenSatisfactionAverage}/5, below threshold`);
+      }
+    }
 
-    // Backlog
-    if (metrics.backlogCount > 10) reasons.push(`Backlog of ${metrics.backlogCount} active complaints`);
-    else if (metrics.backlogCount <= 3) recognitions.push('Well-controlled backlog');
+    if (metrics.totalReceived > 0) {
+      if (metrics.backlogCount > 10) reasons.push(`Backlog of ${metrics.backlogCount} open complaints`);
+      else if (metrics.backlogCount <= 3) recognitions.push('Well-controlled backlog');
 
-    // Escalations
-    if (metrics.escalated > 5) reasons.push(`${metrics.escalated} escalations — high volume`);
-    else if (metrics.escalated === 0) recognitions.push('Zero escalations');
+      if (metrics.escalated > 5) reasons.push(`${metrics.escalated} escalations open`);
+      else if (metrics.escalated === 0) recognitions.push('No escalations');
+    }
 
-    // Pending verification
-    const deptComplaints = getStoredComplaints().filter(c => matchesDepartment(c, deptId));
+    const deptComplaints = allComplaints.filter(c => matchesDepartment(c, deptId));
     const pendingVerification = deptComplaints.filter(c =>
       c.status === 'resolved' && c.resolution && !c.resolution.citizenVerifiedResolved
     ).length;
 
-    // Trend (simplified — based on current metrics)
+    /* Direction of travel, inferred from where the department stands
+       today. A genuine trend needs history this build does not keep, so
+       departments with nothing to measure are reported as flat rather
+       than assigned a direction. */
     let trend: 'improving' | 'stable' | 'declining' = 'stable';
-    if (score.totalScore >= 85 && metrics.escalated <= 2) trend = 'improving';
-    else if (score.totalScore < 70 || metrics.escalated > 5) trend = 'declining';
+    if (score.tier !== 'no-data') {
+      if (score.totalScore >= 85 && metrics.escalated <= 2) trend = 'improving';
+      else if (score.totalScore < 70 || metrics.escalated > 5) trend = 'declining';
+    }
 
     if (reasons.length === 0 && recognitions.length === 0) {
-      reasons.push('Performance within expected range');
+      reasons.push(
+        metrics.totalReceived === 0
+          ? 'No complaints routed to this department yet'
+          : 'Performance within the expected range'
+      );
     }
 
     rankings.push({
@@ -437,7 +481,7 @@ export function getAllDepartmentRankings(sortBy: 'score' | 'sla' | 'resolution' 
       shortName: dept.shortName,
       icon: dept.icon,
       accent: dept.visual.accent,
-      rank: 0, // Will be set after sorting
+      rank: 0, // Assigned after sorting.
       performanceScore: score.totalScore,
       tier: score.tier,
       tierLabel: score.tierLabel,
@@ -455,16 +499,21 @@ export function getAllDepartmentRankings(sortBy: 'score' | 'sla' | 'resolution' 
     });
   }
 
-  // Sort
+  // Departments with nothing to measure sort last on every key, so an
+  // empty department never tops the standings on a technicality.
+  const unranked = (r: DepartmentRanking) => (r.tier === 'no-data' ? 1 : 0);
+
+  const by = (compare: (a: DepartmentRanking, b: DepartmentRanking) => number) =>
+    rankings.sort((a, b) => unranked(a) - unranked(b) || compare(a, b));
+
   switch (sortBy) {
-    case 'sla': rankings.sort((a, b) => b.slaCompliance - a.slaCompliance); break;
-    case 'resolution': rankings.sort((a, b) => b.resolutionRate - a.resolutionRate); break;
-    case 'satisfaction': rankings.sort((a, b) => b.citizenSatisfaction - a.citizenSatisfaction); break;
-    case 'backlog': rankings.sort((a, b) => a.backlogCount - b.backlogCount); break;
-    default: rankings.sort((a, b) => b.performanceScore - a.performanceScore);
+    case 'sla': by((a, b) => b.slaCompliance - a.slaCompliance); break;
+    case 'resolution': by((a, b) => b.resolutionRate - a.resolutionRate); break;
+    case 'satisfaction': by((a, b) => b.citizenSatisfaction - a.citizenSatisfaction); break;
+    case 'backlog': by((a, b) => a.backlogCount - b.backlogCount); break;
+    default: by((a, b) => b.performanceScore - a.performanceScore);
   }
 
-  // Assign rank
   rankings.forEach((r, i) => { r.rank = i + 1; });
 
   return rankings;
@@ -510,7 +559,7 @@ export function getCivicHotspots(): CivicHotspot[] {
     ).length;
     const slaBreached = complaints.filter(c => {
       if (c.status === 'resolved') return false;
-      return c.sla.status === 'exceeded' || new Date(c.sla.dueAt).getTime() < now;
+      return computeSlaHealth(c, now)?.status === 'exceeded';
     }).length;
 
     // Average resolution hours
@@ -667,10 +716,10 @@ export function getEscalationSummary(): EscalationSummary {
       continue;
     }
 
-    const dueTime = new Date(c.sla.dueAt).getTime();
-    if (c.sla.status === 'exceeded' || dueTime < now) {
+    const health = computeSlaHealth(c, now);
+    if (health?.status === 'exceeded') {
       slaBreached++;
-    } else if (c.sla.status === 'approaching' || (dueTime - now < 6 * 3600 * 1000)) {
+    } else if (health?.status === 'approaching') {
       slaAtRisk++;
     }
 
@@ -827,85 +876,29 @@ export function getRecentActivity(limit: number = 10): Array<{
 }
 
 // ============================================================
-// Admin Notifications — generated from metrics thresholds
+// Admin Notifications
 // ============================================================
+// Moved to `notificationService`, which fingerprints each alert so read
+// state survives a re-render. Re-exported here because the admin screens
+// already import their data from this module.
 
-export function getAdminNotifications(): AdminNotification[] {
-  const notifications: AdminNotification[] = [];
-  const escSummary = getEscalationSummary();
-  const overview = getCityOverview();
-
-  if (escSummary.slaBreached > 0) {
-    notifications.push({
-      id: 'notif-sla-breach',
-      type: 'sla_breach',
-      severity: 'critical',
-      title: `${escSummary.slaBreached} SLA Breach${escSummary.slaBreached > 1 ? 'es' : ''}`,
-      message: `${escSummary.slaBreached} complaint${escSummary.slaBreached > 1 ? 's have' : ' has'} exceeded the SLA deadline.`,
-      timestamp: new Date().toISOString(),
-      read: false,
-    });
-  }
-
-  if (escSummary.slaAtRisk > 0) {
-    notifications.push({
-      id: 'notif-sla-risk',
-      type: 'sla_breach',
-      severity: 'high',
-      title: `${escSummary.slaAtRisk} SLA${escSummary.slaAtRisk > 1 ? 's' : ''} at Risk`,
-      message: `${escSummary.slaAtRisk} complaint${escSummary.slaAtRisk > 1 ? 's are' : ' is'} nearing the SLA deadline.`,
-      timestamp: new Date().toISOString(),
-      read: false,
-    });
-  }
-
-  if (overview.pendingCitizenVerification > 0) {
-    notifications.push({
-      id: 'notif-pending-verify',
-      type: 'feedback',
-      severity: 'medium',
-      title: `${overview.pendingCitizenVerification} Pending Verification${overview.pendingCitizenVerification > 1 ? 's' : ''}`,
-      message: `${overview.pendingCitizenVerification} resolved complaint${overview.pendingCitizenVerification > 1 ? 's are' : ' is'} awaiting citizen confirmation.`,
-      timestamp: new Date().toISOString(),
-      read: false,
-    });
-  }
-
-  // Star department recognition
-  const rankings = getAllDepartmentRankings();
-  const starDepts = rankings.filter(r => r.tier === 'star');
-  for (const star of starDepts) {
-    notifications.push({
-      id: `notif-star-${star.departmentId}`,
-      type: 'recognition',
-      severity: 'low',
-      title: `${star.shortName} — Star Department`,
-      message: `${star.shortName} achieved Star Department status with a score of ${star.performanceScore}/100.`,
-      department: star.shortName,
-      departmentId: star.departmentId,
-      timestamp: new Date().toISOString(),
-      read: false,
-    });
-  }
-
-  return notifications;
-}
+export {
+  getAdminNotifications,
+  getUnreadNotificationCount,
+  markNotificationRead,
+  markAllNotificationsRead,
+  markNotificationUnread,
+  subscribeToNotificationReadState,
+} from './notificationService';
 
 // ============================================================
 // Admin Audit Trail — SEPARATE from complaint timeline
 // ============================================================
 
-function readAuditTrail(): AdminAuditEvent[] {
-  return readJSON<AdminAuditEvent[]>(ADMIN_AUDIT_STORAGE_KEY, []);
-}
-
-function saveAuditTrail(events: AdminAuditEvent[]): void {
-  try {
-    writeJSON(ADMIN_AUDIT_STORAGE_KEY, events);
-  } catch {
-    // Best-effort
-  }
-}
+// The trail itself lives in `auditService`, shared with the department
+// portal, so an administrator sees department actions and department
+// staff see the administrative actions taken on their complaints. These
+// wrappers keep the admin screens reading city-wide scope by default.
 
 export function addAuditEvent(
   admin: { id: string; name: string },
@@ -914,36 +907,27 @@ export function addAuditEvent(
   targetId: string,
   description: string,
   metadata?: Record<string, string>
-): AdminAuditEvent {
-  const event: AdminAuditEvent = {
-    id: `audit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    timestamp: new Date().toISOString(),
-    adminId: admin.id,
-    adminName: admin.name,
+): AuditEvent {
+  return recordAuditEvent({
+    actor: { id: admin.id, name: admin.name, role: 'admin' },
     action,
     targetType,
     targetId,
     description,
     metadata,
-  };
-
-  const trail = readAuditTrail();
-  trail.unshift(event);
-  // Keep last 500 events
-  if (trail.length > 500) trail.length = 500;
-  saveAuditTrail(trail);
-
-  return event;
+  });
 }
 
-export function getAuditTrail(limit: number = 50): AdminAuditEvent[] {
-  const trail = readAuditTrail();
-  return trail.slice(0, limit);
+export function getAuditTrail(limit: number = 50): AuditEvent[] {
+  return readAuditTrail({ role: 'admin' }, limit);
 }
 
-export function getAuditTrailForComplaint(complaintId: string): AdminAuditEvent[] {
-  return readAuditTrail().filter(e => e.targetId === complaintId);
+export function getAuditTrailForComplaint(complaintId: string): AuditEvent[] {
+  return readComplaintAuditTrail(complaintId, { role: 'admin' });
 }
+
+/** Re-exported so admin screens refresh when any actor writes to the trail. */
+export const subscribeToAudit = subscribeToAuditTrail;
 
 // ============================================================
 // Admin Complaint Operations
@@ -986,11 +970,11 @@ export function getFilteredComplaints(filters: AdminComplaintFilters): Complaint
   if (filters.slaStatus) {
     all = all.filter(c => {
       if (c.status === 'resolved') return filters.slaStatus === 'met';
-      const dueTime = new Date(c.sla.dueAt).getTime();
+      const slaStatus = computeSlaHealth(c, now)?.status;
       switch (filters.slaStatus) {
-        case 'exceeded': return c.sla.status === 'exceeded' || dueTime < now;
-        case 'approaching': return c.sla.status === 'approaching' || (dueTime - now < 6 * 3600 * 1000 && dueTime > now);
-        case 'normal': return dueTime - now >= 6 * 3600 * 1000;
+        case 'exceeded': return slaStatus === 'exceeded';
+        case 'approaching': return slaStatus === 'approaching';
+        case 'normal': return slaStatus === 'normal';
         default: return true;
       }
     });
@@ -1024,15 +1008,60 @@ export function getDepartmentDetail(deptId: DepartmentId) {
   const escalations = getDepartmentEscalations(deptId);
   const complaints = getStoredComplaints().filter(c => matchesDepartment(c, deptId));
 
-  // "Why underperforming?" analysis
+  /* Why this department needs attention.
+     Each test is guarded on the data actually existing. Without the
+     guards a department with no ratings reads as "satisfaction 0/5",
+     and one with nothing resolved yet reads as "0% SLA compliance" —
+     both of which are absence of evidence being reported as failure. */
   const whyAttention: string[] = [];
-  if (metrics.slaCompliancePercent < 85) whyAttention.push(`SLA compliance at ${metrics.slaCompliancePercent}% — below the 85% target.`);
-  if (metrics.averageResolutionHours > 48) whyAttention.push(`Average resolution time ${metrics.averageResolutionHours}h — exceeds 48h target.`);
-  if (metrics.backlogCount > 5) whyAttention.push(`Active backlog of ${metrics.backlogCount} complaints.`);
-  if (metrics.escalated > 2) whyAttention.push(`${metrics.escalated} escalations this period.`);
-  if (metrics.citizenSatisfactionAverage < 4.0) whyAttention.push(`Citizen satisfaction ${metrics.citizenSatisfactionAverage}/5 — below 4.0 threshold.`);
-  if (metrics.reinspectionRequested > 0) whyAttention.push(`${metrics.reinspectionRequested} citizen reinspection request${metrics.reinspectionRequested > 1 ? 's' : ''} pending.`);
-  if (metrics.unassigned > 0) whyAttention.push(`${metrics.unassigned} complaint${metrics.unassigned > 1 ? 's' : ''} awaiting officer assignment.`);
+
+  const hasSlaOutcome = metrics.resolved > 0 || metrics.slaBreached > 0;
+  if (hasSlaOutcome && metrics.slaCompliancePercent < 85) {
+    whyAttention.push(`SLA compliance at ${metrics.slaCompliancePercent}%, below the 85% target.`);
+  }
+  if (metrics.resolved > 0 && metrics.averageResolutionHours > 48) {
+    whyAttention.push(`Average turnaround ${metrics.averageResolutionHours}h, over the 48h target.`);
+  }
+  if (metrics.backlogCount > 5) {
+    whyAttention.push(`Active backlog of ${metrics.backlogCount} complaints.`);
+  }
+  if (metrics.escalated > 2) {
+    whyAttention.push(`${metrics.escalated} escalations currently open.`);
+  }
+  if (metrics.totalRatingsCount > 0 && metrics.citizenSatisfactionAverage < 4.0) {
+    whyAttention.push(
+      `Citizen satisfaction ${metrics.citizenSatisfactionAverage}/5 across ${metrics.totalRatingsCount} rating${metrics.totalRatingsCount === 1 ? '' : 's'}, below the 4.0 threshold.`
+    );
+  }
+  if (metrics.reinspectionRequested > 0) {
+    whyAttention.push(
+      `${metrics.reinspectionRequested} citizen reinspection request${metrics.reinspectionRequested > 1 ? 's' : ''} outstanding.`
+    );
+  }
+  if (metrics.unassigned > 0) {
+    whyAttention.push(
+      `${metrics.unassigned} complaint${metrics.unassigned > 1 ? 's' : ''} with no officer assigned.`
+    );
+  }
+
+  /* Advisory next steps, ordered by what would move the score most.
+     These are suggestions for a human to weigh, not instructions, and
+     the UI labels them as such. */
+  const recommendations: string[] = [];
+  if (metrics.slaBreached > 0) {
+    recommendations.push(
+      `Clear the ${metrics.slaBreached} breached complaint${metrics.slaBreached > 1 ? 's' : ''} first — they carry the largest SLA penalty.`
+    );
+  }
+  if (metrics.unassigned > 0) {
+    recommendations.push('Assign an officer to every unassigned complaint before new intake arrives.');
+  }
+  if (metrics.highPriority + metrics.criticalPriority > 0 && metrics.backlogCount > 5) {
+    recommendations.push('Review unresolved high-priority complaints with the nodal officer.');
+  }
+  if (metrics.reinspectionRequested > 0) {
+    recommendations.push('Respond to outstanding reinspection requests — these are already-failed resolutions.');
+  }
 
   return {
     config: dept,
@@ -1042,6 +1071,7 @@ export function getDepartmentDetail(deptId: DepartmentId) {
     escalations,
     complaints,
     whyAttention,
+    recommendations,
   };
 }
 

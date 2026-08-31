@@ -532,3 +532,77 @@
     transition: none;
   }
 }
+
+/* ------------------------------------------------------------
+   Civic health caveat
+   ------------------------------------------------------------
+   The score is a product composite, not a government statistic, and the
+   card has to say so where the number is read.
+   ------------------------------------------------------------ */
+
+.civic-health__caveat {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  color: var(--admin-fg-muted);
+  max-width: 28rem;
+}
+
+/* ------------------------------------------------------------
+   Resolution quality pipeline
+   ------------------------------------------------------------ */
+
+.admin-pipeline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--space-3);
+}
+
+.admin-pipeline__step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-sunken);
+}
+
+.admin-pipeline__step--warning {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+}
+
+.admin-pipeline__step--good {
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+}
+
+.admin-pipeline__value {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-extrabold);
+  line-height: 1;
+  color: var(--admin-fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-pipeline__label {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-snug);
+  color: var(--admin-fg-secondary);
+}
+
+.admin-pipeline__note {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-xs);
+  line-height: var(--leading-relaxed);
+  color: var(--admin-fg-muted);
+}
+
+/* A department with nothing filed against it gets a neutral chip. */
+.dept-rank__tier--no-data {
+  background: var(--admin-surface-sunken);
+  color: var(--admin-fg-muted);
+}

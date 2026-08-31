@@ -1,271 +1,246 @@
 // ============================================================
-// Admin Citizen Feedback Center — JAN-SEVA Phase 5
+// Admin — citizen feedback and resolution quality
 // ============================================================
+// The distinction this screen exists to make: a department submitting a
+// resolution is not a citizen agreeing the work is done. The pipeline at
+// the top keeps those apart, and nothing here moves until a citizen acts.
 
-import { useMemo } from 'react';
+import { useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { getFeedbackSummary } from '../../../services/adminService';
+import { useLiveData } from '../../../hooks/useLiveData';
 import '../admin-shared.css';
 import '../Complaints/AdminComplaints.css';
+import './FeedbackOverview.css';
 
 export function FeedbackOverview() {
-  const summary = useMemo(() => getFeedbackSummary(), []);
+  const summary = useLiveData(useCallback(() => getFeedbackSummary(), []));
+
+  const hasRatings = summary.totalRatings > 0;
+
+  const sentiment = [
+    {
+      key: 'positive',
+      label: 'Positive',
+      detail: '4–5 stars',
+      count: summary.positive,
+      tone: 'good' as const,
+    },
+    {
+      key: 'neutral',
+      label: 'Neutral',
+      detail: '3 stars',
+      count: summary.neutral,
+      tone: 'neutral' as const,
+    },
+    {
+      key: 'negative',
+      label: 'Negative',
+      detail: '1–2 stars',
+      count: summary.negative,
+      tone: 'bad' as const,
+    },
+  ];
+
+  const pipeline = [
+    { label: 'Resolved by a department', value: summary.totalResolved, tone: 'neutral' as const },
+    { label: 'Awaiting citizen verification', value: summary.awaitingVerification, tone: 'warning' as const },
+    { label: 'Verified by the citizen', value: summary.citizenVerified, tone: 'good' as const },
+    { label: 'Reinspection requested', value: summary.reinspectionRequested, tone: 'bad' as const },
+  ];
 
   return (
-    <div className="admin-complaints">
-      {' '}
-      <div className="admin-complaints__header">
-        {' '}
-        <div className="admin-complaints__title-group">
-          {' '}
-          <h1>Citizen Feedback & Resolution Quality</h1>{' '}
-          <p>
-            Analyzing citizen sentiment, rating trends, and resolution verification across Gwalior
-          </p>{' '}
-        </div>{' '}
-      </div>{' '}
-      {/* Top Level KPIs */}
+    <div className="admin-page">
+      <div className="admin-page-head">
+        <div className="admin-page-head__text">
+          <h1 className="admin-page-title">Citizen feedback</h1>
+          <p className="admin-page-desc">
+            What citizens said after a department closed their complaint.
+          </p>
+        </div>
+
+        <span className="demo-tag">Demo data</span>
+      </div>
+
+      {/* ---- Headline figures ---- */}
       <div className="kpi-grid">
-        {' '}
         <div className="kpi-card">
-          {' '}
-          <div className="kpi-card__label">Overall Rating</div>{' '}
-          <div className="kpi-card__value" style={{ color: 'var(--color-warning)' }}>
-            {' '}
-            {summary.overallRating > 0 ? `${summary.overallRating} ★` : '—'}
-          </div>{' '}
-          <div className="kpi-card__sub">{summary.totalRatings} citizen ratings</div>{' '}
-        </div>{' '}
-        <div className="kpi-card kpi-card--green">
-          {' '}
-          <div className="kpi-card__label">Verification Rate</div>{' '}
-          <div className="kpi-card__value">{summary.resolutionVerificationRate}%</div>{' '}
+          <div className="kpi-card__label">Overall rating</div>
+          <div className="kpi-card__value">
+            {hasRatings ? `${summary.overallRating} / 5` : '—'}
+          </div>
           <div className="kpi-card__sub">
-            {summary.citizenVerified} of {summary.totalResolved} verified
-          </div>{' '}
-        </div>{' '}
+            {hasRatings
+              ? `${summary.totalRatings} citizen rating${summary.totalRatings === 1 ? '' : 's'}`
+              : 'No ratings yet'}
+          </div>
+        </div>
+
+        <div className="kpi-card kpi-card--green">
+          <div className="kpi-card__label">Verification rate</div>
+          <div className="kpi-card__value">
+            {summary.totalResolved > 0 ? `${summary.resolutionVerificationRate}%` : '—'}
+          </div>
+          <div className="kpi-card__sub">
+            {summary.citizenVerified} of {summary.totalResolved} confirmed
+          </div>
+        </div>
+
         <div className="kpi-card kpi-card--amber">
-          {' '}
-          <div className="kpi-card__label">Awaiting Verification</div>{' '}
-          <div className="kpi-card__value">{summary.awaitingVerification}</div>{' '}
-          <div className="kpi-card__sub">Pending citizen review</div>{' '}
-        </div>{' '}
+          <div className="kpi-card__label">Awaiting verification</div>
+          <div className="kpi-card__value">{summary.awaitingVerification}</div>
+          <div className="kpi-card__sub">Closed but not yet confirmed</div>
+        </div>
+
         <div className="kpi-card kpi-card--red">
-          {' '}
-          <div className="kpi-card__label">Reinspections</div>{' '}
-          <div className="kpi-card__value">{summary.reinspectionRequested}</div>{' '}
-          <div className="kpi-card__sub">Work rejected by citizen</div>{' '}
-        </div>{' '}
-      </div>{' '}
-      {/* Resolution Quality & Sentiment Breakdown */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '1.5rem',
-        }}
-      >
-        {' '}
-        {/* Rating Breakdown */}
-        <div className="admin-panel">
-          {' '}
-          <div className="admin-panel__title">Rating distribution</div>{' '}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-            {' '}
-            <div>
-              {' '}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: '0.8125rem',
-                  marginBottom: '4px',
-                }}
-              >
-                {' '}
-                <span style={{ fontWeight: 600, color: 'var(--green-500)' }}>Positive (4–5 Stars)</span>{' '}
-                <span>{summary.positive} ratings</span>{' '}
-              </div>{' '}
-              <div
-                style={{
-                  height: '8px',
-                  background: 'var(--color-surface-sunken)',
-                  borderRadius: '4px',
-                  overflow: 'hidden',
-                }}
-              >
-                {' '}
-                <div
-                  style={{
-                    height: '100%',
-                    width: `${summary.totalRatings >0 ? Math.round((summary.positive / summary.totalRatings) * 100) : 0}%`,
-                    background: 'var(--green-500)',
-                  }}
-                />{' '}
-              </div>{' '}
-            </div>{' '}
-            <div>
-              {' '}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: '0.8125rem',
-                  marginBottom: '4px',
-                }}
-              >
-                {' '}
-                <span style={{ fontWeight: 600, color: 'var(--amber-600)' }}>Neutral (3 Stars)</span>{' '}
-                <span>{summary.neutral} ratings</span>{' '}
-              </div>{' '}
-              <div
-                style={{
-                  height: '8px',
-                  background: 'var(--color-surface-sunken)',
-                  borderRadius: '4px',
-                  overflow: 'hidden',
-                }}
-              >
-                {' '}
-                <div
-                  style={{
-                    height: '100%',
-                    width: `${summary.totalRatings >0 ? Math.round((summary.neutral / summary.totalRatings) * 100) : 0}%`,
-                    background: 'var(--amber-600)',
-                  }}
-                />{' '}
-              </div>{' '}
-            </div>{' '}
-            <div>
-              {' '}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: '0.8125rem',
-                  marginBottom: '4px',
-                }}
-              >
-                {' '}
-                <span style={{ fontWeight: 600, color: 'var(--red-600)' }}>Critical (1–2 Stars)</span>{' '}
-                <span>{summary.negative} ratings</span>{' '}
-              </div>{' '}
-              <div
-                style={{
-                  height: '8px',
-                  background: 'var(--color-surface-sunken)',
-                  borderRadius: '4px',
-                  overflow: 'hidden',
-                }}
-              >
-                {' '}
-                <div
-                  style={{
-                    height: '100%',
-                    width: `${summary.totalRatings >0 ? Math.round((summary.negative / summary.totalRatings) * 100) : 0}%`,
-                    background: 'var(--red-600)',
-                  }}
-                />{' '}
-              </div>{' '}
-            </div>{' '}
-          </div>{' '}
-        </div>{' '}
-        {/* Common Feedback Themes */}
-        <div className="admin-panel">
-          {' '}
-          <div className="admin-panel__title">Feedback themes</div>{' '}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.625rem' }}>
-            {' '}
-            {summary.themes.map((theme) => (
-              <div
-                key={theme.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  padding: '0.5rem 0.75rem',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.8125rem',
-                  fontWeight: 600,
-                  background:
-                    theme.sentiment === 'positive'
-                      ? 'var(--color-success-bg)'
-                      : theme.sentiment === 'negative'
-                        ? 'var(--color-error-bg)'
-                        : 'var(--color-bg)',
-                  border: `1px solid ${
-                    theme.sentiment === 'positive'
-                      ? 'var(--color-success-border)'
-                      : theme.sentiment === 'negative'
-                        ? 'var(--color-error-border)'
-                        : 'var(--color-border)'
-                  }`,
-                  color:
-                    theme.sentiment === 'positive'
-                      ? 'var(--color-success-fg)'
-                      : theme.sentiment === 'negative'
-                        ? 'var(--red-700)'
-                        : 'var(--color-text-secondary)',
-                }}
-              >
-                {' '}
-                <span>{theme.icon}</span> <span>{theme.label}</span>{' '}
-                <span style={{ opacity: 0.7, fontSize: '0.75rem' }}>({theme.count})</span>{' '}
-              </div>
-            ))}
-          </div>{' '}
-        </div>{' '}
-      </div>{' '}
-      {/* Department Breakdown */}
+          <div className="kpi-card__label">Reinspections</div>
+          <div className="kpi-card__value">{summary.reinspectionRequested}</div>
+          <div className="kpi-card__sub">Work the citizen rejected</div>
+        </div>
+      </div>
+
+      {/* ---- Resolution quality pipeline ---- */}
       <div className="admin-panel">
-        {' '}
-        <div className="admin-panel__title">Satisfaction by department</div>{' '}
+        <div className="admin-panel__title">Resolution quality</div>
+        <p className="admin-panel__note">
+          Each step needs the citizen to act. A resolved count on its own says only that a
+          department believes it is finished.
+        </p>
+
+        <ol className="fb-pipeline">
+          {pipeline.map((step) => (
+            <li key={step.label} className={`fb-pipeline__step fb-pipeline__step--${step.tone}`}>
+              <span className="fb-pipeline__value">{step.value}</span>
+              <span className="fb-pipeline__label">{step.label}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="fb-columns">
+        {/* ---- Sentiment ---- */}
+        <div className="admin-panel">
+          <div className="admin-panel__title">Rating spread</div>
+
+          {!hasRatings ? (
+            <p className="admin-panel__empty">
+              No citizen feedback has been recorded yet. Ratings appear here once citizens confirm
+              a resolution on their tracking page.
+            </p>
+          ) : (
+            <ul className="fb-bars">
+              {sentiment.map((band) => {
+                const pct = Math.round((band.count / summary.totalRatings) * 100);
+                return (
+                  <li key={band.key} className={`fb-bar fb-bar--${band.tone}`}>
+                    <div className="fb-bar__head">
+                      <span className="fb-bar__label">
+                        {band.label} <span className="fb-bar__detail">{band.detail}</span>
+                      </span>
+                      <span className="fb-bar__count">
+                        {band.count} ({pct}%)
+                      </span>
+                    </div>
+
+                    <div
+                      className="fb-bar__track"
+                      role="progressbar"
+                      aria-valuenow={pct}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`${band.label} ratings`}
+                    >
+                      <span className="fb-bar__fill" style={{ width: `${pct}%` }} />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        {/* ---- Themes ---- */}
+        <div className="admin-panel">
+          <div className="admin-panel__title-row">
+            <span className="admin-panel__title">Common themes</span>
+            <span className="demo-tag">Illustrative</span>
+          </div>
+
+          {/* These are apportioned from the rating spread, not extracted
+              from what citizens actually wrote. Labelling them as
+              illustrative keeps a stand-in for text analysis from being
+              read as text analysis. */}
+          <p className="admin-panel__note">
+            Placeholder groupings derived from the rating spread. Real themes need analysis of the
+            comments citizens leave, which this build does not do.
+          </p>
+
+          {summary.themes.length === 0 ? (
+            <p className="admin-panel__empty">Not enough feedback to group yet.</p>
+          ) : (
+            <ul className="fb-themes">
+              {summary.themes.map((theme) => (
+                <li key={theme.id} className={`fb-theme fb-theme--${theme.sentiment}`}>
+                  <span aria-hidden="true">{theme.icon}</span>
+                  <span className="fb-theme__label">{theme.label}</span>
+                  <span className="fb-theme__count">{theme.count}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {/* ---- By department ---- */}
+      <div className="admin-panel">
+        <div className="admin-panel__title">Satisfaction by department</div>
+
         <div className="admin-table-container">
-          {' '}
           <table className="admin-complaints-table">
-            {' '}
             <thead>
-              {' '}
               <tr>
-                {' '}
-                <th>Department</th> <th>Average Rating</th> <th>Total Ratings</th>{' '}
-                <th>Status</th>{' '}
-              </tr>{' '}
-            </thead>{' '}
+                <th>Department</th>
+                <th>Average rating</th>
+                <th>Ratings</th>
+                <th>Standing</th>
+              </tr>
+            </thead>
             <tbody>
-              {' '}
               {summary.departmentBreakdown.map((dept) => (
                 <tr key={dept.departmentId}>
-                  {' '}
                   <td>
-                    {' '}
-                    <strong>{dept.departmentName}</strong>{' '}
-                  </td>{' '}
+                    <Link
+                      to={`/admin/departments/${dept.departmentId}`}
+                      className="admin-complaint-id-link"
+                    >
+                      {dept.departmentName}
+                    </Link>
+                  </td>
                   <td>
-                    {' '}
-                    <span style={{ color: 'var(--color-warning)', fontWeight: 700 }}>
-                      {' '}
-                      {dept.rating > 0 ? `${dept.rating} ★` : '—'}
-                    </span>{' '}
-                  </td>{' '}
-                  <td>{dept.totalRatings}</td>{' '}
+                    <span className="fb-rating">
+                      {dept.totalRatings > 0 ? `${dept.rating} / 5` : '—'}
+                    </span>
+                  </td>
+                  <td>{dept.totalRatings}</td>
                   <td>
-                    {' '}
-                    {dept.rating >= 4.5 ? (
-                      <span style={{ color: 'var(--green-500)', fontWeight: 600 }}>High Satisfaction</span>
+                    {/* A department nobody has rated is not "needs
+                        improvement" — it is unrated, and says so. */}
+                    {dept.totalRatings === 0 ? (
+                      <span className="fb-standing fb-standing--none">Awaiting ratings</span>
+                    ) : dept.rating >= 4.5 ? (
+                      <span className="fb-standing fb-standing--high">High satisfaction</span>
                     ) : dept.rating >= 4.0 ? (
-                      <span style={{ color: 'var(--color-civic-blue-dark)', fontWeight: 600 }}>✓ Good Standing</span>
-                    ) : dept.rating > 0 ? (
-                      <span style={{ color: 'var(--amber-600)', fontWeight: 600 }}>Needs Improvement</span>
+                      <span className="fb-standing fb-standing--good">Good standing</span>
                     ) : (
-                      <span style={{ color: 'var(--slate-400)' }}>Awaiting ratings</span>
+                      <span className="fb-standing fb-standing--low">Needs improvement</span>
                     )}
-                  </td>{' '}
+                  </td>
                 </tr>
               ))}
-            </tbody>{' '}
-          </table>{' '}
-        </div>{' '}
-      </div>{' '}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

@@ -125,6 +125,15 @@ export interface Complaint {
   updatedAt: string;
   status: ComplaintStatus;
 
+  /**
+   * Optimistic concurrency counter, incremented on every persisted
+   * mutation. A caller holding an older version has been overtaken —
+   * by another tab today, by another officer once there is a server —
+   * and its write is refused rather than silently overwriting.
+   * Absent on records written before versioning; treated as 0.
+   */
+  version?: number;
+
   issue: {
     category: string;
     title: string;

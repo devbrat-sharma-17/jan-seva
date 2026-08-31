@@ -2,38 +2,47 @@
 // Admin SLA & Escalations Center — JAN-SEVA Phase 5
 // ============================================================
 
-import { useState, useMemo } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { getStoredComplaints } from '../../../services/complaintService';
+import { computeSlaHealth } from '../../../services/slaService';
+import { useLiveData } from '../../../hooks/useLiveData';
 import { formatStamp, formatRelative } from '../../../services/timeService';
 import type { Complaint } from '../../../types';
 import '../admin-shared.css';
 import '../Complaints/AdminComplaints.css';
 import { AdminIcon } from '../AdminIcon';
+import { NotificationPanel } from '../Notifications/NotificationPanel';
 
 export function AdminEscalations() {
   const [activeTab, setActiveTab] = useState<
     'all' | 'breached' | 'atRisk' | 'escalated' | 'reinspection'
   >('all');
 
-  const allComplaints = useMemo(() => getStoredComplaints(), []);
-  const now = Date.now();
+  // Re-derives whenever a department writes, in this tab or another.
+  const allComplaints = useLiveData(useCallback(() => getStoredComplaints(), []));
 
-  const breached = useMemo(() => {
-    return allComplaints.filter((c) => {
-      if (c.status === 'resolved') return false;
-      const due = new Date(c.sla.dueAt).getTime();
-      return c.sla.status === 'exceeded' || due < now;
-    });
-  }, [allComplaints, now]);
+  /* Health from `dueAt` against the clock. Reading the persisted
+     `sla.status` classified a complaint by whatever was true when it was
+     last written, so the escalations page missed anything that breached
+     since. */
+  const buckets = useMemo(() => {
+    const now = Date.now();
+    const breachedList: Complaint[] = [];
+    const atRiskList: Complaint[] = [];
 
-  const atRisk = useMemo(() => {
-    return allComplaints.filter((c) => {
-      if (c.status === 'resolved') return false;
-      const due = new Date(c.sla.dueAt).getTime();
-      return c.sla.status === 'approaching' || (due - now < 8 * 3600 * 1000 && due > now);
-    });
-  }, [allComplaints, now]);
+    for (const c of allComplaints) {
+      if (c.status === 'resolved') continue;
+      const health = computeSlaHealth(c, now);
+      if (health?.status === 'exceeded') breachedList.push(c);
+      else if (health?.status === 'approaching') atRiskList.push(c);
+    }
+
+    return { breachedList, atRiskList };
+  }, [allComplaints]);
+
+  const breached = buckets.breachedList;
+  const atRisk = buckets.atRiskList;
 
   const escalated = useMemo(() => {
     return allComplaints.filter((c) => c.status === 'escalated');
@@ -81,56 +90,63 @@ export function AdminEscalations() {
           </p>{' '}
         </div>{' '}
       </div>{' '}
+      {/* Operational alerts. Deduplicated and read-tracked, so the same
+          breach is not re-announced on every visit. */}
+      <NotificationPanel />
       {/* KPI Overview */}
       <div className="kpi-grid">
         {' '}
-        <div
-          className={`kpi-card ${activeTab === 'breached' ? 'kpi-card--red' : ''}`}
-          style={{ cursor: 'pointer' }}
+        <button
+          type="button"
+          className={`kpi-card ${activeTab === 'breached' ? 'kpi-card--red' : ''} kpi-card--clickable`}
+          aria-pressed={activeTab === 'breached'}
           onClick={() => setActiveTab('breached')}
         >
           {' '}
           <div className="kpi-card__label">SLA Breached</div>{' '}
-          <div className="kpi-card__value" style={{ color: 'var(--red-600)' }}>
+          <div className="kpi-card__value admin-u-danger">
             {breached.length}
           </div>{' '}
           <div className="kpi-card__sub">Exceeded target deadline</div>{' '}
-        </div>{' '}
-        <div
-          className={`kpi-card ${activeTab === 'atRisk' ? 'kpi-card--amber' : ''}`}
-          style={{ cursor: 'pointer' }}
+        </button>{' '}
+        <button
+          type="button"
+          className={`kpi-card ${activeTab === 'atRisk' ? 'kpi-card--amber' : ''} kpi-card--clickable`}
+          aria-pressed={activeTab === 'atRisk'}
           onClick={() => setActiveTab('atRisk')}
         >
           {' '}
           <div className="kpi-card__label">SLA at Risk</div>{' '}
-          <div className="kpi-card__value" style={{ color: 'var(--amber-600)' }}>
+          <div className="kpi-card__value admin-u-warning">
             {atRisk.length}
           </div>{' '}
           <div className="kpi-card__sub">&lt;8h remaining</div>{' '}
-        </div>{' '}
-        <div
-          className={`kpi-card ${activeTab === 'escalated' ? 'kpi-card--red' : ''}`}
-          style={{ cursor: 'pointer' }}
+        </button>{' '}
+        <button
+          type="button"
+          className={`kpi-card ${activeTab === 'escalated' ? 'kpi-card--red' : ''} kpi-card--clickable`}
+          aria-pressed={activeTab === 'escalated'}
           onClick={() => setActiveTab('escalated')}
         >
           {' '}
           <div className="kpi-card__label">Active Escalations</div>{' '}
           <div className="kpi-card__value">{escalated.length}</div>{' '}
           <div className="kpi-card__sub">Level 2 intervention</div>{' '}
-        </div>{' '}
-        <div
-          className={`kpi-card ${activeTab === 'reinspection' ? 'kpi-card--amber' : ''}`}
-          style={{ cursor: 'pointer' }}
+        </button>{' '}
+        <button
+          type="button"
+          className={`kpi-card ${activeTab === 'reinspection' ? 'kpi-card--amber' : ''} kpi-card--clickable`}
+          aria-pressed={activeTab === 'reinspection'}
           onClick={() => setActiveTab('reinspection')}
         >
           {' '}
           <div className="kpi-card__label">Reinspection Requested</div>{' '}
           <div className="kpi-card__value">{reinspection.length}</div>{' '}
           <div className="kpi-card__sub">Rejected by citizen</div>{' '}
-        </div>{' '}
+        </button>{' '}
       </div>{' '}
       {/* Filter Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+      <div className="admin-u-row">
         {' '}
         <button
           type="button"
@@ -201,8 +217,7 @@ export function AdminEscalations() {
             <tbody>
               {' '}
               {displayList.map((c) => {
-                const isBreachedItem =
-                  c.sla.status === 'exceeded' || new Date(c.sla.dueAt).getTime() < now;
+                const isBreachedItem = computeSlaHealth(c)?.status === 'exceeded';
                 const isReinspect = !!c.feedback?.reinspectionRequested;
 
                 return (
@@ -217,8 +232,8 @@ export function AdminEscalations() {
                     </td>{' '}
                     <td>
                       {' '}
-                      <div style={{ fontWeight: 700 }}>{c.issue.title}</div>{' '}
-                      <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>
+                      <div className="admin-u-strong">{c.issue.title}</div>{' '}
+                      <div className="admin-u-sub">
                         {' '}
                         {c.location.locality}
                       </div>{' '}
@@ -230,31 +245,30 @@ export function AdminEscalations() {
                     <td>
                       {' '}
                       {isReinspect ? (
-                        <span style={{ color: 'var(--amber-600)', fontWeight: 700 }}>
+                        <span className="admin-u-warning">
                           {' '}
                           Reinspection Flagged
                         </span>
                       ) : isBreachedItem ? (
-                        <span style={{ color: 'var(--red-600)', fontWeight: 700 }}>SLA Breached</span>
+                        <span className="admin-u-danger">SLA Breached</span>
                       ) : (
-                        <span style={{ color: 'var(--amber-600)', fontWeight: 700 }}>SLA at Risk</span>
+                        <span className="admin-u-warning">SLA at Risk</span>
                       )}
                     </td>{' '}
                     <td>
                       {' '}
                       <div>{formatStamp(c.sla.dueAt)}</div>{' '}
-                      <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>
+                      <div className="admin-u-sub">
                         ({formatRelative(c.sla.dueAt)})
                       </div>{' '}
                     </td>{' '}
                     <td>
-                      {c.assignedOfficer?.name || <em style={{ color: 'var(--slate-400)' }}>Unassigned</em>}
+                      {c.assignedOfficer?.name || <em className="admin-cell-empty">Unassigned</em>}
                     </td>{' '}
                     <td>
                       {' '}
-                      <Link
+                      <Link className="admin-table-link"
                         to={`/admin/complaints/${c.id}`}
-                        style={{ color: 'var(--color-civic-blue-dark)', fontWeight: 700, textDecoration: 'none' }}
                       >
                         {' '}
                         Inspect →

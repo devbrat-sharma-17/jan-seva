@@ -1,10 +1,15 @@
 // ============================================================
 // Admin Command Centre — sign-in
 // ============================================================
+// Credentials lead; the demo shortcut sits below, labelled as what it is.
+// The previous version had it the other way round, which made a one-click
+// entry look like the authentication step.
 
-import React, { useRef, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { loginAdminUser, loginAdminQuickDemo } from '../../services/authService';
+import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { loginAdmin, startAdminDemoSession } from '../../services/authService';
+import { getThrottleState } from '../../services/loginThrottle';
+import { DEMO_PASSWORD_HINT, getDemoAdminAccount } from '../../data/demoDirectory';
 import { BrandHomeLink } from '../ui/BrandHomeLink';
 import { BrandMark } from '../ui/BrandMark';
 import { AdminIcon } from './AdminIcon';
@@ -12,41 +17,63 @@ import './AdminLogin.css';
 
 export function AdminLogin() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [searchParams] = useSearchParams();
+
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const emailRef = useRef<HTMLInputElement>(null);
+  const [lockSeconds, setLockSeconds] = useState(0);
+  const [showDemoAccounts, setShowDemoAccounts] = useState(false);
+
+  const identifierRef = useRef<HTMLInputElement>(null);
+  const demoAccount = getDemoAdminAccount();
+
+  // Where the guard bounced them from, so a sign-in returns them to it.
+  const returnTo = searchParams.get('from') || '/admin/dashboard';
+  const wasExpired = searchParams.get('reason') === 'expired';
+
+  // The lockout is a countdown, so it needs a tick — but only while one
+  // is actually running.
+  useEffect(() => {
+    if (lockSeconds <= 0) return;
+    const timer = setInterval(() => {
+      const state = getThrottleState(identifier);
+      setLockSeconds(state.secondsRemaining);
+      if (!state.locked) setError('');
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lockSeconds, identifier]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) {
-      setError('Enter your admin ID or email.');
-      emailRef.current?.focus();
-      return;
-    }
     setBusy('credentials');
     setError('');
-    try {
-      await loginAdminUser(email, password);
-      navigate('/admin/dashboard');
-    } catch {
-      setError('Those credentials were not recognised.');
-      setBusy(null);
+
+    const result = await loginAdmin({ identifier, password });
+
+    if (result.ok) {
+      // The password never leaves this component, and does not linger in
+      // state after the attempt that used it.
+      setPassword('');
+      navigate(returnTo, { replace: true });
+      return;
     }
+
+    setBusy(null);
+    setError(result.message);
+    setLockSeconds(result.secondsRemaining ?? 0);
+    setPassword('');
+    if (result.reason !== 'rate_limited') identifierRef.current?.focus();
   };
 
   const handleQuickDemo = () => {
     setBusy('demo');
-    // Clear stale seed data so freshly filed complaints appear.
-    try {
-      localStorage.removeItem('jan_seva_complaints_v3');
-    } catch {
-      /* storage unavailable — the demo still opens */
-    }
-    loginAdminQuickDemo();
-    navigate('/admin/dashboard');
+    startAdminDemoSession();
+    navigate(returnTo, { replace: true });
   };
+
+  const locked = lockSeconds > 0;
 
   return (
     <div className="admin-login">
@@ -83,9 +110,16 @@ export function AdminLogin() {
 
             <h1 className="admin-login__title">Command centre sign-in</h1>
             <p className="admin-login__subtitle">
-              For municipal administrators overseeing wards, departments and escalations.
+              Authorised municipal administrators only.
             </p>
           </header>
+
+          {wasExpired && !error && (
+            <p className="admin-login__notice" role="status">
+              <AdminIcon name="alert" size={16} />
+              <span>Your session expired. Please sign in again.</span>
+            </p>
+          )}
 
           {error && (
             <p className="admin-login__error" role="alert">
@@ -94,49 +128,23 @@ export function AdminLogin() {
             </p>
           )}
 
-          {/* The demo persona is how this build is actually entered, so it
-              leads rather than sitting below the fold. */}
-          <button
-            type="button"
-            className="admin-login__demo"
-            onClick={handleQuickDemo}
-            disabled={busy !== null}
-          >
-            <span className="admin-login__demo-avatar" aria-hidden="true">
-              RA
-            </span>
-            <span className="admin-login__demo-text">
-              <span className="admin-login__demo-name">Dr. Rakesh Agrawal</span>
-              <span className="admin-login__demo-role">City Administrator, Gwalior</span>
-            </span>
-            <span className="admin-login__demo-go" aria-hidden="true">
-              {busy === 'demo' ? (
-                <span className="admin-login__spinner" />
-              ) : (
-                <AdminIcon name="arrow-right" size={16} />
-              )}
-            </span>
-          </button>
-
-          <div className="admin-login__or">
-            <span>or sign in with credentials</span>
-          </div>
-
           <form className="admin-login__form" onSubmit={handleLogin}>
             <div className="admin-field">
-              <label className="admin-field__label" htmlFor="admin-email">
-                Admin ID or email
+              <label className="admin-field__label" htmlFor="admin-id">
+                Admin ID or official email
               </label>
               <input
-                id="admin-email"
-                ref={emailRef}
+                id="admin-id"
+                ref={identifierRef}
                 className="admin-input"
                 type="text"
-                placeholder="admin@gwalior.gov.in"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin-demo"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 autoComplete="username"
                 spellCheck={false}
+                disabled={locked}
+                required
               />
             </div>
 
@@ -152,27 +160,82 @@ export function AdminLogin() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
+                disabled={locked}
+                required
               />
-              <span className="admin-field__hint">
-                Demonstration build — passwords are not checked against a directory.
-              </span>
             </div>
 
             <button
               type="submit"
               className="admin-btn admin-btn--primary admin-btn--block"
-              disabled={busy !== null}
+              disabled={busy !== null || locked}
             >
               {busy === 'credentials' ? (
                 <>
                   <span className="admin-login__spinner" aria-hidden="true" />
                   <span>Signing in&hellip;</span>
                 </>
+              ) : locked ? (
+                <span>Locked for {lockSeconds}s</span>
               ) : (
                 <span>Sign in</span>
               )}
             </button>
           </form>
+
+          {/* ---- Demo affordances, fenced off from the real form ---- */}
+          <section className="admin-login__demo-zone">
+            <p className="admin-login__demo-head">
+              <span className="admin-login__demo-chip">Demo mode</span>
+              <span>This build runs on sample data with a fixed demo account.</span>
+            </p>
+
+            <button
+              type="button"
+              className="admin-login__demo"
+              onClick={handleQuickDemo}
+              disabled={busy !== null}
+            >
+              <span className="admin-login__demo-avatar" aria-hidden="true">
+                RA
+              </span>
+              <span className="admin-login__demo-text">
+                <span className="admin-login__demo-name">Quick demo &mdash; skip sign-in</span>
+                <span className="admin-login__demo-role">
+                  Opens as {demoAccount.displayName}, City Administrator
+                </span>
+              </span>
+              <span className="admin-login__demo-go" aria-hidden="true">
+                {busy === 'demo' ? (
+                  <span className="admin-login__spinner" />
+                ) : (
+                  <AdminIcon name="arrow-right" size={16} />
+                )}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className="admin-login__demo-toggle"
+              aria-expanded={showDemoAccounts}
+              onClick={() => setShowDemoAccounts((v) => !v)}
+            >
+              {showDemoAccounts ? 'Hide demo credentials' : 'Show demo credentials'}
+            </button>
+
+            {showDemoAccounts && (
+              <dl className="admin-login__demo-creds">
+                <div>
+                  <dt>Admin ID</dt>
+                  <dd>{demoAccount.aliases[0]}</dd>
+                </div>
+                <div>
+                  <dt>Password</dt>
+                  <dd>{DEMO_PASSWORD_HINT}</dd>
+                </div>
+              </dl>
+            )}
+          </section>
 
           <footer className="admin-login__foot">
             <Link to="/department/login">Department staff sign-in</Link>

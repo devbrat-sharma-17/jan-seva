@@ -7,6 +7,7 @@
 // than resolved by the first keyword hit, and duplicate detection runs
 // against the actual complaint store by category and GPS proximity.
 
+import { computeSlaHealth } from './slaService';
 import type { ReportDraft, AIAnalysis, DuplicateMatch } from '../types/report';
 import type { Complaint } from '../types';
 import { getStoredComplaints } from './complaintService';
@@ -251,11 +252,15 @@ export function explainPriority(complaint: Complaint): { level: 'critical' | 'hi
     reasons.push(`${complaint.duplicate.supportingCount} linked citizen reports received`);
   }
 
-  // SLA status
-  if (complaint.sla.status === 'exceeded') {
-    reasons.push('SLA deadline exceeded — escalated');
-  } else if (complaint.sla.status === 'approaching') {
-    reasons.push('SLA resolution window at risk (<6h remaining)');
+  /* SLA health is computed against the clock. Reading the persisted
+     `sla.status` meant a complaint that breached hours ago was still
+     explained as on track, and never gained the priority weight that
+     should have pushed it up the queue. */
+  const slaHealth = computeSlaHealth(complaint);
+  if (slaHealth?.status === 'exceeded') {
+    reasons.push(`SLA deadline exceeded by ${slaHealth.label}`);
+  } else if (slaHealth?.status === 'approaching') {
+    reasons.push(`SLA window closing — ${slaHealth.label} remaining`);
   }
 
   // Fallback reason if list is empty
@@ -264,7 +269,7 @@ export function explainPriority(complaint: Complaint): { level: 'critical' | 'hi
   }
 
   const level: 'critical' | 'high' | 'medium' | 'low' =
-    score >= 90 || complaint.sla.status === 'exceeded'
+    score >= 90 || slaHealth?.status === 'exceeded'
       ? 'critical'
       : score >= 75 || severity === 'high'
       ? 'high'

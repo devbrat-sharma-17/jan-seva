@@ -2,9 +2,10 @@
 // Admin City-Wide Civic Map & Hotspots — JAN-SEVA Phase 5
 // ============================================================
 
-import { useState, useMemo } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { getStoredComplaints } from '../../../services/complaintService';
+import { useLiveData } from '../../../hooks/useLiveData';
 import { getCivicHotspots } from '../../../services/adminService';
 import { DEPARTMENTS } from '../../../data/departments';
 import { StatusPill } from '../../TrackComplaint/StatusPill';
@@ -21,8 +22,8 @@ export function AdminCivicMap() {
   const [selectedComplaintId, setSelectedComplaintId] = useState<string | null>(null);
   const [selectedHotspot, setSelectedHotspot] = useState<CivicHotspot | null>(null);
 
-  const allComplaints = useMemo(() => getStoredComplaints(), []);
-  const hotspots = useMemo(() => getCivicHotspots(), []);
+  const allComplaints = useLiveData(useCallback(() => getStoredComplaints(), []));
+  const hotspots = useLiveData(useCallback(() => getCivicHotspots(), []));
 
   const filteredComplaints = useMemo(() => {
     return allComplaints.filter((c) => {
@@ -117,7 +118,7 @@ export function AdminCivicMap() {
             <option value="resolved">Resolved Issues</option>{' '}
           </select>{' '}
         </div>{' '}
-        <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
+        <div className="admin-u-caption">
           {' '}
           Displaying <strong>{filteredComplaints.length}</strong> markers on map
         </div>{' '}
@@ -146,7 +147,7 @@ export function AdminCivicMap() {
         {/* Legend */}
         <div className="admin-map-legend">
           {' '}
-          <div style={{ fontWeight: 700, marginBottom: '2px' }}>Severity Legend</div>{' '}
+          <div className="admin-cell-title">Severity Legend</div>{' '}
           <div className="admin-map-legend-item">
             {' '}
             <span className="admin-map-legend-dot admin-map-legend-dot--critical" />{' '}
@@ -196,34 +197,18 @@ export function AdminCivicMap() {
           <div className="admin-pin-popover">
             {' '}
             <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '4px',
-              }}
+              className="admin-mapcard__head"
             >
               {' '}
               <span
-                style={{
-                  fontFamily: 'monospace',
-                  fontWeight: 800,
-                  fontSize: '0.75rem',
-                  color: 'var(--color-civic-blue-dark)',
-                }}
+                className="admin-mapcard__id"
               >
                 {' '}
                 {selectedComplaint.id}
               </span>{' '}
               <button
                 type="button"
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--slate-400)',
-                  fontSize: '0.875rem',
-                }}
+                className="admin-mapcard__close"
                 onClick={() => setSelectedComplaintId(null)}
               >
                 {' '}
@@ -235,7 +220,7 @@ export function AdminCivicMap() {
               {' '}
               {selectedComplaint.location.locality} · {selectedComplaint.department.name}
             </div>{' '}
-            <div style={{ marginBottom: '0.75rem' }}>
+            <div className="admin-u-gap-sm">
               {' '}
               <StatusPill status={selectedComplaint.status} />{' '}
             </div>{' '}
@@ -254,7 +239,7 @@ export function AdminCivicMap() {
           <div className="admin-hotspots-title">
             {' '}
             <span>Civic Hotspots</span>{' '}
-            <span style={{ fontSize: '0.6875rem', color: 'var(--blue-300)' }}>
+            <span className="admin-u-sub-ondark">
               {hotspots.length} Clusters
             </span>{' '}
           </div>{' '}
@@ -264,19 +249,19 @@ export function AdminCivicMap() {
               <div className="admin-hotspot-header">
                 {' '}
                 <span> {h.locality}</span>{' '}
-                <span style={{ color: 'var(--blue-300)' }}>{h.complaintCount} tickets</span>{' '}
+                <span className="admin-u-ondark-accent">{h.complaintCount} tickets</span>{' '}
               </div>{' '}
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-border-strong)', marginBottom: '4px' }}>
+              <div className="admin-u-label-ondark">
                 {' '}
                 Top: {h.topCategoryTitle}
               </div>{' '}
               <div className="admin-hotspot-stats">
                 {' '}
                 {h.highPriorityCount > 0 && (
-                  <span style={{ color: 'var(--color-warning)' }}> {h.highPriorityCount} High/Crit</span>
+                  <span className="admin-u-warning"> {h.highPriorityCount} High/Crit</span>
                 )}
                 {h.slaBreachedCount > 0 && (
-                  <span style={{ color: 'var(--color-error)' }}> {h.slaBreachedCount} Breached</span>
+                  <span className="admin-u-danger"> {h.slaBreachedCount} Breached</span>
                 )}
                 {h.averageResolutionHours > 0 && <span> ~{h.averageResolutionHours}h avg</span>}
               </div>{' '}

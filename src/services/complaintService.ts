@@ -64,14 +64,20 @@ export function getStoredComplaints(): Complaint[] {
  * tell the citizen rather than issuing a ticket number for a lost report.
  */
 export function saveComplaintToStore(complaint: Complaint): void {
+  const list = readStore();
+  const index = list.findIndex((c) => c.id === complaint.id);
+
+  // Version is owned by the store, not by callers. Deriving it from what
+  // is currently persisted — rather than from the copy the caller is
+  // holding — means two writers cannot both land on the same number.
+  const currentVersion = index === -1 ? 0 : list[index].version ?? 0;
+
   const withRetention: Complaint = {
     ...complaint,
+    version: currentVersion + 1,
     expiresAt: computeExpiresAt(complaint),
     isPubliclyTrackable: isPubliclyTrackable(complaint),
   };
-
-  const list = readStore();
-  const index = list.findIndex((c) => c.id === complaint.id);
 
   const updated =
     index === -1
@@ -600,13 +606,33 @@ export function clearDraftStorage(): void {
 }
 
 // ============================================================
-// Department Operations API — Phase 4
+// Department & Admin Operations API
 // ============================================================
+//
+// Every operational change to a complaint funnels through
+// `applyComplaintMutation` below. Components never touch the store, and
+// never construct a complaint object themselves, so one place is
+// responsible for:
+//
+//   1. object-level authorisation  (may this actor touch this record?)
+//   2. version check               (has someone else moved it since?)
+//   3. the change itself
+//   4. timeline event + timestamps
+//   5. persistence                 (which bumps the version)
+//   6. audit entry
+//   7. offline queueing            (so nothing is lost without a signal)
+//
+// Skipping this helper skips all seven.
 
-import type { DepartmentMetrics } from '../types/department';
+import type { DepartmentId, DepartmentMetrics } from '../types/department';
 import { DEPARTMENTS } from '../data/departments';
-
-
+import { resolveOperationActor, toAuditActor, type OperationActor } from './actorContext';
+import { recordAuditEvent } from './auditService';
+import type { AuditAction } from '../types/audit';
+import { getNetworkSnapshot } from './networkService';
+import { enqueue, type SyncOperationType } from './syncService';
+import { computeSlaHealth } from './slaService';
+import { calculatePerformanceScore } from './performanceService';
 
 /** Match complaint to a department configuration */
 export function matchesDepartment(complaint: Complaint, deptId: string): boolean {
@@ -617,7 +643,10 @@ export function matchesDepartment(complaint: Complaint, deptId: string): boolean
   const deptName = (complaint.department.name || '').toLowerCase();
   const deptIdInObj = (complaint.department.id || '').toLowerCase();
 
-  if (deptIdInObj === norm) return true;
+  // An explicit department id is authoritative. Without this short-circuit
+  // a complaint reassigned away from Roads would still match Roads by
+  // category, and two departments would each see it as theirs.
+  if (deptIdInObj) return deptIdInObj === norm;
 
   if (deptCfg) {
     if (aiDept === deptCfg.aiDeptId.toLowerCase() || aiDept === norm) return true;
@@ -634,352 +663,611 @@ export function matchesDepartment(complaint: Complaint, deptId: string): boolean
   return false;
 }
 
+/** Which department currently owns a complaint. */
+export function owningDepartmentOf(complaint: Complaint): DepartmentId | null {
+  const explicit = (complaint.department.id || '').toLowerCase() as DepartmentId;
+  if (explicit && DEPARTMENTS[explicit]) return explicit;
+
+  const match = (Object.keys(DEPARTMENTS) as DepartmentId[]).find((id) =>
+    matchesDepartment(complaint, id)
+  );
+  return match ?? null;
+}
+
 /** Retrieve all complaints for a specific department */
 export function getComplaintsByDepartment(deptId: string): Complaint[] {
-  const all = readStore();
-  return all.filter((c) => matchesDepartment(c, deptId));
+  return readStore().filter((c) => matchesDepartment(c, deptId));
 }
 
-/** Direct full record lookup for authorized department staff */
-export function getDepartmentComplaintById(complaintId: string): Complaint | null {
+// ------------------------------------------------------------
+// Object-level authorisation
+// ------------------------------------------------------------
+
+export type OperationFailureReason =
+  | 'not-found'
+  | 'unauthorized'
+  | 'no-session'
+  | 'conflict'
+  | 'invalid';
+
+export type OperationResult =
+  | {
+      ok: true;
+      complaint: Complaint;
+      /** True when the change is saved locally but not yet acknowledged. */
+      queued: boolean;
+    }
+  | {
+      ok: false;
+      reason: OperationFailureReason;
+      /** Ready to render. Never a raw exception string. */
+      message: string;
+      /** Present on a conflict: what the record actually looks like now. */
+      latest?: Complaint;
+    };
+
+const FAILURE_COPY: Record<OperationFailureReason, string> = {
+  'not-found': 'That complaint could not be found.',
+  unauthorized: 'This complaint belongs to another department.',
+  'no-session': 'Your session has expired. Please sign in again.',
+  conflict: 'This complaint was updated elsewhere. Review the latest version before changing it.',
+  invalid: 'That change could not be applied.',
+};
+
+function failure(reason: OperationFailureReason, latest?: Complaint): OperationResult {
+  return { ok: false, reason, message: FAILURE_COPY[reason], latest };
+}
+
+/**
+ * Whether an actor may operate on one specific record.
+ *
+ * This is the check that page-level route guards cannot make. A guard
+ * proves someone is signed into the department portal; only this proves
+ * the record in front of them is their department's.
+ */
+export function actorCanAccessComplaint(
+  actor: OperationActor | null,
+  complaint: Complaint
+): boolean {
+  if (!actor) return false;
+  if (actor.role === 'admin') return true;
+  if (!actor.departmentId) return false;
+  return matchesDepartment(complaint, actor.departmentId);
+}
+
+/**
+ * Full record lookup, scoped to the caller's authority.
+ *
+ * Returns null for a complaint outside the actor's department — the same
+ * answer as a complaint that does not exist, so probing IDs reveals
+ * nothing about what other departments are handling.
+ */
+export function getComplaintForActor(complaintId: string): Complaint | null {
+  const actor = resolveOperationActor();
+  if (!actor) return null;
+
   const cleanId = normaliseId(complaintId);
   const found = readStore().find((c) => c.id.toUpperCase() === cleanId);
-  return found || null;
+  if (!found) return null;
+
+  return actorCanAccessComplaint(actor, found) ? found : null;
 }
 
-/** Admin Action: Reassign a complaint to a different department */
-export async function reassignComplaintDepartment(
-  complaintId: string,
-  newDeptId: string,
-  newDeptName: string,
-  reason: string,
-  adminName: string = 'City Administrator'
-): Promise<Complaint | null> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
+/**
+ * Why a scoped lookup came back empty, for a screen that needs to tell
+ * "no such complaint" apart from "not yours".
+ */
+export function describeComplaintAccess(
+  complaintId: string
+): { kind: 'ok'; complaint: Complaint } | { kind: 'not-found' } | { kind: 'forbidden' } | { kind: 'no-session' } {
+  const actor = resolveOperationActor();
+  if (!actor) return { kind: 'no-session' };
 
   const cleanId = normaliseId(complaintId);
-  const existing = readStore().find((c) => c.id.toUpperCase() === cleanId);
-  if (!existing) return null;
+  const found = readStore().find((c) => c.id.toUpperCase() === cleanId);
+  if (!found) return { kind: 'not-found' };
 
-  const nowIso = new Date().toISOString();
-  const oldDept = existing.department.name;
-
-  const updatedTimeline = appendEvent(existing, {
-    id: `evt-reassign-${Date.now()}`,
-    title: `Reassigned to ${newDeptName}`,
-    description: `Administrative routing transfer from ${oldDept} to ${newDeptName}. Reason: ${reason}`,
-    timestamp: nowIso,
-    status: existing.status,
-    actor: adminName,
-    actorType: 'system',
-    visibility: 'public',
-  });
-
-  const updated: Complaint = {
-    ...updatedTimeline,
-    updatedAt: nowIso,
-    department: {
-      id: newDeptId,
-      name: newDeptName,
-      division: existing.department.division || 'Gwalior Municipal Central',
-      helpline: existing.department.helpline || '0751-2441111',
-    },
-    assignedOfficer: undefined, // Clear assignment so new dept nodal officer can assign
-    latestUpdate: {
-      title: `Transferred to ${newDeptName}`,
-      description: `Administrative routing transfer: ${reason}`,
-      timestamp: nowIso,
-    },
-  };
-
-  saveComplaintToStore(updated);
-  return updated;
+  return actorCanAccessComplaint(actor, found)
+    ? { kind: 'ok', complaint: found }
+    : { kind: 'forbidden' };
 }
 
-/** Admin Action: Manually escalate a complaint */
+/** @deprecated Use `getComplaintForActor` — this one applies no scope. */
+export function getDepartmentComplaintById(complaintId: string): Complaint | null {
+  return getComplaintForActor(complaintId);
+}
+
+// ------------------------------------------------------------
+// The single mutation path
+// ------------------------------------------------------------
+
+interface MutationSpec {
+  complaintId: string;
+  /** Version the caller believes it is editing. Omit to skip the check. */
+  expectedVersion?: number;
+  /** Admin-only operations refuse a department session outright. */
+  adminOnly?: boolean;
+  /** Applies the change. Returns null to reject as invalid. */
+  mutate: (current: Complaint, actor: OperationActor) => Complaint | null;
+  audit: (current: Complaint, actor: OperationActor) => {
+    action: AuditAction;
+    description: string;
+    metadata?: Record<string, string>;
+  };
+  sync: (current: Complaint) => { type: SyncOperationType; summary: string; payload?: Record<string, string | number | boolean> };
+}
+
+async function applyComplaintMutation(spec: MutationSpec): Promise<OperationResult> {
+  const actor = resolveOperationActor();
+  if (!actor) return failure('no-session');
+
+  if (spec.adminOnly && actor.role !== 'admin') return failure('unauthorized');
+
+  const cleanId = normaliseId(spec.complaintId);
+  const current = readStore().find((c) => c.id.toUpperCase() === cleanId);
+  if (!current) return failure('not-found');
+
+  if (!actorCanAccessComplaint(actor, current)) return failure('unauthorized');
+
+  if (
+    spec.expectedVersion !== undefined &&
+    (current.version ?? 0) !== spec.expectedVersion
+  ) {
+    return failure('conflict', current);
+  }
+
+  const next = spec.mutate(current, actor);
+  if (!next) return failure('invalid');
+
+  try {
+    saveComplaintToStore(next);
+  } catch {
+    // A quota failure is the one case where the change genuinely did not
+    // land, so it must not be reported as saved.
+    return {
+      ok: false,
+      reason: 'invalid',
+      message: 'There is no room left on this device to save that change. Clear old complaints and try again.',
+    };
+  }
+
+  const auditSpec = spec.audit(current, actor);
+  recordAuditEvent({
+    actor: toAuditActor(actor),
+    action: auditSpec.action,
+    targetType: 'complaint',
+    targetId: current.id,
+    description: auditSpec.description,
+    metadata: auditSpec.metadata,
+  });
+
+  // Written locally either way. Offline, it also joins the queue so the
+  // officer sees it is saved-but-unsent rather than silently divergent.
+  let queued = false;
+  if (!getNetworkSnapshot().isOnline) {
+    const syncSpec = spec.sync(current);
+    enqueue({
+      type: syncSpec.type,
+      entityId: current.id,
+      summary: syncSpec.summary,
+      payload: syncSpec.payload,
+    });
+    queued = true;
+  }
+
+  const saved = readStore().find((c) => c.id.toUpperCase() === cleanId) ?? next;
+  return { ok: true, complaint: saved, queued };
+}
+
+// ------------------------------------------------------------
+// Administrative operations
+// ------------------------------------------------------------
+
+/** Admin action: move a complaint to a different department. */
+export async function reassignComplaintDepartment(
+  complaintId: string,
+  newDeptId: DepartmentId,
+  newDeptName: string,
+  reason: string,
+  expectedVersion?: number
+): Promise<OperationResult> {
+  if (!reason.trim()) {
+    return { ok: false, reason: 'invalid', message: 'A reason is required to reassign a complaint.' };
+  }
+
+  return applyComplaintMutation({
+    complaintId,
+    expectedVersion,
+    adminOnly: true,
+    mutate: (existing, actor) => {
+      const nowIso = new Date().toISOString();
+      const oldDept = existing.department.name;
+      const target = DEPARTMENTS[newDeptId];
+
+      const withEvent = appendEvent(existing, {
+        id: `evt-reassign-${Date.now()}`,
+        title: `Reassigned to ${newDeptName}`,
+        description: `Routing transfer from ${oldDept} to ${newDeptName}. Reason: ${reason}`,
+        timestamp: nowIso,
+        status: existing.status,
+        actor: actor.name,
+        actorType: 'system',
+        visibility: 'public',
+      });
+
+      return {
+        ...withEvent,
+        updatedAt: nowIso,
+        department: {
+          id: newDeptId,
+          name: newDeptName,
+          division: target?.divisions[0] || existing.department.division || 'Gwalior Municipal Central',
+          helpline: target?.helpline || existing.department.helpline || '0751-2441111',
+        },
+        // The new department's nodal officer assigns their own crew.
+        assignedOfficer: undefined,
+        latestUpdate: {
+          title: `Transferred to ${newDeptName}`,
+          description: `Routing transfer: ${reason}`,
+          timestamp: nowIso,
+        },
+      };
+    },
+    audit: (existing) => ({
+      action: 'department_reassign',
+      description: `Reassigned from ${existing.department.name} to ${newDeptName}. Reason: ${reason}`,
+      metadata: { fromDept: existing.department.name, toDept: newDeptName, reason },
+    }),
+    sync: () => ({
+      type: 'REASSIGN_DEPARTMENT',
+      summary: `Reassign to ${newDeptName}`,
+      payload: { departmentId: newDeptId },
+    }),
+  });
+}
+
+/** Admin action: escalate a complaint by hand. */
 export async function manualEscalateComplaint(
   complaintId: string,
   reason: string,
-  adminName: string = 'City Administrator'
-): Promise<Complaint | null> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  expectedVersion?: number
+): Promise<OperationResult> {
+  if (!reason.trim()) {
+    return { ok: false, reason: 'invalid', message: 'A reason is required to escalate a complaint.' };
+  }
 
-  const cleanId = normaliseId(complaintId);
-  const existing = readStore().find((c) => c.id.toUpperCase() === cleanId);
-  if (!existing) return null;
+  return applyComplaintMutation({
+    complaintId,
+    expectedVersion,
+    adminOnly: true,
+    mutate: (existing, actor) => {
+      const nowIso = new Date().toISOString();
 
-  const nowIso = new Date().toISOString();
+      const withEvent = appendEvent(existing, {
+        id: `evt-manual-esc-${Date.now()}`,
+        title: 'Escalated by the Command Centre',
+        description: `${reason} Escalated to the Municipal Commissioner and department head.`,
+        timestamp: nowIso,
+        status: 'escalated',
+        actor: actor.name,
+        actorType: 'system',
+        visibility: 'public',
+      });
 
-  const updatedTimeline = appendEvent(existing, {
-    id: `evt-manual-esc-${Date.now()}`,
-    title: 'Manually escalated by Admin',
-    description: `Administrative intervention: ${reason}. Escalated to Municipal Commissioner & Department Head.`,
-    timestamp: nowIso,
-    status: 'escalated',
-    actor: adminName,
-    actorType: 'system',
-    visibility: 'public',
+      return {
+        ...withEvent,
+        status: 'escalated',
+        updatedAt: nowIso,
+        sla: {
+          ...existing.sla,
+          escalatedAt: nowIso,
+          escalationLevel: 'Level 2 (Executive)',
+          escalatedTo: 'Municipal Commissioner & Department Head',
+        },
+        latestUpdate: {
+          title: 'Escalated for priority action',
+          description: reason,
+          timestamp: nowIso,
+        },
+      };
+    },
+    audit: () => ({
+      action: 'manual_escalation',
+      description: `Manually escalated. Reason: ${reason}`,
+      metadata: { reason },
+    }),
+    sync: () => ({ type: 'MANUAL_ESCALATION', summary: 'Manual escalation' }),
   });
-
-  const updated: Complaint = {
-    ...updatedTimeline,
-    status: 'escalated',
-    updatedAt: nowIso,
-    sla: {
-      ...existing.sla,
-      status: 'exceeded',
-      escalatedAt: nowIso,
-      escalationLevel: 'Level 2 (Executive)',
-      escalatedTo: 'Municipal Commissioner & Department Head',
-    },
-    latestUpdate: {
-      title: 'Escalated by Admin',
-      description: `Administrative priority escalation: ${reason}`,
-      timestamp: nowIso,
-    },
-  };
-
-  saveComplaintToStore(updated);
-  return updated;
 }
 
-/** Assign an officer and/or team to a complaint */
+// ------------------------------------------------------------
+// Department operations
+// ------------------------------------------------------------
+
+export interface AssignmentTarget {
+  name: string;
+  designation: string;
+  staffId?: string;
+  team?: string;
+  phone?: string;
+}
+
+/** Assign an officer and crew to a complaint. */
 export async function assignComplaint(
   complaintId: string,
-  officer: {
-    name: string;
-    designation: string;
-    staffId?: string;
-    team?: string;
-    phone?: string;
-  },
+  officer: AssignmentTarget,
   teamName?: string,
-  actor: string = 'Department Nodal Officer'
-): Promise<Complaint | null> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  expectedVersion?: number
+): Promise<OperationResult> {
+  return applyComplaintMutation({
+    complaintId,
+    expectedVersion,
+    mutate: (existing, actor) => {
+      const nowIso = new Date().toISOString();
+      const assignedTeam =
+        teamName || officer.team || existing.department.assignedTeam || 'Maintenance Unit 1';
+      const isReassignment = Boolean(existing.assignedOfficer?.name);
 
-  const cleanId = normaliseId(complaintId);
-  const existing = readStore().find((c) => c.id.toUpperCase() === cleanId);
-  if (!existing) return null;
+      const withEvent = appendEvent(existing, {
+        id: `evt-assign-${Date.now()}`,
+        title: `Assigned to ${officer.name}`,
+        description: `Task assigned to ${officer.name} (${officer.designation}) in ${assignedTeam}.`,
+        timestamp: nowIso,
+        status: 'assigned',
+        actor: actor.name,
+        actorType: 'officer',
+        visibility: 'public',
+      });
 
-  const nowIso = new Date().toISOString();
-  const assignedTeam = teamName || officer.team || existing.department.assignedTeam || 'Maintenance Unit 1';
-
-  const updatedTimeline = appendEvent(existing, {
-    id: `evt-assign-${Date.now()}`,
-    title: `Assigned to ${officer.name}`,
-    description: `Task assigned to ${officer.name} (${officer.designation}) in ${assignedTeam}.`,
-    timestamp: nowIso,
-    status: 'assigned',
-    actor,
-    actorType: 'officer',
-    visibility: 'public',
+      return {
+        ...withEvent,
+        // Assigning must not drag a complaint that is already being
+        // worked on, or resolved, back to "assigned".
+        status: existing.status === 'pending' ? 'assigned' : existing.status,
+        updatedAt: nowIso,
+        department: { ...existing.department, assignedTeam },
+        assignedOfficer: {
+          name: officer.name,
+          designation: officer.designation,
+          staffId: officer.staffId,
+          team: assignedTeam,
+          phone: officer.phone,
+        },
+        latestUpdate: {
+          title: isReassignment ? `Reassigned to ${officer.name}` : `Assigned to ${officer.name}`,
+          description: `Task assigned to ${assignedTeam}. Work scheduled.`,
+          timestamp: nowIso,
+        },
+      };
+    },
+    audit: (existing) => ({
+      action: existing.assignedOfficer?.name ? 'complaint_reassigned_officer' : 'complaint_assigned',
+      description: `Assigned to ${officer.name} (${officer.designation})`,
+      metadata: {
+        officer: officer.name,
+        team: teamName || officer.team || '',
+        previousOfficer: existing.assignedOfficer?.name ?? '',
+      },
+    }),
+    sync: () => ({
+      type: 'ASSIGN_COMPLAINT',
+      summary: `Assign to ${officer.name}`,
+      payload: { officer: officer.name },
+    }),
   });
-
-  const updated: Complaint = {
-    ...updatedTimeline,
-    status: existing.status === 'pending' ? 'assigned' : existing.status,
-    updatedAt: nowIso,
-    department: {
-      ...existing.department,
-      assignedTeam,
-    },
-    assignedOfficer: {
-      name: officer.name,
-      designation: officer.designation,
-      staffId: officer.staffId,
-      team: assignedTeam,
-      phone: officer.phone,
-    },
-    latestUpdate: {
-      title: `Assigned to ${officer.name}`,
-      description: `Task assigned to ${assignedTeam}. Work scheduled.`,
-      timestamp: nowIso,
-    },
-  };
-
-  saveComplaintToStore(updated);
-  return updated;
 }
 
-/** Officer starts on-site work */
+/** Officer starts on-site work. */
 export async function startWorkOnComplaint(
   complaintId: string,
-  actor: string = 'Field Officer'
-): Promise<Complaint | null> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  expectedVersion?: number
+): Promise<OperationResult> {
+  return applyComplaintMutation({
+    complaintId,
+    expectedVersion,
+    mutate: (existing, actor) => {
+      if (existing.status === 'resolved') return null;
+      const nowIso = new Date().toISOString();
 
-  const cleanId = normaliseId(complaintId);
-  const existing = readStore().find((c) => c.id.toUpperCase() === cleanId);
-  if (!existing) return null;
+      const withEvent = appendEvent(existing, {
+        id: `evt-startwork-${Date.now()}`,
+        title: 'On-site work commenced',
+        description: 'The field team has arrived on site and begun work.',
+        timestamp: nowIso,
+        status: 'in-progress',
+        actor: actor.name,
+        actorType: 'officer',
+        visibility: 'public',
+      });
 
-  const nowIso = new Date().toISOString();
-
-  const updatedTimeline = appendEvent(existing, {
-    id: `evt-startwork-${Date.now()}`,
-    title: 'On-site work commenced',
-    description: 'Field operations team has arrived on site and initiated repair/rectification work.',
-    timestamp: nowIso,
-    status: 'in-progress',
-    actor,
-    actorType: 'officer',
-    visibility: 'public',
-  });
-
-  const updated: Complaint = {
-    ...updatedTimeline,
-    status: 'in-progress',
-    updatedAt: nowIso,
-    latestUpdate: {
-      title: 'On-site work in progress',
-      description: 'Operations team is actively working at the reported location.',
-      timestamp: nowIso,
+      return {
+        ...withEvent,
+        status: 'in-progress',
+        updatedAt: nowIso,
+        latestUpdate: {
+          title: 'On-site work in progress',
+          description: 'The operations team is working at the reported location.',
+          timestamp: nowIso,
+        },
+      };
     },
-  };
-
-  saveComplaintToStore(updated);
-  return updated;
+    audit: () => ({ action: 'work_started', description: 'Marked on-site work as started' }),
+    sync: () => ({ type: 'START_WORK', summary: 'Start on-site work' }),
+  });
 }
 
-/** Post a progress update note + optional field photos */
+/** Post a progress note, with optional field photos. */
 export async function addDepartmentProgressUpdate(
   complaintId: string,
   note: string,
   photos: string[] = [],
   isInternal: boolean = false,
-  actor: string = 'Field Officer'
-): Promise<Complaint | null> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  expectedVersion?: number
+): Promise<OperationResult> {
+  if (!note.trim()) {
+    return { ok: false, reason: 'invalid', message: 'Write a short note describing the progress.' };
+  }
 
-  const cleanId = normaliseId(complaintId);
-  const existing = readStore().find((c) => c.id.toUpperCase() === cleanId);
-  if (!existing) return null;
+  return applyComplaintMutation({
+    complaintId,
+    expectedVersion,
+    mutate: (existing, actor) => {
+      const nowIso = new Date().toISOString();
 
-  const nowIso = new Date().toISOString();
+      const withEvent = appendEvent(existing, {
+        id: `evt-progress-${Date.now()}`,
+        title: isInternal ? 'Internal operational note' : 'Field progress update',
+        description: note,
+        timestamp: nowIso,
+        status: existing.status,
+        actor: actor.name,
+        actorType: 'officer',
+        // Internal notes stay out of the citizen's timeline entirely.
+        visibility: isInternal ? 'internal' : 'public',
+        photos: photos.length > 0 ? photos : undefined,
+      });
 
-  const updatedTimeline = appendEvent(existing, {
-    id: `evt-progress-${Date.now()}`,
-    title: isInternal ? 'Internal Operational Note' : 'Field Progress Update',
-    description: note,
-    timestamp: nowIso,
-    status: existing.status,
-    actor,
-    actorType: 'officer',
-    visibility: isInternal ? 'internal' : 'public',
-    photos: photos.length > 0 ? photos : undefined,
+      return {
+        ...withEvent,
+        updatedAt: nowIso,
+        latestUpdate: isInternal
+          ? existing.latestUpdate
+          : { title: 'Field progress update', description: note, timestamp: nowIso },
+      };
+    },
+    audit: () => ({
+      action: photos.length > 0 ? 'evidence_added' : 'progress_update_added',
+      description: isInternal
+        ? `Internal note added${photos.length ? ` with ${photos.length} photo(s)` : ''}`
+        : `Progress update posted${photos.length ? ` with ${photos.length} photo(s)` : ''}`,
+      metadata: { visibility: isInternal ? 'internal' : 'public', photos: String(photos.length) },
+    }),
+    sync: () => ({
+      type: 'ADD_PROGRESS_UPDATE',
+      summary: isInternal ? 'Internal note' : 'Progress update',
+      payload: { photos: photos.length, internal: isInternal },
+    }),
   });
-
-  const updated: Complaint = {
-    ...updatedTimeline,
-    updatedAt: nowIso,
-    latestUpdate: isInternal
-      ? existing.latestUpdate
-      : {
-          title: 'Field Progress Update',
-          description: note,
-          timestamp: nowIso,
-        },
-  };
-
-  saveComplaintToStore(updated);
-  return updated;
 }
 
-/** Submit resolution with resolution notes and photo evidence */
+/** Submit a resolution with a note and photo evidence. */
 export async function submitDepartmentResolution(
   complaintId: string,
   resolutionNote: string,
   evidencePhotos: string[],
-  actor: string = 'Field Operations Team'
-): Promise<Complaint | null> {
-  await new Promise((resolve) => setTimeout(resolve, 700));
+  expectedVersion?: number
+): Promise<OperationResult> {
+  if (!resolutionNote.trim()) {
+    return { ok: false, reason: 'invalid', message: 'Describe what was done before submitting.' };
+  }
+  if (evidencePhotos.length === 0) {
+    return { ok: false, reason: 'invalid', message: 'Attach at least one photo of the completed work.' };
+  }
 
-  const cleanId = normaliseId(complaintId);
-  const existing = readStore().find((c) => c.id.toUpperCase() === cleanId);
-  if (!existing) return null;
+  return applyComplaintMutation({
+    complaintId,
+    expectedVersion,
+    mutate: (existing, actor) => {
+      const nowIso = new Date().toISOString();
 
-  const nowIso = new Date().toISOString();
+      const withEvent = appendEvent(existing, {
+        id: `evt-resolution-${Date.now()}`,
+        title: 'Resolution submitted — awaiting citizen verification',
+        description: resolutionNote,
+        timestamp: nowIso,
+        status: 'resolved',
+        actor: actor.name,
+        actorType: 'officer',
+        visibility: 'public',
+        photos: evidencePhotos,
+      });
 
-  const updatedTimeline = appendEvent(existing, {
-    id: `evt-resolution-${Date.now()}`,
-    title: 'Resolution submitted — awaiting citizen verification',
-    description: resolutionNote || 'Work completed on site and verified by field team.',
-    timestamp: nowIso,
-    status: 'resolved',
-    actor,
-    actorType: 'officer',
-    visibility: 'public',
-    photos: evidencePhotos.length > 0 ? evidencePhotos : undefined,
+      return {
+        ...withEvent,
+        status: 'resolved',
+        updatedAt: nowIso,
+        resolution: {
+          ...existing.resolution,
+          evidencePhotos,
+          resolvedAt: nowIso,
+          resolutionNote,
+          resolvedBy: actor.name,
+          // The department closing a job is not the citizen agreeing it
+          // is fixed. Only the citizen sets this, from /track.
+          citizenVerifiedResolved: false,
+        },
+        latestUpdate: {
+          title: 'Resolved — awaiting your confirmation',
+          description: resolutionNote,
+          timestamp: nowIso,
+        },
+      };
+    },
+    audit: () => ({
+      action: 'resolution_submitted',
+      description: `Resolution submitted with ${evidencePhotos.length} evidence photo(s)`,
+      metadata: { photos: String(evidencePhotos.length) },
+    }),
+    sync: () => ({
+      type: 'SUBMIT_RESOLUTION',
+      summary: 'Submit resolution',
+      payload: { photos: evidencePhotos.length },
+    }),
   });
-
-  const updated: Complaint = {
-    ...updatedTimeline,
-    status: 'resolved',
-    updatedAt: nowIso,
-    resolution: {
-      evidencePhotos,
-      resolvedAt: nowIso,
-      resolutionNote,
-      resolvedBy: actor,
-      citizenVerifiedResolved: false,
-    },
-    latestUpdate: {
-      title: 'Issue Resolved',
-      description: resolutionNote || 'Work completed on site and verified by department team.',
-      timestamp: nowIso,
-    },
-  };
-
-  saveComplaintToStore(updated);
-  return updated;
 }
 
-/** Department accepts a citizen's reinspection request and schedules re-work */
+/** Department accepts a citizen's reinspection request. */
 export async function acceptDepartmentReinspection(
   complaintId: string,
-  note: string = 'Reinspection accepted. Priority field team redeployed.',
-  actor: string = 'Nodal Officer'
-): Promise<Complaint | null> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  note: string = 'Reinspection accepted. A priority field team has been redeployed.',
+  expectedVersion?: number
+): Promise<OperationResult> {
+  return applyComplaintMutation({
+    complaintId,
+    expectedVersion,
+    mutate: (existing, actor) => {
+      if (!existing.feedback?.reinspectionRequested) return null;
+      const nowIso = new Date().toISOString();
 
-  const cleanId = normaliseId(complaintId);
-  const existing = readStore().find((c) => c.id.toUpperCase() === cleanId);
-  if (!existing) return null;
+      const withEvent = appendEvent(existing, {
+        id: `evt-reinspect-ack-${Date.now()}`,
+        title: 'Reinspection accepted',
+        description: note,
+        timestamp: nowIso,
+        status: 'in-progress',
+        actor: actor.name,
+        actorType: 'officer',
+        visibility: 'public',
+      });
 
-  const nowIso = new Date().toISOString();
-
-  const updatedTimeline = appendEvent(existing, {
-    id: `evt-reinspect-ack-${Date.now()}`,
-    title: 'Reinspection accepted by department',
-    description: note,
-    timestamp: nowIso,
-    status: 'in-progress',
-    actor,
-    actorType: 'officer',
-    visibility: 'public',
+      return {
+        ...withEvent,
+        status: 'in-progress',
+        updatedAt: nowIso,
+        feedback: {
+          ...existing.feedback,
+          // Cleared because the request has been taken up, not dismissed;
+          // the timeline entry above is the durable record of it.
+          reinspectionRequested: false,
+          reinspectionNote: note,
+        },
+        latestUpdate: { title: 'Reinspection in progress', description: note, timestamp: nowIso },
+      };
+    },
+    audit: () => ({ action: 'reinspection_accepted', description: 'Citizen reinspection request accepted' }),
+    sync: () => ({ type: 'ACCEPT_REINSPECTION', summary: 'Accept reinspection' }),
   });
-
-  const updated: Complaint = {
-    ...updatedTimeline,
-    status: 'in-progress',
-    updatedAt: nowIso,
-    feedback: {
-      ...existing.feedback,
-      reinspectionRequested: false, // Reset flag now that it's accepted and back in progress
-      reinspectionNote: note,
-    },
-    latestUpdate: {
-      title: 'Reinspection In Progress',
-      description: note,
-      timestamp: nowIso,
-    },
-  };
-
-  saveComplaintToStore(updated);
-  return updated;
 }
 
-/** Calculate comprehensive operational metrics for a department */
+// ------------------------------------------------------------
+// Derived operational metrics
+// ------------------------------------------------------------
+//
+// Everything below is COMPUTED from the shared complaint records on every
+// read. There are no stored counters to drift, and no UI event increments
+// a metric. If a number here looks wrong, the records say so.
+
+/** Complaints a department is answerable for. */
 export function getDepartmentMetrics(deptId: string): DepartmentMetrics {
   const deptComplaints = getComplaintsByDepartment(deptId);
   const now = Date.now();
@@ -1002,77 +1290,78 @@ export function getDepartmentMetrics(deptId: string): DepartmentMetrics {
   let ratingsCount = 0;
   let totalResolutionHoursSum = 0;
   let resolvedWithTimestampCount = 0;
+  /** Resolved inside its SLA window — the numerator for compliance. */
+  let resolvedOnTime = 0;
 
   for (const c of deptComplaints) {
     const isResolved = c.status === 'resolved';
+    // Health is derived from `dueAt` against the clock, never from the
+    // persisted `sla.status`, which is a snapshot from write time.
+    const health = computeSlaHealth(c, now);
 
-    if (!isResolved) {
-      active++;
-      if (c.status === 'pending') pending++;
-      else if (c.status === 'assigned') assigned++;
-      else if (c.status === 'in-progress') inProgress++;
-      else if (c.status === 'resolution-submitted') resolutionSubmitted++;
-
-      if (!c.assignedOfficer?.name) unassigned++;
-
-      const dueTime = new Date(c.sla.dueAt).getTime();
-      if (c.sla.status === 'exceeded' || dueTime < now) {
-        slaBreached++;
-        escalated++;
-      } else if (c.sla.status === 'approaching' || dueTime - now < 6 * 3600 * 1000) {
-        slaAtRisk++;
-      }
-
-      if (c.feedback?.reinspectionRequested) {
-        reinspectionRequested++;
-      }
-    } else {
-      resolved++;
-      if (c.resolution?.citizenVerifiedResolved) {
-        citizenVerified++;
-      }
+    if (isResolved) {
+      resolved += 1;
+      if (c.resolution?.citizenVerifiedResolved) citizenVerified += 1;
+      if (health && health.msRemaining >= 0) resolvedOnTime += 1;
 
       if (c.resolution?.resolvedAt) {
         const created = new Date(c.createdAt).getTime();
         const res = new Date(c.resolution.resolvedAt).getTime();
-        const diffHours = Math.max(1, Math.round((res - created) / (3600 * 1000)));
-        totalResolutionHoursSum += diffHours;
-        resolvedWithTimestampCount++;
+        if (res > created) {
+          totalResolutionHoursSum += Math.max(1, Math.round((res - created) / 3_600_000));
+          resolvedWithTimestampCount += 1;
+        }
       }
+    } else {
+      active += 1;
+      if (c.status === 'pending') pending += 1;
+      else if (c.status === 'assigned') assigned += 1;
+      else if (c.status === 'in-progress') inProgress += 1;
+      else if (c.status === 'resolution-submitted') resolutionSubmitted += 1;
+
+      if (!c.assignedOfficer?.name) unassigned += 1;
+      if (c.feedback?.reinspectionRequested) reinspectionRequested += 1;
+
+      if (health?.status === 'exceeded') slaBreached += 1;
+      else if (health?.status === 'approaching') slaAtRisk += 1;
     }
 
-    if (c.status === 'escalated') {
-      escalated++;
-    }
+    // Escalation is a state a complaint is in, counted once. The previous
+    // version added one for a breached SLA and another for the escalated
+    // status, so a single escalated complaint showed as two.
+    if (c.status === 'escalated' || c.sla.escalatedAt) escalated += 1;
 
     if (c.feedback?.rating) {
       totalRatingSum += c.feedback.rating;
-      ratingsCount++;
+      ratingsCount += 1;
     }
 
-    const priorityScore = c.aiAnalysis?.priorityScore || 70;
-    const severity = c.aiAnalysis?.severity || 'medium';
-    if (priorityScore >= 90 || severity === 'critical') {
-      criticalPriority++;
-    } else if (priorityScore >= 75 || severity === 'high') {
-      highPriority++;
-    }
+    const priorityScore = c.aiAnalysis?.priorityScore ?? 70;
+    const severity = c.aiAnalysis?.severity ?? 'medium';
+    if (priorityScore >= 90 || severity === 'critical') criticalPriority += 1;
+    else if (priorityScore >= 75 || severity === 'high') highPriority += 1;
   }
 
   const totalReceived = deptComplaints.length;
-  const resolutionRatePercent = totalReceived > 0 ? Math.round((resolved / totalReceived) * 100) : 94;
-  const slaCompliancePercent =
-    totalReceived > 0
-      ? Math.max(70, Math.round(((totalReceived - slaBreached) / totalReceived) * 100))
-      : 92;
+
+  // No records means no rate. A department with nothing filed against it
+  // has not achieved 94% resolution — it has no resolution rate at all,
+  // and the UI renders that as a dash rather than a flattering number.
+  const resolutionRatePercent = totalReceived > 0 ? Math.round((resolved / totalReceived) * 100) : 0;
+
+  // Compliance is measured over complaints whose SLA outcome is settled:
+  // resolved on time, or currently breached. Work still inside its window
+  // has neither passed nor failed and must not dilute either side.
+  const slaSettled = resolved + slaBreached;
+  const slaCompliancePercent = slaSettled > 0 ? Math.round((resolvedOnTime / slaSettled) * 100) : 0;
 
   const citizenSatisfactionAverage =
-    ratingsCount > 0 ? Number((totalRatingSum / ratingsCount).toFixed(1)) : 4.6;
+    ratingsCount > 0 ? Number((totalRatingSum / ratingsCount).toFixed(1)) : 0;
 
   const averageResolutionHours =
     resolvedWithTimestampCount > 0
       ? Math.round(totalResolutionHoursSum / resolvedWithTimestampCount)
-      : 28;
+      : 0;
 
   return {
     totalReceived,
@@ -1099,7 +1388,35 @@ export function getDepartmentMetrics(deptId: string): DepartmentMetrics {
   };
 }
 
-/** Triage query: items requiring immediate action */
+/**
+ * Where one department stands against the others, WITHOUT disclosing what
+ * the others scored.
+ *
+ * A department head is entitled to know whether they are behind. They are
+ * not entitled to Water Services' backlog, and a leaderboard naming every
+ * department's figures inside the department portal would be exactly the
+ * cross-department exposure the session scope is meant to prevent. The
+ * full comparison lives in the Command Centre, behind admin authority.
+ */
+export function getDepartmentRank(deptId: string): { rank: number; total: number } | null {
+  const ids = Object.keys(DEPARTMENTS) as DepartmentId[];
+
+  const scored = ids
+    .map((id) => {
+      const metrics = getDepartmentMetrics(id);
+      const breakdown = calculatePerformanceScore(metrics);
+      return { id, score: breakdown.totalScore, ranked: breakdown.tier !== 'no-data' };
+    })
+    .filter((row) => row.ranked)
+    .sort((a, b) => b.score - a.score);
+
+  const index = scored.findIndex((row) => row.id === deptId);
+  if (index === -1) return null;
+
+  return { rank: index + 1, total: scored.length };
+}
+
+/** Triage query: items requiring action now. */
 export function getDepartmentNeedsAttention(deptId: string): {
   breached: Complaint[];
   atRisk: Complaint[];
@@ -1115,52 +1432,52 @@ export function getDepartmentNeedsAttention(deptId: string): {
   const reinspection: Complaint[] = [];
 
   for (const c of deptComplaints) {
-    if (c.status !== 'resolved') {
-      const dueTime = new Date(c.sla.dueAt).getTime();
-      if (c.sla.status === 'exceeded' || dueTime < now) {
-        breached.push(c);
-      } else if (c.sla.status === 'approaching' || dueTime - now < 6 * 3600 * 1000) {
-        atRisk.push(c);
-      }
+    if (c.status === 'resolved') continue;
 
-      if (!c.assignedOfficer?.name) {
-        unassigned.push(c);
-      }
+    const health = computeSlaHealth(c, now);
+    if (health?.status === 'exceeded') breached.push(c);
+    else if (health?.status === 'approaching') atRisk.push(c);
 
-      if (c.feedback?.reinspectionRequested) {
-        reinspection.push(c);
-      }
-    }
+    if (!c.assignedOfficer?.name) unassigned.push(c);
+    if (c.feedback?.reinspectionRequested) reinspection.push(c);
   }
 
   return { breached, atRisk, unassigned, reinspection };
 }
 
-/** Filtered list of escalated/breached complaints */
+/** Escalated or SLA-breached complaints. */
 export function getDepartmentEscalations(deptId?: string): Complaint[] {
   const all = deptId ? getComplaintsByDepartment(deptId) : readStore();
   const now = Date.now();
 
   return all.filter((c) => {
     if (c.status === 'escalated') return true;
-    if (c.status !== 'resolved') {
-      const dueTime = new Date(c.sla.dueAt).getTime();
-      return c.sla.status === 'exceeded' || dueTime < now;
-    }
-    return false;
+    if (c.status === 'resolved') return false;
+    return computeSlaHealth(c, now)?.status === 'exceeded';
   });
 }
 
-/** Retrieve complaints assigned to a specific Field Officer */
-export function getMyWorkComplaints(deptId: string, staffNameOrId: string): Complaint[] {
+/**
+ * Complaints assigned to one officer.
+ *
+ * Matched on staff ID where the assignment carries one. The previous
+ * `norm.includes(officerName)` fallback matched an empty officer name
+ * against every unassigned complaint, so a field officer's list filled
+ * with work nobody had given them.
+ */
+export function getMyWorkComplaints(deptId: string, staffId: string, staffName?: string): Complaint[] {
   const deptComplaints = getComplaintsByDepartment(deptId);
-  const norm = staffNameOrId.toLowerCase().trim();
+  const id = staffId.toLowerCase().trim();
+  const name = (staffName ?? '').toLowerCase().trim();
 
   return deptComplaints.filter((c) => {
     if (c.status === 'resolved') return false;
-    const officerName = (c.assignedOfficer?.name || '').toLowerCase();
-    const staffId = (c.assignedOfficer?.staffId || '').toLowerCase();
-    return officerName.includes(norm) || staffId === norm || norm.includes(officerName);
+
+    const assignedId = (c.assignedOfficer?.staffId || '').toLowerCase();
+    const assignedName = (c.assignedOfficer?.name || '').toLowerCase();
+    if (!assignedId && !assignedName) return false;
+
+    if (assignedId && assignedId === id) return true;
+    return Boolean(name) && assignedName === name;
   });
 }
-

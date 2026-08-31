@@ -1,8 +1,11 @@
 // ============================================================
 // Admin Command Centre — city overview
 // ============================================================
+// Reads as an answer to one question at a time: how is the city doing,
+// what needs attention, who is behind, is resolution actually landing,
+// and what has just happened.
 
-import { useMemo } from 'react';
+import { useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   getCivicHealthScore,
@@ -11,6 +14,7 @@ import {
   getAllDepartmentRankings,
   getRecentActivity,
 } from '../../../services/adminService';
+import { useLiveData } from '../../../hooks/useLiveData';
 import { formatRelative } from '../../../services/timeService';
 import { AdminIcon, type AdminIconName } from '../AdminIcon';
 import './AdminDashboard.css';
@@ -23,16 +27,27 @@ const ACTIVITY_ICON: Record<string, AdminIconName> = {
 };
 
 export function AdminDashboard() {
-  const health = useMemo(() => getCivicHealthScore(), []);
-  const overview = useMemo(() => getCityOverview(), []);
-  const attention = useMemo(() => getCityNeedsAttention(), []);
-  const rankings = useMemo(() => getAllDepartmentRankings(), []);
-  const activity = useMemo(() => getRecentActivity(6), []);
+  /* One derivation, one subscription. Each figure below used to be its
+     own `useMemo(..., [])`, so the page never reflected a department
+     update without a full reload. */
+  const data = useLiveData(
+    useCallback(
+      () => ({
+        health: getCivicHealthScore(),
+        overview: getCityOverview(),
+        attention: getCityNeedsAttention(),
+        rankings: getAllDepartmentRankings(),
+        activity: getRecentActivity(6),
+      }),
+      []
+    )
+  );
 
-  /* Four numbers someone acts on today. The other four the service
-     returns — total filed, total resolved, average turnaround and the
-     verification rate — describe the record rather than the shift, so
-     they sit in the summary line below instead of taking a tile each. */
+  const { health, overview, attention, rankings, activity } = data;
+
+  /* Four numbers someone acts on today. Totals, turnaround and the
+     verification rate describe the record rather than the shift, so they
+     sit in the summary line and the pipeline card instead. */
   const kpis = [
     {
       label: 'Active',
@@ -50,8 +65,8 @@ export function AdminDashboard() {
     },
     {
       label: 'SLA compliance',
-      value: `${overview.slaCompliancePercent}%`,
-      note: 'city-wide',
+      value: overview.slaCompliancePercent > 0 ? `${overview.slaCompliancePercent}%` : '—',
+      note: 'of settled deadlines',
       tone: overview.slaCompliancePercent < 75 ? ('warning' as const) : ('good' as const),
       to: '/admin/performance',
     },
@@ -65,6 +80,22 @@ export function AdminDashboard() {
     },
   ];
 
+  /* Resolution quality. "Resolved" on its own overstates the outcome:
+     a department closing a job is not a citizen agreeing it is fixed. */
+  const pipeline = [
+    { label: 'Resolved', value: overview.resolvedComplaints, tone: 'neutral' as const },
+    {
+      label: 'Awaiting citizen verification',
+      value: overview.pendingCitizenVerification,
+      tone: 'warning' as const,
+    },
+    {
+      label: 'Citizen verified',
+      value: overview.resolvedComplaints - overview.pendingCitizenVerification,
+      tone: 'good' as const,
+    },
+  ];
+
   return (
     <div className="admin-page">
       <div className="admin-page-head">
@@ -74,6 +105,8 @@ export function AdminDashboard() {
             Service delivery across all five departments in Gwalior.
           </p>
         </div>
+
+        <span className="demo-tag">Demo data</span>
       </div>
 
       {/* ---- Civic health ---- */}
@@ -86,6 +119,11 @@ export function AdminDashboard() {
         <div className="civic-health__meta">
           <p className="civic-health__label">Civic health score</p>
           <span className="civic-health__tier">{health.tierBadge}</span>
+          {/* Not an official rating. This is a composite this product
+              computes from its own records, and says so. */}
+          <p className="civic-health__caveat">
+            A JAN-SEVA composite of the figures below — not an official municipal rating.
+          </p>
         </div>
 
         <dl className="civic-health__parts">
@@ -119,15 +157,12 @@ export function AdminDashboard() {
 
       <p className="admin-summary">
         <strong>{overview.totalComplaints.toLocaleString()}</strong> complaints filed to date
-        &middot; <strong>{overview.resolvedComplaints}</strong> resolved
         {overview.averageResolutionHours > 0 && (
           <>
             {' '}
             &middot; <strong>{overview.averageResolutionHours}h</strong> average turnaround
           </>
-        )}{' '}
-        &middot; <strong>{overview.pendingCitizenVerification}</strong> awaiting citizen
-        verification ({overview.resolutionVerificationRate}% verified)
+        )}
       </p>
 
       {/* ---- Needs attention ---- */}
@@ -163,7 +198,7 @@ export function AdminDashboard() {
                     <span className="attention-item__title">{item.title}</span>
                     <span className="attention-item__meta">
                       {item.department ? `${item.department} · ` : ''}
-                      {item.severity} priority
+                      {item.description}
                     </span>
                   </span>
                   <AdminIcon name="arrow-right" size={15} />
@@ -174,10 +209,7 @@ export function AdminDashboard() {
         )}
       </section>
 
-      {/* ---- Department standings ----
-           Five cards each carrying four metrics and four reason lines was
-           twenty-plus data points competing at one glance. A ranked row
-           per department answers the actual question: who is behind. */}
+      {/* ---- Department standings ---- */}
       <section className="admin-card">
         <div className="admin-card__head">
           <h2 className="admin-card__title">
@@ -209,7 +241,7 @@ export function AdminDashboard() {
                 </span>
 
                 <span className="dept-rank__score">
-                  {dept.performanceScore}
+                  {dept.tier === 'no-data' ? '—' : dept.performanceScore}
                   <span>/100</span>
                 </span>
               </Link>
@@ -218,30 +250,65 @@ export function AdminDashboard() {
         </ol>
       </section>
 
+      {/* ---- Resolution quality ---- */}
+      <section className="admin-card">
+        <div className="admin-card__head">
+          <h2 className="admin-card__title">
+            <AdminIcon name="check" size={16} />
+            Resolution quality
+          </h2>
+          <Link to="/admin/feedback" className="admin-btn admin-btn--ghost admin-btn--sm">
+            Feedback
+            <AdminIcon name="arrow-right" size={14} />
+          </Link>
+        </div>
+
+        <div className="admin-pipeline">
+          {pipeline.map((step) => (
+            <div key={step.label} className={`admin-pipeline__step admin-pipeline__step--${step.tone}`}>
+              <span className="admin-pipeline__value">{step.value}</span>
+              <span className="admin-pipeline__label">{step.label}</span>
+            </div>
+          ))}
+        </div>
+
+        <p className="admin-pipeline__note">
+          A department submitting a resolution is not the same as a citizen confirming it.
+          Verification moves only when the citizen responds on their tracking page.
+          {overview.resolvedComplaints > 0 && (
+            <> Currently {overview.resolutionVerificationRate}% verified.</>
+          )}
+        </p>
+      </section>
+
       {/* ---- Recent activity ---- */}
       <section className="admin-card">
         <h2 className="admin-card__title">Recent activity</h2>
 
-        <ul className="activity-list">
-          {activity.map((evt) => (
-            <li key={evt.id} className="activity-item">
-              <span
-                className={`activity-item__icon activity-item__icon--${evt.type}`}
-                aria-hidden="true"
-              >
-                <AdminIcon name={ACTIVITY_ICON[evt.type] ?? 'note'} size={15} />
-              </span>
-              <span className="activity-item__text">
-                <span className="activity-item__title">{evt.title}</span>
-                <span className="activity-item__meta">
-                  {evt.department}
-                  {evt.complaintId && ` · ${evt.complaintId}`}
+        {activity.length === 0 ? (
+          <p className="admin-empty-line">No recorded activity yet.</p>
+        ) : (
+          <ul className="activity-list">
+            {activity.map((evt) => (
+              <li key={evt.id} className="activity-item">
+                <span
+                  className={`activity-item__icon activity-item__icon--${evt.type}`}
+                  aria-hidden="true"
+                >
+                  <AdminIcon name={ACTIVITY_ICON[evt.type] ?? 'note'} size={15} />
                 </span>
-              </span>
-              <time className="activity-item__time">{formatRelative(evt.timestamp)}</time>
-            </li>
-          ))}
-        </ul>
+                <span className="activity-item__text">
+                  <span className="activity-item__title">{evt.title}</span>
+                  <span className="activity-item__meta">
+                    {evt.department}
+                    {evt.complaintId && ` · ${evt.complaintId}`}
+                  </span>
+                </span>
+                <time className="activity-item__time">{formatRelative(evt.timestamp)}</time>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

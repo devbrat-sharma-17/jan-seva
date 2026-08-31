@@ -4,7 +4,9 @@ import { useSearchParams } from 'react-router-dom';
 import { getCurrentDepartmentUser } from '../../../services/authService';
 import { getDepartmentConfig } from '../../../data/departments';
 import { getComplaintsByDepartment, subscribeToComplaints } from '../../../services/complaintService';
+import { computeSlaHealth } from '../../../services/slaService';
 import { PriorityQueue } from '../Dashboard/PriorityQueue';
+import { SkeletonQueue, LoadingAnnouncement } from '../../portal/Skeletons';
 import type { Complaint } from '../../../types';
 import type { DepartmentUser } from '../../../types/department';
 import './DepartmentComplaints.css';
@@ -13,23 +15,33 @@ export function DepartmentComplaints() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialFilter = searchParams.get('filter') || 'all';
 
-  const [user, setUser] = useState<DepartmentUser | null>(() => getCurrentDepartmentUser());
-  const [complaints, setComplaints] = useState<Complaint[]>([]);
+  // The route guard has already established the session, so this reads
+  // once rather than re-reading on every render pass.
+  const [user] = useState<DepartmentUser | null>(() => getCurrentDepartmentUser());
+  const [complaints, setComplaints] = useState<Complaint[] | null>(null);
   const [activeTab, setActiveTab] = useState<string>(initialFilter);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
 
-  useEffect(() => {
-    setUser(getCurrentDepartmentUser());
-  }, []);
+  const departmentId = user?.departmentId;
 
   useEffect(() => {
-    if (!user) return;
-    const load = () => setComplaints(getComplaintsByDepartment(user.departmentId));
+    if (!departmentId) return;
+    const load = () => setComplaints(getComplaintsByDepartment(departmentId));
     load();
-    const unsubscribe = subscribeToComplaints(load);
-    return () => unsubscribe();
-  }, [user?.departmentId]);
+    return subscribeToComplaints(load);
+  }, [departmentId]);
+
+  /* SLA health is derived against the current clock, once per pass, and
+     shared by the filters, the tab counts and the rows. Reading the
+     persisted `sla.status` instead meant a complaint that breached an
+     hour ago still filtered as "on track". */
+  const health = useMemo(() => {
+    const now = Date.now();
+    const map = new Map<string, ReturnType<typeof computeSlaHealth>>();
+    (complaints ?? []).forEach((c) => map.set(c.id, computeSlaHealth(c, now)));
+    return map;
+  }, [complaints]);
 
   // A deep link from the dashboard changes the query string without
   // remounting, so the tab has to follow it.
@@ -38,13 +50,14 @@ export function DepartmentComplaints() {
   }, [searchParams]);
 
   const filteredList = useMemo(() => {
-    return complaints.filter((c) => {
+    return (complaints ?? []).filter((c) => {
+      const sla = health.get(c.id)?.status;
       if (activeTab === 'new' && c.status !== 'pending') return false;
       if (activeTab === 'assigned' && c.status !== 'assigned') return false;
       if (activeTab === 'in-progress' && c.status !== 'in-progress') return false;
       if (activeTab === 'resolved' && c.status !== 'resolved') return false;
-      if (activeTab === 'escalated' && c.status !== 'escalated' && c.sla.status !== 'exceeded') return false;
-      if (activeTab === 'at-risk' && (c.sla.status !== 'approaching' || c.status === 'resolved')) return false;
+      if (activeTab === 'escalated' && c.status !== 'escalated' && sla !== 'exceeded') return false;
+      if (activeTab === 'at-risk' && (sla !== 'approaching' || c.status === 'resolved')) return false;
       if (activeTab === 'unassigned' && (c.assignedOfficer?.name || c.status === 'resolved')) return false;
       if (activeTab === 'reinspection' && (!c.feedback?.reinspectionRequested || c.status === 'resolved')) return false;
       if (activeTab === 'high-priority') {
@@ -72,21 +85,30 @@ export function DepartmentComplaints() {
 
       return true;
     });
-  }, [complaints, activeTab, categoryFilter, searchQuery]);
+  }, [complaints, health, activeTab, categoryFilter, searchQuery]);
 
-  if (!user) {
-    return <div className="dept-loading">Loading queue</div>;
-  }
+  if (!user) return null;
 
   const deptConfig = getDepartmentConfig(user.departmentId);
+
+  if (complaints === null) {
+    return (
+      <div className="dept-page">
+        <LoadingAnnouncement label="the complaint queue" />
+        <SkeletonQueue rows={5} />
+      </div>
+    );
+  }
+
+  const slaOf = (c: Complaint) => health.get(c.id)?.status;
 
   const tabs = [
     { id: 'all', label: 'All', count: complaints.length },
     { id: 'new', label: 'New', count: complaints.filter((c) => c.status === 'pending').length },
     { id: 'assigned', label: 'Assigned', count: complaints.filter((c) => c.status === 'assigned').length },
     { id: 'in-progress', label: 'In progress', count: complaints.filter((c) => c.status === 'in-progress').length },
-    { id: 'at-risk', label: 'At risk', count: complaints.filter((c) => c.sla.status === 'approaching' && c.status !== 'resolved').length },
-    { id: 'escalated', label: 'Escalated', count: complaints.filter((c) => c.status === 'escalated' || c.sla.status === 'exceeded').length },
+    { id: 'at-risk', label: 'At risk', count: complaints.filter((c) => slaOf(c) === 'approaching' && c.status !== 'resolved').length },
+    { id: 'escalated', label: 'Escalated', count: complaints.filter((c) => c.status === 'escalated' || slaOf(c) === 'exceeded').length },
     { id: 'resolved', label: 'Resolved', count: complaints.filter((c) => c.status === 'resolved').length },
   ];
 
@@ -176,7 +198,7 @@ export function DepartmentComplaints() {
 
       <PriorityQueue
         complaints={filteredList}
-        limit={Number.POSITIVE_INFINITY}
+        pageSize={20}
         emptyTitle="No matching complaints"
         emptyDesc={
           isFiltered
