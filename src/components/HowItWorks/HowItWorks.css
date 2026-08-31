@@ -1,0 +1,261 @@
+/* ============================================================
+   How It Works Section — Clean Connected Process Line
+   ============================================================ */
+.how-it-works {
+  padding: var(--section-y) 0;
+  background: var(--color-bg);
+  position: relative;
+  scroll-margin-top: var(--header-total);
+}
+
+/* Hairline rule at the section join */
+.how-it-works::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--color-border-strong),
+    transparent
+  );
+}
+
+/* ============================================================
+   Mobile — left-rail vertical timeline
+   ============================================================ */
+.how-it-works__steps {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.how-it-works__step {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-4);
+  position: relative;
+  transition: transform var(--transition-base, 250ms ease);
+}
+
+/* Marker rail */
+.how-it-works__marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* Step Number Badge (01, 02, 03, 04, 05) */
+.how-it-works__step-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: var(--radius-full, 9999px);
+  background: linear-gradient(
+    135deg,
+    #3B82F6 0%,
+    #2563EB 60%,
+    #1D4ED8 100%
+  );
+  color: var(--color-white, #FFFFFF);
+  font-family: var(--font-display, 'Outfit', sans-serif);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  box-shadow: 
+    0 0 0 4px rgba(37, 99, 235, 0.15),
+    0 4px 12px rgba(37, 99, 235, 0.25);
+  flex-shrink: 0;
+  z-index: 2;
+  position: relative;
+  transition: all var(--transition-base, 250ms ease);
+}
+
+/* Mobile Vertical Connector Line */
+.how-it-works__connector {
+  flex: 1;
+  width: 2px;
+  min-height: var(--space-6, 1.5rem);
+  margin: 4px 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--color-civic-blue, #2E58D9) 0 5px,
+    transparent 5px 10px
+  );
+  opacity: 0.35;
+  z-index: 1;
+}
+
+.how-it-works__step:last-child .how-it-works__connector {
+  display: none;
+}
+
+/* Step Content */
+.how-it-works__step-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-bottom: var(--space-8);
+  min-width: 0;
+  transition: transform var(--transition-fast, 150ms ease);
+}
+
+.how-it-works__step:last-child .how-it-works__step-content {
+  padding-bottom: 0;
+}
+
+/* Sizing and motion come from .icon-tile */
+.how-it-works__step-icon {
+  --tile-accent: var(--color-civic-blue);
+  margin-bottom: var(--space-3);
+  transition: transform var(--transition-base, 250ms ease), box-shadow var(--transition-base, 250ms ease);
+}
+
+.how-it-works__step-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  color: var(--color-navy);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  margin-bottom: var(--space-1);
+}
+
+.how-it-works__step-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-normal);
+  max-width: 34ch;
+}
+
+/* ============================================================
+   Tablet & Desktop — Horizontal Connected 5-Step Process
+   ============================================================ */
+@media (min-width: 768px) {
+  .how-it-works__steps {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .how-it-works__step {
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-4);
+    min-width: 0;
+    position: relative;
+    padding: 0 6px;
+  }
+
+  .how-it-works__marker {
+    width: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Seamless Connected Horizontal Line (Clean Civic Blue) */
+  .how-it-works__connector {
+    position: absolute;
+    top: 50%;
+    left: calc(50% + 1.25rem);
+    right: calc(-50% + 1.25rem);
+    width: auto;
+    height: 2px;
+    margin: 0;
+    min-height: 0;
+    transform: translateY(-50%);
+    background: repeating-linear-gradient(
+      to right,
+      #3B82F6 0 6px,
+      transparent 6px 12px
+    );
+    opacity: 0.45;
+    z-index: 1;
+  }
+
+  .how-it-works__step-content {
+    align-items: center;
+    text-align: center;
+    padding-bottom: 0;
+  }
+
+  .how-it-works__step-title {
+    font-size: var(--text-sm);
+  }
+
+  .how-it-works__step-desc {
+    font-size: var(--text-xs);
+    max-width: 22ch;
+  }
+}
+
+@media (min-width: 1024px) {
+  .how-it-works__step {
+    padding: 0 10px;
+  }
+
+  .how-it-works__step-num {
+    width: 2.65rem;
+    height: 2.65rem;
+    font-size: 0.8125rem;
+    box-shadow: 
+      0 0 0 5px rgba(37, 99, 235, 0.12),
+      0 4px 14px rgba(37, 99, 235, 0.28);
+  }
+
+  .how-it-works__connector {
+    left: calc(50% + 1.45rem);
+    right: calc(-50% + 1.45rem);
+    height: 2px;
+    opacity: 0.5;
+  }
+
+  .how-it-works__step-title {
+    font-size: var(--text-base);
+  }
+
+  .how-it-works__step-desc {
+    font-size: var(--text-sm);
+  }
+}
+
+/* ============================================================
+   Interactive Hover on Steps
+   ============================================================ */
+@media (hover: hover) and (pointer: fine) {
+  .how-it-works__step:hover .how-it-works__step-num {
+    transform: scale(1.1) translateY(-2px);
+    box-shadow: 
+      0 0 0 6px rgba(37, 99, 235, 0.25),
+      0 6px 18px rgba(37, 99, 235, 0.35);
+  }
+
+  .how-it-works__step:hover .how-it-works__step-icon {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 24px rgba(46, 88, 217, 0.15);
+  }
+
+  .how-it-works__step:hover .how-it-works__step-title {
+    color: var(--color-civic-blue, #2E58D9);
+  }
+}
+
+/* Prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .how-it-works__step-num,
+  .how-it-works__step-icon {
+    transition: none;
+  }
+}

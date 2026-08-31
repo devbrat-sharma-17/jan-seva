@@ -1,0 +1,324 @@
+/* ============================================================
+   JAN-SEVA — Report an Issue Wizard Stylesheet
+   Calm, functional, mobile-first task experience
+   ============================================================ */
+
+.report-wizard {
+  min-height: 100dvh;
+  background-color: var(--slate-50);
+  color: var(--slate-900);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+  font-family: inherit;
+}
+
+/* Subtle background texture */
+.report-wizard::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: 
+    radial-gradient(var(--slate-200) 1px, transparent 1px),
+    radial-gradient(rgba(46, 88, 217, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px, 48px 48px;
+  background-position: 0 0, 12px 12px;
+  pointer-events: none;
+  opacity: 0.6;
+  z-index: 0;
+}
+
+/* Container constrained for optimal mobile ergonomics */
+.report-wizard__shell {
+  width: 100%;
+  max-width: 540px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  background: var(--slate-0);
+  box-shadow: 0 0 40px rgba(16, 24, 40, 0.06);
+}
+
+@media (min-width: 640px) {
+  .report-wizard {
+    padding: 24px 16px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .report-wizard__shell {
+    border-radius: 24px;
+    border: 1px solid var(--slate-200);
+    min-height: 720px;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+}
+
+/* Header */
+.report-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--slate-200);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.report-header__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--slate-700);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  min-height: 38px;
+}
+
+.report-header__back:hover {
+  background-color: var(--slate-100);
+  color: var(--slate-900);
+}
+
+.report-header__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--slate-900);
+  letter-spacing: -0.01em;
+  margin: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.report-header__step {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--blue-600);
+  background-color: var(--blue-50);
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--blue-100);
+}
+
+/* Progress bar */
+.report-progress {
+  width: 100%;
+  height: 3px;
+  background-color: var(--slate-100);
+  position: relative;
+  overflow: hidden;
+}
+
+.report-progress__bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue-500), var(--blue-600));
+  transition: width 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Main Content Body */
+.report-wizard__body {
+  flex: 1;
+  padding: 20px 20px 100px;
+  display: flex;
+  flex-direction: column;
+}
+
+.report-step {
+  animation: fadeInStep 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+@keyframes fadeInStep {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Step Header */
+.step-heading {
+  margin-bottom: 20px;
+}
+
+.step-heading__title {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: var(--slate-900);
+  letter-spacing: -0.02em;
+  margin: 0 0 6px 0;
+  line-height: 1.25;
+}
+
+.step-heading__subtitle {
+  font-size: 0.9375rem;
+  color: var(--slate-600);
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* Inline Step Alert / Error */
+.step-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background-color: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  border-radius: 12px;
+  color: var(--color-error);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+  animation: shake 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+  40%, 60% { transform: translate3d(3px, 0, 0); }
+}
+
+/* Sticky Bottom Action Bar */
+.report-bottom-bar {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--slate-200);
+  padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.report-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 24px;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.2, 0, 0, 1);
+  text-decoration: none;
+  border: none;
+  box-sizing: border-box;
+}
+
+.report-btn:active {
+  transform: scale(0.985);
+}
+
+.report-btn--primary {
+  background: var(--blue-500);
+  color: var(--color-text-inverse);
+  box-shadow: 0 4px 14px rgba(46, 88, 217, 0.28);
+}
+
+.report-btn--primary:hover:not(:disabled) {
+  background: var(--blue-600);
+  box-shadow: 0 6px 18px rgba(46, 88, 217, 0.36);
+}
+
+.report-btn--primary:disabled {
+  background: var(--slate-300);
+  color: var(--slate-500);
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.8;
+}
+
+.report-btn--secondary {
+  background: var(--slate-100);
+  color: var(--slate-800);
+  border: 1px solid var(--slate-200);
+}
+
+.report-btn--secondary:hover {
+  background: var(--slate-200);
+  color: var(--slate-900);
+}
+
+.report-btn--outline {
+  background: transparent;
+  color: var(--blue-600);
+  border: 1.5px solid var(--blue-200);
+}
+
+.report-btn--outline:hover {
+  background: var(--blue-50);
+  border-color: var(--blue-400);
+}
+
+.report-bottom-bar__support {
+  font-size: 0.75rem;
+  color: var(--slate-500);
+  text-align: center;
+  margin: 0;
+}
+
+/* Modal / Dialog */
+.report-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 27, 45, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.report-dialog {
+  background: var(--color-surface);
+  border-radius: 20px;
+  padding: 24px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

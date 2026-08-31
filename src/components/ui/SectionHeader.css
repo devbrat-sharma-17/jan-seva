@@ -1,0 +1,40 @@
+/* ============================================================
+   SectionHeader Styles
+   ============================================================ */
+
+.section-header {
+  margin-bottom: clamp(1.75rem, 1.2rem + 2.4vw, 3rem);
+}
+
+.section-header--center {
+  text-align: center;
+}
+
+.section-header--left {
+  text-align: left;
+}
+
+.section-header__title {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-extrabold);
+  color: var(--color-navy);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+  margin-bottom: var(--space-3);
+  text-wrap: balance;
+}
+
+.section-header__subtitle {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--weight-regular);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+  max-width: 48ch;
+  text-wrap: pretty;
+}
+
+.section-header--center .section-header__subtitle {
+  margin-inline: auto;
+}

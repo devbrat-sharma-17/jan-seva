@@ -1,0 +1,146 @@
+@import '../admin-shared.css';
+
+/* ============================================================
+   Admin Department Views — Styles
+   ============================================================ */
+
+.admin-depts {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.admin-depts__header h1 {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-extrabold);
+  color: var(--color-text);
+  margin: 0 0 0.25rem;
+}
+
+.admin-depts__header p {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+/* Comparison Bar */
+.admin-dept-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.admin-sort-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* Department Detail Page */
+.admin-dept-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.admin-dept-hero {
+  background: linear-gradient(135deg, var(--color-navy) 0%, var(--navy-700) 100%);
+  border-radius: 1rem;
+  padding: 2rem;
+  color: var(--color-text-inverse);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.admin-dept-hero__title {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-extrabold);
+  margin: 0 0 0.25rem;
+}
+
+.admin-dept-hero__sub {
+  font-size: var(--text-sm);
+  color: var(--slate-400);
+  margin: 0;
+}
+
+.admin-dept-hero__score-badge {
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 1rem 1.5rem;
+}
+
+.admin-dept-hero__score-val {
+  font-size: var(--text-4xl);
+  font-weight: var(--font-extrabold);
+  line-height: 1;
+}
+
+/* Why Underperforming Box */
+.admin-attention-box {
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  border-radius: 0.875rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.admin-attention-box__title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-extrabold);
+  color: var(--red-700);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-attention-box ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--red-700);
+  font-size: var(--text-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+/* Recognitions Box */
+.admin-recognition-box {
+  background: var(--color-success-bg);
+  border: 1px solid var(--color-success-border);
+  border-radius: 0.875rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.admin-recognition-box__title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-extrabold);
+  color: var(--color-success-fg);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-recognition-box ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--green-600);
+  font-size: var(--text-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}

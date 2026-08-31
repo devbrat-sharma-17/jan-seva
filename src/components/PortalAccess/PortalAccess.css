@@ -1,0 +1,108 @@
+/* ============================================================
+   Portal Access Section
+   ============================================================ */
+.portal-access {
+  padding: var(--section-y-sm) 0 var(--space-4);
+}
+
+.portal-access__label {
+  display: inline-block;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
+  margin-bottom: var(--space-4);
+}
+
+.portal-access__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+
+/* Portal Card */
+.portal-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: var(--tap-target);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--transition-base),
+              box-shadow var(--transition-base),
+              transform var(--transition-fast);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .portal-card:hover {
+    border-color: var(--color-civic-blue);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-3px);
+  }
+
+  .portal-card:hover .portal-card__arrow {
+    color: var(--color-civic-blue);
+    transform: translateX(4px);
+  }
+
+  .portal-card:hover .portal-card__icon {
+    background: var(--color-civic-blue);
+    color: var(--color-white);
+  }
+}
+
+.portal-card:active {
+  transform: scale(0.99);
+  border-color: var(--color-civic-blue);
+}
+
+/* Sizing, radius and motion come from .icon-tile; only the accent differs */
+.portal-card__icon {
+  --tile-accent: var(--color-civic-blue);
+  --tile-gradient: var(--cat-roads-grad);
+  background: var(--color-civic-blue-bg);
+}
+
+.portal-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.portal-card__title {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  color: var(--color-navy);
+}
+
+.portal-card__subtitle {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.portal-card__arrow {
+  color: var(--color-gray-300);
+  transition: transform var(--transition-base), color var(--transition-base);
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .portal-access__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+  }
+}
+
+@media (min-width: 768px) {
+  .portal-access {
+    padding: var(--section-y-sm) 0 var(--space-6);
+  }
+}

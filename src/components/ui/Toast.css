@@ -1,0 +1,100 @@
+/* ============================================================
+   Toast — transient feedback
+   ============================================================ */
+
+.toast-stack {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  /* Clears the mobile action bar so a toast never hides the primary CTA. */
+  bottom: calc(var(--action-bar-height) + var(--space-4));
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(100% - var(--space-8), 30rem);
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--toast-radius);
+  background: var(--toast-bg);
+  color: var(--toast-fg);
+  box-shadow: var(--toast-shadow);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  animation: toast-in var(--duration-normal) var(--ease-spring) both;
+}
+
+.toast__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.toast__message {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast__dismiss {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: -0.125rem -0.25rem 0 0;
+  border-radius: var(--radius-md);
+  color: inherit;
+  opacity: 0.65;
+  transition: opacity var(--transition-fast), background-color var(--transition-fast);
+}
+
+.toast__dismiss:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* Tones keep the dark plate and shift the icon, so contrast stays fixed. */
+.toast--success .toast__icon { color: var(--green-400); }
+.toast--warning .toast__icon { color: var(--amber-400); }
+.toast--error   .toast__icon { color: var(--red-400); }
+.toast--info    .toast__icon { color: var(--blue-300); }
+
+.toast--error {
+  /* An unsaved report is not a passing notice — give it a visible edge. */
+  box-shadow: var(--toast-shadow), inset 0 0 0 1.5px var(--red-400);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (min-width: 768px) {
+  .toast-stack {
+    left: auto;
+    right: var(--space-6);
+    bottom: var(--space-6);
+    transform: none;
+    width: 24rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}

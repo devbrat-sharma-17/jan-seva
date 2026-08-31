@@ -1,0 +1,198 @@
+.city-selector-container {
+  position: relative;
+  display: inline-flex;
+}
+
+.city-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--tap-target);
+  max-width: 9.5rem;
+  padding: 0 var(--space-3);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.7);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-navy);
+  cursor: pointer;
+  transition: border-color var(--transition-fast),
+              box-shadow var(--transition-fast),
+              background var(--transition-fast);
+  white-space: nowrap;
+}
+
+.city-selector svg {
+  flex-shrink: 0;
+  color: var(--color-civic-blue);
+}
+
+.city-selector--active,
+.city-selector:hover {
+  border-color: var(--color-civic-blue);
+  background: var(--color-white);
+  box-shadow: 0 0 0 3px var(--color-civic-blue-ring);
+}
+
+.city-selector:active {
+  background: var(--color-civic-blue-bg);
+  border-color: var(--color-civic-blue);
+}
+
+.city-selector__name {
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.city-selector__chevron {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.city-selector__chevron--open {
+  transform: rotate(180deg);
+}
+
+/* ============================================================
+   Dropdown Menu
+   ============================================================ */
+
+.city-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 220px;
+  background: #ffffff;
+  border-radius: var(--radius-lg, 0.75rem);
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 4px 10px rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  padding: 0.375rem;
+  z-index: 1000;
+  animation: dropdownFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.city-dropdown__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.375rem 0.625rem 0.25rem;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 0.25rem;
+}
+
+.city-dropdown__title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+}
+
+.city-dropdown__state {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--color-civic-blue, #2563eb);
+  background: #eff6ff;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 9999px;
+}
+
+.city-dropdown__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.city-dropdown__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  font-family: inherit;
+}
+
+.city-dropdown__item:hover {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.city-dropdown__item--selected {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.city-dropdown__item--selected:hover {
+  background: #dcfce7;
+}
+
+.city-dropdown__item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.0625rem;
+}
+
+.city-dropdown__item-name {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.city-name-en {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.city-name-hi {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.city-badge {
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 0.125rem 0.375rem;
+  border-radius: 9999px;
+}
+
+.city-badge--active {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.city-badge--soon {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+@media (min-width: 768px) {
+  .city-selector {
+    font-size: var(--text-sm);
+    max-width: 12rem;
+    padding: 0 var(--space-4);
+  }
+}

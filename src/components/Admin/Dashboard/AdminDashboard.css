@@ -1,0 +1,534 @@
+/* ============================================================
+   Admin Command Centre — city overview
+   ============================================================ */
+
+@import '../admin-shared.css';
+
+/* ============================================================
+   CIVIC HEALTH
+   ============================================================ */
+
+.civic-health {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--space-4) var(--space-5);
+  padding: var(--space-5);
+  border-radius: var(--radius-2xl);
+  color: var(--admin-text);
+  background:
+    radial-gradient(120% 120% at 0% 0%, var(--health-glow) 0%, transparent 55%),
+    linear-gradient(140deg, var(--navy-800) 0%, var(--navy-900) 100%);
+  box-shadow: var(--shadow-lg);
+
+  /* The tier drives one colour, set once here rather than computed in
+     the component and passed down as an inline style. */
+  --health-accent: var(--color-civic-blue-light);
+  --health-glow: var(--color-civic-blue-ring);
+}
+
+.civic-health--excellent {
+  --health-accent: var(--green-400);
+  --health-glow: rgba(52, 184, 122, 0.28);
+}
+
+.civic-health--good {
+  --health-accent: var(--color-civic-blue-light);
+  --health-glow: var(--color-civic-blue-ring);
+}
+
+.civic-health--fair {
+  --health-accent: var(--amber-400);
+  --health-glow: rgba(224, 160, 52, 0.28);
+}
+
+.civic-health--poor {
+  --health-accent: var(--red-400);
+  --health-glow: rgba(232, 112, 95, 0.28);
+}
+
+@media (min-width: 60rem) {
+  .civic-health {
+    grid-template-columns: auto auto 1fr;
+    padding: var(--space-6);
+    gap: var(--space-6);
+  }
+}
+
+.civic-health__figure {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.civic-health__score {
+  font-family: var(--font-display);
+  font-size: clamp(2.75rem, 2rem + 3.5vw, 4rem);
+  font-weight: var(--font-extrabold);
+  line-height: 1;
+  letter-spacing: var(--tracking-tight);
+  color: var(--health-accent);
+}
+
+.civic-health__max {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--slate-400);
+}
+
+.civic-health__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.civic-health__label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--slate-300);
+  margin: 0;
+}
+
+.civic-health__tier {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-text-inverse);
+  font-size: var(--text-xs);
+  font-weight: var(--font-extrabold);
+  letter-spacing: var(--tracking-wide);
+  white-space: nowrap;
+}
+
+/* Six weighted components, as compact labelled bars. */
+.civic-health__parts {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+@media (min-width: 40rem) {
+  .civic-health__parts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 60rem) {
+  .civic-health__parts {
+    grid-column: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-top: 0;
+    padding-inline-start: var(--space-6);
+    border-top: none;
+    border-inline-start: 1px solid rgba(255, 255, 255, 0.14);
+  }
+}
+
+.civic-health__part {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.civic-health__part dt {
+  font-size: var(--text-xs);
+  color: var(--slate-400);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.civic-health__part dd {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.civic-health__bar {
+  flex: 1;
+  height: 5px;
+  min-width: 0;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+.civic-health__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--health-accent);
+  transition: width var(--transition-slow);
+}
+
+.civic-health__value {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-text-inverse);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   KPI TILES
+   ============================================================ */
+
+.admin-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+@media (min-width: 60rem) {
+  .admin-kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+}
+
+.admin-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-4);
+  background: var(--admin-surface-card);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  box-shadow: var(--shadow-xs);
+  text-decoration: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.admin-kpi:hover {
+  border-color: var(--admin-border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.admin-kpi__label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--admin-fg-secondary);
+}
+
+.admin-kpi__value {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-extrabold);
+  line-height: 1.05;
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-navy);
+}
+
+.admin-kpi__note {
+  font-size: var(--text-xs);
+  color: var(--admin-fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-kpi--danger .admin-kpi__value  { color: var(--color-error-fg); }
+.admin-kpi--warning .admin-kpi__value { color: var(--color-warning-fg); }
+.admin-kpi--good .admin-kpi__value    { color: var(--color-success-fg); }
+
+/* Zero escalations is good news and should not shout. */
+.admin-kpi--danger .admin-kpi__value:not(:empty) {
+  color: var(--color-error-fg);
+}
+
+/* ---- One-line record summary under the tiles ---- */
+
+.admin-summary {
+  margin: calc(var(--space-2) * -1) 0 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--admin-fg-secondary);
+}
+
+.admin-summary strong {
+  font-weight: var(--font-bold);
+  color: var(--admin-fg);
+}
+
+/* ============================================================
+   NEEDS ATTENTION
+   ============================================================ */
+
+.admin-empty-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-success-fg);
+}
+
+.attention-list,
+.dept-rank,
+.activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.attention-list {
+  gap: 2px;
+  margin-inline: calc(var(--space-2) * -1);
+}
+
+.attention-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--admin-fg-muted);
+  transition: background-color var(--transition-fast);
+}
+
+.attention-item:hover {
+  background: var(--admin-surface-sunken);
+}
+
+.attention-item__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.attention-item__dot--critical { background: var(--red-600); }
+.attention-item__dot--high     { background: var(--saffron-600); }
+.attention-item__dot--medium   { background: var(--blue-500); }
+.attention-item__dot--low      { background: var(--slate-400); }
+
+.attention-item__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.attention-item__title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--admin-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attention-item__meta {
+  font-size: var(--text-xs);
+  color: var(--admin-fg-muted);
+  text-transform: capitalize;
+}
+
+/* ============================================================
+   DEPARTMENT STANDINGS
+   ============================================================ */
+
+.dept-rank {
+  gap: var(--space-2);
+}
+
+.dept-rank__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'pos text score'
+    '.   tier tier';
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-lg);
+  background: var(--admin-surface);
+  text-decoration: none;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+@media (min-width: 40rem) {
+  .dept-rank__row {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-areas: 'pos text tier score';
+  }
+}
+
+.dept-rank__row:hover {
+  border-color: var(--admin-blue);
+  background: var(--admin-surface-card);
+}
+
+.dept-rank__pos {
+  grid-area: pos;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--admin-surface-card);
+  border: 1px solid var(--admin-border);
+  font-size: var(--text-xs);
+  font-weight: var(--font-extrabold);
+  color: var(--admin-fg-secondary);
+  flex-shrink: 0;
+}
+
+.dept-rank__text {
+  grid-area: text;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.dept-rank__name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--admin-fg);
+}
+
+.dept-rank__stats {
+  font-size: var(--text-xs);
+  color: var(--admin-fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dept-rank__tier {
+  grid-area: tier;
+  justify-self: start;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  white-space: nowrap;
+}
+
+.dept-rank__tier--star            { background: var(--amber-100); color: var(--amber-700); }
+.dept-rank__tier--performing      { background: var(--green-100); color: var(--green-700); }
+.dept-rank__tier--needs-attention { background: var(--amber-50);  color: var(--amber-700); }
+.dept-rank__tier--critical        { background: var(--red-100);   color: var(--red-700); }
+
+.dept-rank__score {
+  grid-area: score;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--font-extrabold);
+  color: var(--admin-fg);
+  flex-shrink: 0;
+}
+
+.dept-rank__score span {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--font-regular);
+  color: var(--admin-fg-muted);
+}
+
+/* ============================================================
+   RECENT ACTIVITY
+   ============================================================ */
+
+.activity-list {
+  gap: var(--space-3);
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.activity-item__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: var(--radius-md);
+  background: var(--admin-surface-sunken);
+  color: var(--admin-fg-muted);
+  flex-shrink: 0;
+}
+
+.activity-item__icon--resolution {
+  background: var(--color-success-bg);
+  color: var(--color-success-fg);
+}
+
+.activity-item__icon--escalation {
+  background: var(--color-error-bg);
+  color: var(--color-error-fg);
+}
+
+.activity-item__icon--assignment {
+  background: var(--color-info-bg);
+  color: var(--color-info-fg);
+}
+
+.activity-item__icon--feedback {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-fg);
+}
+
+.activity-item__text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-item__title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--admin-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-item__meta {
+  font-size: var(--text-xs);
+  color: var(--admin-fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-item__time {
+  font-size: var(--text-xs);
+  color: var(--admin-fg-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .civic-health__fill,
+  .admin-kpi,
+  .attention-item,
+  .dept-rank__row {
+    transition: none;
+  }
+}

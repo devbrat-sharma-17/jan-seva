@@ -1,0 +1,101 @@
+/* ============================================================
+   Placeholder / not-found page
+   ============================================================ */
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  padding-block: var(--section-y);
+  padding-bottom: calc(var(--section-y) + var(--action-bar-height));
+}
+
+.placeholder__inner {
+  max-width: 34rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.placeholder__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--pill-padding-y) var(--pill-padding-x);
+  border-radius: var(--pill-radius);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-extrabold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  border: 1px solid transparent;
+}
+
+.placeholder__badge--coming-soon {
+  background: var(--color-info-bg);
+  border-color: var(--color-info-border);
+  color: var(--color-info-fg);
+}
+
+.placeholder__badge--not-found {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+  color: var(--color-warning-fg);
+}
+
+.placeholder__title {
+  margin: 0;
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-black);
+  color: var(--color-text);
+}
+
+.placeholder__text {
+  margin: 0;
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.placeholder__path {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.placeholder__path code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.125rem 0.375rem;
+}
+
+.placeholder__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+.placeholder__cta {
+  flex: 1 1 12rem;
+  max-width: 16rem;
+  min-height: var(--tap-target);
+}
+
+.placeholder__home {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-civic-blue);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+}
+
+.placeholder__home:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

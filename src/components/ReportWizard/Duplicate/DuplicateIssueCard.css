@@ -1,0 +1,129 @@
+/* ============================================================
+   Duplicate Issue Resolution Styles
+   ============================================================ */
+
+.dup-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+  padding: 8px 0;
+}
+
+.dup-banner-alert {
+  background: var(--amber-50);
+  border: 1.5px solid rgba(224, 160, 52, 0.4);
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.dup-banner-alert svg {
+  color: var(--amber-600);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.dup-banner-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-warning-fg);
+  margin: 0 0 4px 0;
+}
+
+.dup-banner-desc {
+  font-size: 0.875rem;
+  color: var(--color-warning-fg);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Existing match card */
+.dup-card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--slate-200);
+  border-radius: 18px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 4px 14px rgba(15, 27, 45, 0.04);
+}
+
+.dup-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dup-ticket-id {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--blue-600);
+  background: var(--blue-50);
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.dup-status-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: var(--status-pending-bg);
+  color: var(--color-warning-fg);
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.dup-card-title {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  color: var(--slate-900);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.dup-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--slate-600);
+}
+
+.dup-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dup-supporting-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--status-resolved-bg);
+  color: var(--status-resolved-fg);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  padding: 6px 12px;
+  border-radius: 10px;
+  width: fit-content;
+}
+
+/* Actions */
+.dup-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.dup-join-explainer {
+  font-size: 0.75rem;
+  color: var(--slate-500);
+  text-align: center;
+  margin: 0;
+  line-height: 1.4;
+}

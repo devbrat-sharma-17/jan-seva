@@ -1,0 +1,331 @@
+/* ============================================================
+   JAN-SEVA — Design Tokens
+   Three-layer architecture:  Primitive -> Semantic -> Component
+   Components must never reference Layer 1 directly.
+   ============================================================ */
+
+/* ============================================================
+   LAYER 1 — PRIMITIVES
+   Raw values. No meaning attached. Never used in component CSS.
+   ============================================================ */
+:root {
+  /* --- Blue (brand / roads) --- */
+  --blue-50:  #EEF3FE;
+  --blue-100: #D9E4FC;
+  --blue-200: #B8CBF8;
+  --blue-300: #8AA9F2;
+  --blue-400: #5A81E8;
+  --blue-500: #2E58D9;
+  --blue-600: #1F45BE;
+  --blue-700: #1A379A;
+  --blue-800: #172D78;
+  --blue-900: #14245C;
+
+  /* --- Navy (surface / brand dark) --- */
+  --navy-700: #1A2B42;
+  --navy-800: #0F1B2D;
+  --navy-900: #0A1220;
+
+  /* --- Green (success / sanitation) --- */
+  --green-50:  #EAFAF1;
+  --green-100: #CDF2DF;
+  --green-200: #A5E5C4;
+  --green-400: #34B87A;
+  --green-500: #1E9C60;
+  --green-600: #157A4A;
+  --green-700: #115F3A;
+
+  /* --- Cyan (water / work-in-progress) --- */
+  --cyan-50:  #E9F6FA;
+  --cyan-100: #CDEAF3;
+  --cyan-200: #A5D9E9;
+  --cyan-400: #35AECD;
+  --cyan-500: #1D95B8;
+  --cyan-600: #167694;
+  --cyan-700: #115C74;
+
+  /* --- Amber (streetlights / warning) --- */
+  --amber-50:  #FDF5E7;
+  --amber-100: #FAE9C8;
+  --amber-200: #F3D79B;
+  --amber-400: #E0A034;
+  --amber-500: #BE7A0F;
+  --amber-600: #99610B;
+  --amber-700: #7A4D08;
+
+  /* --- Violet (infrastructure) --- */
+  --violet-50:  #F3EDFE;
+  --violet-400: #9A67E8;
+  --violet-500: #7A3BE0;
+  --violet-600: #6229BC;
+
+  /* --- Saffron (accent) --- */
+  --saffron-400: #F2913F;
+  --saffron-500: #E8722A;
+  --saffron-600: #C2510A;
+
+  /* --- Red (error / escalation) --- */
+  --red-50:  #FDF0EE;
+  --red-100: #FADCD8;
+  --red-200: #F4BDB6;
+  --red-400: #E8705F;
+  --red-500: #E14B3C;
+  --red-600: #C1352A;
+  --red-700: #9B2820;
+
+  /* --- Slate / neutrals --- */
+  --slate-0:   #FFFFFF;
+  --slate-25:  #FBFCFE;
+  --slate-50:  #F7F9FC;
+  --slate-100: #F0F3F7;
+  --slate-200: #E4E8EF;
+  --slate-300: #CFD6E1;
+  --slate-400: #9BA5B7;
+  --slate-500: #5F6C82;
+  --slate-600: #475467;
+  --slate-700: #344054;
+  --slate-800: #1D2939;
+  --slate-900: #101828;
+}
+
+/* ============================================================
+   LAYER 2 — SEMANTIC
+   Purpose-named aliases. This is what most component CSS uses.
+   ============================================================ */
+:root {
+  /* --- Brand --- */
+  --color-navy:            var(--navy-800);
+  --color-navy-light:      var(--navy-700);
+  --color-navy-dark:       var(--navy-900);
+
+  --color-civic-blue:      var(--blue-500);
+  --color-civic-blue-light: var(--blue-400);
+  --color-civic-blue-dark: var(--blue-600);
+  --color-civic-blue-bg:   var(--blue-50);
+  --color-civic-blue-50:   var(--blue-50);
+  --color-civic-blue-100:  var(--blue-100);
+  --color-civic-blue-hover: var(--blue-600);
+  --color-civic-blue-ring: rgba(46, 88, 217, 0.16);
+
+  --color-saffron:         var(--saffron-500);
+  --color-saffron-light:   var(--saffron-400);
+  --color-saffron-dark:    var(--saffron-600);
+
+  --color-green:           var(--green-500);
+  --color-green-light:     var(--green-400);
+  --color-green-dark:      var(--green-600);
+  --color-green-bg:        var(--green-50);
+
+  /* --- Surfaces --- */
+  --color-bg:              var(--slate-50);
+  --color-bg-subtle:       var(--slate-0);
+  --color-surface:         var(--slate-0);
+  --color-surface-sunken:  var(--slate-100);
+  --color-white:           var(--slate-0);
+
+  /* --- Borders --- */
+  --color-border:          var(--slate-200);
+  --color-border-strong:   var(--slate-300);
+
+  /* --- Text --- */
+  --color-text:            var(--slate-900);
+  --color-text-secondary:  var(--slate-600);
+  --color-text-muted:      var(--slate-500);
+  --color-text-inverse:    var(--slate-0);
+
+  /* --- Status --- */
+  --color-success:         var(--green-500);
+  --color-warning:         var(--amber-500);
+  --color-error:           var(--red-500);
+  --color-info:            var(--blue-500);
+
+  /* ------------------------------------------------------------
+     Feedback surfaces.
+     Every alert, banner and inline error resolves here, so a tone
+     change is one edit rather than a hunt through component CSS.
+     ------------------------------------------------------------ */
+  --color-success-bg:      var(--green-50);
+  --color-success-border:  var(--green-200);
+  --color-success-fg:      var(--green-700);
+
+  --color-warning-bg:      var(--amber-50);
+  --color-warning-border:  var(--amber-200);
+  --color-warning-fg:      var(--amber-700);
+
+  --color-error-bg:        var(--red-50);
+  --color-error-border:    var(--red-200);
+  --color-error-fg:        var(--red-700);
+
+  --color-info-bg:         var(--blue-50);
+  --color-info-border:     var(--blue-200);
+  --color-info-fg:         var(--blue-700);
+
+  /* ------------------------------------------------------------
+     Complaint lifecycle.
+     One triplet per status in the `Complaint['status']` union, so a
+     pill, a timeline node and a card accent for the same status are
+     guaranteed to agree. Foregrounds clear 4.5:1 on their own bg.
+     ------------------------------------------------------------ */
+  --status-pending-bg:      var(--amber-50);
+  --status-pending-border:  var(--amber-200);
+  --status-pending-fg:      var(--amber-700);
+  --status-pending-dot:     var(--amber-500);
+
+  --status-assigned-bg:     var(--blue-50);
+  --status-assigned-border: var(--blue-200);
+  --status-assigned-fg:     var(--blue-700);
+  --status-assigned-dot:    var(--blue-500);
+
+  --status-progress-bg:     var(--cyan-50);
+  --status-progress-border: var(--cyan-200);
+  --status-progress-fg:     var(--cyan-700);
+  --status-progress-dot:    var(--cyan-500);
+
+  --status-resolved-bg:     var(--green-50);
+  --status-resolved-border: var(--green-200);
+  --status-resolved-fg:     var(--green-700);
+  --status-resolved-dot:    var(--green-500);
+
+  --status-escalated-bg:    var(--red-50);
+  --status-escalated-border: var(--red-200);
+  --status-escalated-fg:    var(--red-700);
+  --status-escalated-dot:   var(--red-500);
+
+  /* --- SLA health: reuses the feedback surfaces, named for intent --- */
+  --sla-normal-bg:         var(--slate-50);
+  --sla-normal-border:     var(--color-border);
+  --sla-normal-fg:         var(--color-text);
+  --sla-normal-accent:     var(--blue-600);
+
+  --sla-approaching-bg:    var(--color-warning-bg);
+  --sla-approaching-border: var(--color-warning-border);
+  --sla-approaching-fg:    var(--color-warning-fg);
+  --sla-approaching-accent: var(--amber-600);
+
+  --sla-exceeded-bg:       var(--color-error-bg);
+  --sla-exceeded-border:   var(--color-error-border);
+  --sla-exceeded-fg:       var(--color-error-fg);
+  --sla-exceeded-accent:   var(--red-600);
+
+  /* --- Third-party brand colours (fixed by the vendor, not ours) --- */
+  --color-whatsapp:        #25D366;
+
+  /* --- Neutral ramp aliases (kept for existing component CSS) --- */
+  --color-gray-50:  var(--slate-50);
+  --color-gray-100: var(--slate-100);
+  --color-gray-200: var(--slate-200);
+  --color-gray-300: var(--slate-300);
+  --color-gray-400: var(--slate-400);
+  --color-gray-500: var(--slate-500);
+  --color-gray-600: var(--slate-600);
+  --color-gray-700: var(--slate-700);
+  --color-gray-800: var(--slate-800);
+  --color-gray-900: var(--slate-900);
+
+  /* ------------------------------------------------------------
+     Category identity.
+     Hues are spread to a 31 deg minimum separation and paired with
+     a lightness offset, so roads and water stay distinguishable at
+     icon size — at the previous 12 deg they did not.
+     ------------------------------------------------------------ */
+  --cat-roads:              var(--blue-500);
+  --cat-roads-soft:         var(--blue-50);
+  --cat-roads-grad:         linear-gradient(140deg, var(--blue-400), var(--blue-600));
+
+  --cat-garbage:            var(--green-500);
+  --cat-garbage-soft:       var(--green-50);
+  --cat-garbage-grad:       linear-gradient(140deg, var(--green-400), var(--green-600));
+
+  --cat-water:              var(--cyan-500);
+  --cat-water-soft:         var(--cyan-50);
+  --cat-water-grad:         linear-gradient(140deg, var(--cyan-400), var(--cyan-600));
+
+  --cat-streetlights:       var(--amber-500);
+  --cat-streetlights-soft:  var(--amber-50);
+  --cat-streetlights-grad:  linear-gradient(140deg, var(--amber-400), var(--amber-600));
+
+  --cat-infrastructure:     var(--violet-500);
+  --cat-infrastructure-soft: var(--violet-50);
+  --cat-infrastructure-grad: linear-gradient(140deg, var(--violet-400), var(--violet-600));
+
+  --cat-others:             var(--slate-500);
+  --cat-others-soft:        var(--slate-100);
+  --cat-others-grad:        linear-gradient(140deg, var(--slate-400), var(--slate-600));
+}
+
+/* ============================================================
+   LAYER 3 — COMPONENT
+   Component-scoped knobs. Always resolve to Layer 2.
+   ============================================================ */
+:root {
+  /* --- Icon glyph sizes (fluid: scale with the viewport) --- */
+  --icon-xs: clamp(0.875rem, 0.83rem + 0.20vw, 1rem);      /* 14 -> 16 */
+  --icon-sm: clamp(1rem, 0.92rem + 0.35vw, 1.25rem);       /* 16 -> 20 */
+  --icon-md: clamp(1.25rem, 1.14rem + 0.5vw, 1.5rem);      /* 20 -> 24 */
+  --icon-lg: clamp(1.5rem, 1.28rem + 0.95vw, 2rem);        /* 24 -> 32 */
+  --icon-xl: clamp(1.75rem, 1.42rem + 1.45vw, 2.5rem);     /* 28 -> 40 */
+
+  /* Optical stroke weight — heavier glyphs need thinner strokes as they grow */
+  --icon-stroke-xs: 2;
+  --icon-stroke-sm: 1.9;
+  --icon-stroke-md: 1.8;
+  --icon-stroke-lg: 1.65;
+  --icon-stroke-xl: 1.5;
+
+  /* --- Icon tiles (the rounded plate behind a glyph) --- */
+  --icon-tile-sm: clamp(2rem, 1.85rem + 0.65vw, 2.375rem);
+  --icon-tile-md: clamp(2.5rem, 2.15rem + 1.5vw, 3.25rem);
+  --icon-tile-lg: clamp(3rem, 2.5rem + 2.2vw, 4rem);
+  --icon-tile-radius: var(--radius-lg);
+  --icon-tile-bg: var(--color-surface);
+  --icon-tile-border: var(--color-border);
+
+  /* ------------------------------------------------------------
+     Surface card — the repeated rounded panel used by the wizard,
+     the tracking detail view and every inline banner.
+     ------------------------------------------------------------ */
+  --card-bg:             var(--color-surface);
+  --card-border:         var(--color-border);
+  --card-border-width:   1px;
+  --card-radius:         1rem;
+  --card-radius-lg:      1.125rem;
+  --card-padding:        1rem;
+  --card-shadow:         var(--shadow-xs);
+  --card-shadow-hover:   0 4px 12px rgba(46, 88, 217, 0.08);
+  --card-border-hover:   var(--blue-300);
+
+  /* --- Status pill --- */
+  --pill-radius:         var(--radius-full);
+  --pill-padding-y:      0.25rem;
+  --pill-padding-x:      0.625rem;
+  --pill-font-size:      0.75rem;
+  --pill-font-weight:    800;
+  --pill-tracking:       0.04em;
+
+  /* --- Form field --- */
+  --field-bg:            var(--color-surface);
+  --field-border:        var(--color-border-strong);
+  --field-border-focus:  var(--color-civic-blue);
+  --field-ring:          var(--color-civic-blue-ring);
+  --field-radius:        var(--radius-lg);
+  --field-height:        var(--tap-target);
+  --field-padding-x:     0.875rem;
+  --field-placeholder:   var(--color-text-muted);
+
+  /* --- Skeleton placeholder --- */
+  --skeleton-bg:         var(--slate-100);
+  --skeleton-sheen:      var(--slate-200);
+  --skeleton-radius:     var(--radius-md);
+
+  /* --- Toast --- */
+  --toast-bg:            var(--navy-800);
+  --toast-fg:            var(--color-text-inverse);
+  --toast-radius:        var(--radius-xl);
+  --toast-shadow:        var(--shadow-xl);
+
+  /* --- Cinematic motion --- */
+  --icon-draw-duration: 1100ms;
+  --icon-settle-duration: 720ms;
+  --ease-cinematic: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-icon-spring: cubic-bezier(0.34, 1.45, 0.5, 1);
+}

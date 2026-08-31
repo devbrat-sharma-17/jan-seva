@@ -1,0 +1,202 @@
+/* ============================================================
+   Live Camera Viewfinder Modal Styles
+   ============================================================ */
+
+.camera-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000000;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Top bar controls */
+.camera-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+  z-index: 10;
+  color: var(--color-text-inverse);
+}
+
+.camera-top-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.camera-close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: var(--color-text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: background 0.15s ease;
+}
+
+.camera-close-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* Viewfinder Area */
+.camera-viewport {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--color-navy-dark);
+}
+
+.camera-video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Target Viewfinder Grid Box */
+.camera-target-reticle {
+  position: absolute;
+  width: 80%;
+  max-width: 320px;
+  aspect-ratio: 4 / 3;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+  pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+}
+
+.camera-target-reticle::before,
+.camera-target-reticle::after {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-color: #FFFFFF;
+  border-style: solid;
+}
+
+.camera-target-reticle::before {
+  top: -2px;
+  left: -2px;
+  border-width: 3px 0 0 3px;
+  border-top-left-radius: 20px;
+}
+
+.camera-target-reticle::after {
+  bottom: -2px;
+  right: -2px;
+  border-width: 0 3px 3px 0;
+  border-bottom-right-radius: 20px;
+}
+
+.camera-hint-overlay {
+  position: absolute;
+  bottom: 24px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  color: var(--color-text-inverse);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+/* Flash animation on capture */
+.camera-flash-effect {
+  position: absolute;
+  inset: 0;
+  background: var(--color-surface);
+  opacity: 0.9;
+  z-index: 15;
+  pointer-events: none;
+  animation: flashAnim 0.35s ease-out forwards;
+}
+
+@keyframes flashAnim {
+  0% { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+
+/* Bottom Controls */
+.camera-bottom-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.9) 0%, transparent 100%);
+  z-index: 10;
+}
+
+/* Circular Shutter Button */
+.camera-shutter-btn {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  border: 4px solid #FFFFFF;
+  background: transparent;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.camera-shutter-btn:active {
+  transform: scale(0.92);
+}
+
+.camera-shutter-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--color-surface);
+  transition: background-color 0.15s ease;
+}
+
+.camera-shutter-btn:active .camera-shutter-inner {
+  background: var(--blue-400);
+}
+
+/* Camera Switch Flip Button */
+.camera-flip-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: var(--color-text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: background 0.15s ease, transform 0.2s ease;
+}
+
+.camera-flip-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: rotate(180deg);
+}
+
+.camera-control-placeholder {
+  width: 48px;
+  height: 48px;
+}

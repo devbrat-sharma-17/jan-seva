@@ -1,0 +1,105 @@
+/* ============================================================
+   Complaint Queue — toolbar and result summary
+   (rows, tabs and pills come from department-shared.css)
+   ============================================================ */
+
+@import '../department-shared.css';
+
+.dept-queue-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+@media (min-width: 40rem) {
+  .dept-queue-toolbar {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.dept-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 28rem;
+  min-height: var(--tap-target);
+  padding-inline: var(--field-padding-x);
+  background: var(--color-surface);
+  border: 1.5px solid var(--field-border);
+  border-radius: var(--field-radius);
+  color: var(--color-text-muted);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.dept-search:focus-within {
+  border-color: var(--field-border-focus);
+  box-shadow: 0 0 0 3px var(--field-ring);
+  color: var(--dept-accent);
+}
+
+.dept-search svg {
+  flex-shrink: 0;
+}
+
+.dept-search__input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  /* 16px minimum stops iOS Safari zooming the page on focus. */
+  font-size: max(1rem, var(--text-sm));
+  color: var(--color-text);
+}
+
+.dept-search__input::placeholder {
+  color: var(--field-placeholder);
+}
+
+.dept-search__input::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+
+.dept-queue-toolbar__category {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+@media (min-width: 40rem) {
+  .dept-queue-toolbar__category {
+    width: auto;
+    min-width: 12rem;
+  }
+}
+
+.dept-results-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
+  margin-block: calc(var(--space-2) * -1);
+}
+
+.dept-results-info__reset {
+  background: none;
+  border: none;
+  padding: var(--space-1) var(--space-2);
+  margin-inline-end: calc(var(--space-2) * -1);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--dept-accent);
+  cursor: pointer;
+}
+
+.dept-results-info__reset:hover {
+  background: var(--dept-accent-bg);
+}

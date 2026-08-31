@@ -1,0 +1,498 @@
+/* ============================================================
+   Department Login
+   ------------------------------------------------------------
+   Two panes from 960px up: a fixed context rail and a scrolling
+   auth column. Below that the rail is dropped entirely — on a
+   phone it only pushed the form under the fold.
+   ============================================================ */
+
+@import './department-shared.css';
+
+.deptlogin {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1fr;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+@media (min-width: 60rem) {
+  .deptlogin {
+    grid-template-columns: minmax(20rem, 26rem) 1fr;
+  }
+}
+
+/* ------------------------------------------------------------
+   Context rail
+   ------------------------------------------------------------ */
+
+.deptlogin__aside {
+  display: none;
+  position: relative;
+  overflow: hidden;
+  color: var(--color-text-inverse);
+  background:
+    radial-gradient(120% 90% at 15% 0%, var(--dept-accent-glow) 0%, transparent 60%),
+    linear-gradient(160deg, var(--navy-800) 0%, var(--navy-900) 100%);
+}
+
+@media (min-width: 60rem) {
+  .deptlogin__aside {
+    display: block;
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+  }
+}
+
+/* Faint dot grid, kept well under the text contrast threshold. */
+.deptlogin__aside::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+  background-size: 26px 26px;
+  pointer-events: none;
+}
+
+.deptlogin__aside-inner {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-10) var(--space-8);
+}
+
+.deptlogin__aside-lede {
+  font-size: var(--text-2xl);
+  font-family: var(--font-display);
+  font-weight: var(--font-bold);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-text-inverse);
+  margin: 0;
+  max-inline-size: 18ch;
+  text-wrap: balance;
+}
+
+.deptlogin__aside-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--slate-300);
+  max-inline-size: 34ch;
+}
+
+.deptlogin__aside-list li {
+  position: relative;
+  padding-inline-start: var(--space-6);
+}
+
+.deptlogin__aside-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.5em;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dept-accent-light);
+}
+
+.deptlogin__aside-foot {
+  margin-top: auto;
+  padding-top: var(--space-5);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.deptlogin__aside-dept {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-text-inverse);
+}
+
+.deptlogin__aside-help {
+  font-size: var(--text-xs);
+  color: var(--slate-400);
+}
+
+/* ------------------------------------------------------------
+   Auth column
+   ------------------------------------------------------------ */
+
+.deptlogin__main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6) var(--gutter);
+  padding-block-start: max(var(--space-6), var(--safe-top));
+  padding-block-end: max(var(--space-6), var(--safe-bottom));
+}
+
+@media (min-width: 48rem) {
+  .deptlogin__main {
+    padding: var(--space-10) var(--space-8);
+  }
+}
+
+.deptlogin__card {
+  width: 100%;
+  max-width: 27rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* Header ---------------------------------------------------- */
+
+.deptlogin__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.deptlogin__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-civic-blue);
+  margin-bottom: var(--space-1);
+}
+
+.deptlogin__brand-name {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: var(--font-extrabold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-navy);
+}
+
+.deptlogin__brand-tag {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--dept-accent-bg);
+  color: var(--dept-accent);
+}
+
+.deptlogin__title {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-extrabold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-navy);
+  margin: 0;
+  line-height: var(--leading-tight);
+}
+
+.deptlogin__subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: var(--leading-normal);
+}
+
+/* Steps ----------------------------------------------------- */
+
+.deptlogin__step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.deptlogin__step-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.deptlogin__step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: var(--font-extrabold);
+  flex-shrink: 0;
+}
+
+/* Department chips.
+   A single scrolling row rather than an auto-fit grid: the grid
+   wrapped "Water Services" onto two lines and left an orphan
+   chip on a row of its own. */
+.deptlogin__depts {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-inline: calc(var(--space-1) * -1);
+  padding: var(--space-1);
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+}
+
+.deptlogin__depts::-webkit-scrollbar {
+  display: none;
+}
+
+.deptlogin__dept {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+  min-height: 2.375rem;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast),
+              color var(--transition-fast);
+}
+
+.deptlogin__dept-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--chip-accent, var(--color-civic-blue));
+  flex-shrink: 0;
+}
+
+.deptlogin__dept:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+
+.deptlogin__dept.is-active {
+  background: var(--chip-accent, var(--color-civic-blue));
+  border-color: var(--chip-accent, var(--color-civic-blue));
+  color: var(--color-text-inverse);
+  font-weight: var(--font-bold);
+}
+
+.deptlogin__dept.is-active .deptlogin__dept-dot {
+  background: var(--color-text-inverse);
+}
+
+.deptlogin__dept-meta {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* Role cards — the primary action ---------------------------- */
+
+.deptlogin__roles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.deptlogin__role {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--tap-target);
+  padding: var(--space-3);
+  text-align: left;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast),
+              background-color var(--transition-fast);
+}
+
+.deptlogin__role:hover:not(:disabled) {
+  border-color: var(--dept-accent);
+  box-shadow: 0 0 0 3px var(--dept-accent-bg);
+}
+
+.deptlogin__role.is-selected {
+  border-color: var(--dept-accent);
+}
+
+.deptlogin__role:disabled {
+  cursor: progress;
+}
+
+.deptlogin__role:disabled:not(:hover) {
+  opacity: 0.7;
+}
+
+.deptlogin__role-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--dept-accent-bg);
+  color: var(--dept-accent);
+  font-size: var(--text-sm);
+  font-weight: var(--font-extrabold);
+  flex-shrink: 0;
+}
+
+.deptlogin__role-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.deptlogin__role-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-text);
+}
+
+.deptlogin__role-name {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--dept-accent);
+}
+
+.deptlogin__role-blurb {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deptlogin__role-go {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.deptlogin__role:hover:not(:disabled) .deptlogin__role-go {
+  color: var(--dept-accent);
+  transform: translateX(2px);
+}
+
+/* Secondary credentials path -------------------------------- */
+
+.deptlogin__alt {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.deptlogin__alt-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0 var(--space-1);
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.deptlogin__alt-toggle:hover {
+  color: var(--dept-accent);
+}
+
+.deptlogin__alt-chevron {
+  display: flex;
+  transition: transform var(--transition-fast);
+}
+
+.deptlogin__alt-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.deptlogin__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Footer ---------------------------------------------------- */
+
+.deptlogin__foot {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: center;
+  line-height: var(--leading-normal);
+}
+
+.deptlogin__foot a {
+  color: var(--color-civic-blue);
+  font-weight: var(--font-semibold);
+  text-decoration: none;
+}
+
+.deptlogin__foot a:hover {
+  text-decoration: underline;
+}
+
+/* Shared spinner -------------------------------------------- */
+
+.deptlogin__spinner {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  opacity: 0.7;
+  animation: dept-spin 700ms linear infinite;
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deptlogin__spinner { animation-duration: 2.4s; }
+  .deptlogin__role,
+  .deptlogin__dept,
+  .deptlogin__alt-chevron,
+  .deptlogin__role-go {
+    transition: none;
+  }
+}

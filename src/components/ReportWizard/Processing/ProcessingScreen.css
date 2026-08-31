@@ -1,0 +1,131 @@
+/* ============================================================
+   Processing Screen Styles
+   ============================================================ */
+
+.proc-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px;
+  gap: 28px;
+  flex: 1;
+  min-height: 480px;
+}
+
+.proc-radar-spinner {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid var(--blue-100);
+  border-top-color: var(--blue-500);
+  animation: spinRadar 1s infinite linear;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes spinRadar {
+  to { transform: rotate(360deg); }
+}
+
+.proc-radar-inner-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--blue-500);
+  color: var(--color-text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulseDot 1.5s infinite ease-in-out;
+}
+
+@keyframes pulseDot {
+  0%, 100% { transform: scale(0.85); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+
+.proc-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.proc-title {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: var(--slate-900);
+  margin: 0;
+}
+
+.proc-subtitle {
+  font-size: 0.9375rem;
+  color: var(--slate-600);
+  margin: 0;
+}
+
+/* AI Pipeline Step List */
+.proc-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 340px;
+  text-align: left;
+}
+
+.proc-step-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--slate-200);
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--slate-600);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.proc-step-item--done {
+  border-color: var(--status-resolved-border);
+  background: var(--status-resolved-bg);
+  color: var(--status-resolved-fg);
+}
+
+.proc-step-item--active {
+  border-color: var(--blue-300);
+  background: var(--blue-50);
+  color: var(--blue-700);
+}
+
+.proc-icon-box {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.proc-step-item--done .proc-icon-box {
+  background: var(--color-success);
+  color: var(--color-text-inverse);
+}
+
+.proc-step-item--active .proc-icon-box {
+  background: var(--blue-500);
+  color: var(--color-text-inverse);
+  animation: pulse 1s infinite alternate;
+}
+
+.proc-step-item--pending .proc-icon-box {
+  background: var(--slate-200);
+  color: var(--slate-500);
+}

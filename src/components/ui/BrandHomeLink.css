@@ -1,0 +1,66 @@
+/* ============================================================
+   Brand Home Link — the clickable JAN-SEVA lockup
+   ============================================================ */
+
+.brandhome {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  text-decoration: none;
+  border-radius: var(--radius-md);
+}
+
+.brandhome__word {
+  font-family: var(--font-display);
+  font-weight: var(--font-extrabold);
+  letter-spacing: var(--tracking-tight);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.brandhome--md .brandhome__word { font-size: var(--text-xl); }
+.brandhome--sm .brandhome__word { font-size: var(--text-lg); }
+
+/* The qualifier — "Operations", "Command Centre" — reads as a sibling of
+   the wordmark, never as part of it. */
+.brandhome__sub {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+/* --- On light --- */
+.brandhome--brand .brandhome__word {
+  color: var(--color-navy);
+}
+
+.brandhome--brand .brandhome__sub {
+  background: var(--color-civic-blue-bg);
+  color: var(--color-civic-blue);
+}
+
+/* --- On dark --- */
+.brandhome--onDark .brandhome__word {
+  color: var(--color-text-inverse);
+}
+
+.brandhome--onDark .brandhome__sub {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--slate-300);
+}
+
+.brandhome:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+@media (max-width: 380px) {
+  .brandhome__sub {
+    display: none;
+  }
+}

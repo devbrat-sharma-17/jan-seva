@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" width="36" height="36" fill="none">
+  <!-- Outer Civic Blue Ring -->
+  <circle cx="18" cy="18" r="16.5" fill="#FFFFFF" stroke="#2E58D9" stroke-width="2.5" />
+  <!-- Inner Ring -->
+  <circle cx="18" cy="18" r="11.5" stroke="#2E58D9" stroke-width="1.5" stroke-opacity="0.4" />
+  <!-- North-South Pointers (Civic Blue) -->
+  <path d="M18 5 L21.5 13.5 L18 11.5 L14.5 13.5 Z" fill="#2E58D9" />
+  <path d="M18 31 L14.5 22.5 L18 24.5 L21.5 22.5 Z" fill="#2E58D9" />
+  <!-- East-West Pointers (Saffron Accent) -->
+  <path d="M5 18 L13.5 14.5 L11.5 18 L13.5 21.5 Z" fill="#E8722A" />
+  <path d="M31 18 L22.5 21.5 L24.5 18 L22.5 14.5 Z" fill="#E8722A" />
+  <!-- Central Hub -->
+  <circle cx="18" cy="18" r="3.2" fill="#2E58D9" />
+</svg>

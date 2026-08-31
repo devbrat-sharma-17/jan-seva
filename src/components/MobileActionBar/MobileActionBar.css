@@ -1,0 +1,116 @@
+/* ============================================================
+   Mobile Action Bar — phones only
+   ============================================================ */
+
+.action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) max(var(--content-padding), var(--safe-left));
+  /* Sit above the iOS home indicator */
+  padding-bottom: calc(var(--space-3) + var(--safe-bottom));
+  background: rgba(255, 255, 255, 0.86);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -4px 20px -6px rgba(15, 27, 45, 0.14);
+
+  transform: translateY(110%);
+  opacity: 0;
+  visibility: hidden;
+  transition: transform var(--transition-cinematic),
+              opacity var(--transition-base),
+              visibility var(--transition-base);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .action-bar {
+    background: var(--color-white);
+  }
+}
+
+.action-bar--visible {
+  transform: translateY(0);
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Desktop has the header CTAs and plenty of room — the bar is noise there */
+@media (min-width: 768px) {
+  .action-bar {
+    display: none;
+  }
+}
+
+/* Landscape phones have almost no vertical room to spare */
+@media (max-height: 26rem) and (orientation: landscape) {
+  .action-bar {
+    display: none;
+  }
+}
+
+.action-bar__secondary {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 4.25rem;
+  min-height: var(--tap-target);
+  padding: var(--space-2);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.action-bar__secondary:active {
+  background: var(--color-gray-100);
+  color: var(--color-civic-blue);
+}
+
+.action-bar__primary {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap-target);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(
+    140deg,
+    var(--color-civic-blue-light) 0%,
+    var(--color-civic-blue) 50%,
+    var(--color-civic-blue-dark) 100%
+  );
+  color: var(--color-white);
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  letter-spacing: var(--tracking-wide);
+  box-shadow: var(--shadow-brand);
+  transition: transform var(--transition-fast), box-shadow var(--transition-base);
+}
+
+.action-bar__primary:active {
+  transform: scale(0.985);
+  box-shadow: var(--shadow-sm);
+}
+
+.action-bar__primary svg {
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-bar {
+    transition: opacity var(--duration-fast) linear, visibility var(--duration-fast) linear;
+    transform: none;
+  }
+}

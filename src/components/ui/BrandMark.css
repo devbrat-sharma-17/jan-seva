@@ -1,0 +1,62 @@
+/* ============================================================
+   Brand Mark — the one JAN-SEVA symbol
+   ============================================================ */
+
+.brandmark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.brandmark svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Navy geometry on light ground. */
+.brandmark--brand {
+  color: var(--color-civic-blue);
+}
+
+/* White geometry for the dark sidebar and login rail. The saffron
+   points stay saffron in both tones — they are the brand's one
+   fixed accent and reading them as "the same mark" depends on it. */
+.brandmark--onDark {
+  color: var(--color-text-inverse);
+}
+
+.brandmark__accent {
+  fill: var(--color-saffron);
+}
+
+/* A restrained signature: the rings ease round on hover when the mark
+   sits inside a link. */
+.brandmark__ring,
+.brandmark__ring-inner {
+  transform-origin: 50% 50%;
+  transition: transform var(--duration-slower) var(--ease-cinematic),
+              opacity var(--transition-base);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  a:hover > .brandmark .brandmark__ring,
+  a:hover .brandmark .brandmark__ring {
+    transform: rotate(90deg);
+  }
+
+  a:hover > .brandmark .brandmark__ring-inner,
+  a:hover .brandmark .brandmark__ring-inner {
+    transform: rotate(-60deg);
+    opacity: 0.7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brandmark__ring,
+  .brandmark__ring-inner {
+    transition: none;
+  }
+}

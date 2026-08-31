@@ -1,0 +1,176 @@
+/* ============================================================
+   Success Screen Styles
+   ============================================================ */
+
+.success-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 32px 16px 20px;
+  gap: 24px;
+  flex: 1;
+}
+
+/* Subtle SVG Checkmark Draw Animation */
+.success-checkmark-wrapper {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: var(--status-resolved-bg);
+  border: 2px solid var(--status-resolved-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(34, 197, 94, 0.15);
+  animation: scaleSuccess 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes scaleSuccess {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.success-checkmark-svg {
+  width: 44px;
+  height: 44px;
+  color: var(--color-success);
+}
+
+.success-checkmark-path {
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: strokeCheck 0.5s 0.25s ease-out forwards;
+}
+
+@keyframes strokeCheck {
+  to { stroke-dashoffset: 0; }
+}
+
+.success-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.success-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--slate-900);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.success-subtitle {
+  font-size: 0.9375rem;
+  color: var(--slate-600);
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* Ticket Details Card */
+.success-ticket-card {
+  width: 100%;
+  background: var(--color-surface);
+  border: 1.5px solid var(--slate-200);
+  border-radius: 18px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 4px 16px rgba(15, 27, 45, 0.04);
+}
+
+.success-ticket-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--slate-100);
+  padding-bottom: 12px;
+}
+
+.success-ticket-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--slate-500);
+  letter-spacing: 0.05em;
+}
+
+.success-status-pill {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: var(--status-pending-bg);
+  color: var(--color-warning-fg);
+  padding: 4px 10px;
+  border-radius: 8px;
+  letter-spacing: 0.04em;
+}
+
+.success-ticket-id-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--blue-50);
+  border: 1px solid var(--blue-100);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.success-ticket-id-val {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--blue-700);
+  font-family: monospace;
+  letter-spacing: 0.02em;
+}
+
+.success-copy-btn {
+  background: var(--color-surface);
+  border: 1px solid var(--blue-200);
+  color: var(--blue-600);
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.success-copy-btn:hover {
+  background: var(--blue-100);
+}
+
+.success-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.success-info-item {
+  display: flex;
+  justify-content: space-between;
+  color: var(--slate-600);
+}
+
+.success-info-val {
+  font-weight: 700;
+  color: var(--slate-900);
+  text-align: right;
+  max-width: 60%;
+}
+
+/* Success Actions */
+.success-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+}

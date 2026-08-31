@@ -1,0 +1,247 @@
+/* ============================================================
+   Identity Step Styles
+   ============================================================ */
+
+.identity-step {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex: 1;
+}
+
+/* Method Toggle Segment */
+.identity-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--slate-100);
+  padding: 4px;
+  border-radius: 14px;
+  gap: 4px;
+}
+
+.identity-tab-btn {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--slate-600);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+}
+
+.identity-tab-btn--active {
+  background: var(--color-surface);
+  color: var(--blue-600);
+  box-shadow: 0 2px 6px rgba(15, 27, 45, 0.06);
+}
+
+/* Form Container Card */
+.identity-form-card {
+  background: var(--slate-50);
+  border: 1px solid var(--slate-200);
+  border-radius: 18px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.input-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.input-field-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--slate-800);
+}
+
+.input-field-box {
+  display: flex;
+  align-items: center;
+  background: var(--color-surface);
+  border: 1.5px solid var(--slate-200);
+  border-radius: 12px;
+  padding: 0 14px;
+  height: 48px;
+  transition: all 0.15s ease;
+}
+
+.input-field-box:focus-within {
+  border-color: var(--blue-500);
+  box-shadow: 0 0 0 3px var(--blue-50);
+}
+
+.input-field-prefix {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--slate-500);
+  padding-right: 8px;
+  border-right: 1px solid var(--slate-200);
+  margin-right: 10px;
+}
+
+.input-text-elem {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--slate-900);
+  font-family: inherit;
+}
+
+.input-text-elem:focus {
+  outline: none;
+}
+
+/* OTP Sub-card */
+.otp-container {
+  background: var(--color-surface);
+  border: 1.5px solid var(--blue-100);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: fadeInStep 0.2s ease-out;
+}
+
+.otp-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.otp-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--slate-900);
+  margin: 0;
+}
+
+.otp-subtitle {
+  font-size: 0.8125rem;
+  color: var(--slate-600);
+  margin: 0;
+}
+
+.otp-inputs-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.otp-digit-input {
+  width: 44px;
+  height: 52px;
+  border-radius: 12px;
+  border: 1.5px solid var(--slate-200);
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--slate-900);
+  background: var(--slate-50);
+  transition: all 0.15s ease;
+}
+
+.otp-digit-input:focus {
+  outline: none;
+  background: var(--color-surface);
+  border-color: var(--blue-500);
+  box-shadow: 0 0 0 3px var(--blue-50);
+}
+
+.otp-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.otp-resend-btn {
+  background: none;
+  border: none;
+  color: var(--blue-600);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.otp-resend-btn:hover {
+  text-decoration: underline;
+}
+
+.otp-demo-hint {
+  font-size: 0.75rem;
+  color: var(--slate-500);
+  background: var(--slate-100);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+/* Verified Badge Card */
+.identity-verified-card {
+  background: var(--status-resolved-bg);
+  border: 1.5px solid var(--status-resolved-border);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.identity-verified-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-success);
+  color: var(--color-text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.identity-verified-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.identity-verified-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--status-resolved-fg);
+  margin: 0;
+}
+
+.identity-verified-name {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--slate-900);
+  margin: 0;
+}
+
+.identity-verified-target {
+  font-size: 0.8125rem;
+  color: var(--slate-600);
+}
+
+/* Privacy note */
+.identity-privacy-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--slate-500);
+  margin-top: 4px;
+}

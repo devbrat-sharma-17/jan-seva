@@ -1,0 +1,869 @@
+/* ============================================================
+   JAN-SEVA — Department Portal Shared Primitives
+   ------------------------------------------------------------
+   Every class here was previously defined inside one page's
+   stylesheet but used by four or five pages, so which rules a
+   page got depended on bundling order. They live here now, and
+   resolve through the Layer-2 tokens rather than raw hex.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   LAYER 3 — Department component tokens.
+   The shell overrides --dept-accent per department; everything
+   tinted by the active department resolves through these.
+   ------------------------------------------------------------ */
+:root {
+  --dept-accent:        var(--color-civic-blue);
+  --dept-accent-light:  var(--color-civic-blue-light);
+  --dept-accent-bg:     var(--color-civic-blue-bg);
+  --dept-accent-glow:   var(--color-civic-blue-ring);
+
+  --dept-card-bg:       var(--color-surface);
+  --dept-card-border:   var(--color-border);
+  --dept-card-radius:   var(--radius-xl);
+  --dept-card-padding:  var(--space-5);
+  --dept-card-shadow:   var(--shadow-xs);
+
+  /* One rhythm for the whole portal. Pages stack sections on it. */
+  --dept-stack:         var(--space-5);
+  --dept-page-max:      72rem;
+  --dept-page-max-narrow: 60rem;
+
+  /* Shell metrics — the mobile nav and content padding must agree. */
+  --dept-header-h:      3.5rem;
+  --dept-mobilenav-h:   3.75rem;
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --dept-header-h:    4rem;
+    --dept-mobilenav-h: 0px;
+    --dept-card-padding: var(--space-6);
+    --dept-stack:       var(--space-6);
+  }
+}
+
+/* ============================================================
+   PAGE SCAFFOLD
+   ============================================================ */
+
+.dept-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dept-stack);
+  max-width: var(--dept-page-max);
+  margin-inline: auto;
+  width: 100%;
+}
+
+.dept-page--narrow {
+  max-width: var(--dept-page-max-narrow);
+}
+
+/* Title, one supporting line, optional trailing controls.
+   Replaces the per-page hero cards, which carried decoration
+   rather than information. */
+.dept-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.dept-page-head__text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dept-page-title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-extrabold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-navy);
+  margin: 0;
+  text-wrap: balance;
+}
+
+.dept-page-desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  max-inline-size: 62ch;
+}
+
+/* ============================================================
+   CARD
+   ============================================================ */
+
+.dept-card {
+  background: var(--dept-card-bg);
+  border: 1px solid var(--dept-card-border);
+  border-radius: var(--dept-card-radius);
+  padding: var(--dept-card-padding);
+  box-shadow: var(--dept-card-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.dept-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+/* Sentence case, not the previous ALL-CAPS. Caps at this size
+   slowed scanning on a page that stacks a dozen of them. */
+.dept-card__title {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.dept-card__title svg {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.dept-card__hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.dept-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap-target);
+  padding: 0 var(--space-4);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  line-height: 1;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast),
+              color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.dept-action-btn--sm {
+  min-height: 2.25rem;
+  padding: 0 var(--space-3);
+  font-size: var(--text-xs);
+}
+
+.dept-action-btn--block {
+  width: 100%;
+}
+
+.dept-action-btn--primary {
+  background: var(--dept-accent);
+  color: var(--color-text-inverse);
+}
+
+.dept-action-btn--primary:hover {
+  background: color-mix(in srgb, var(--dept-accent) 88%, #000);
+}
+
+.dept-action-btn--secondary {
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-secondary);
+}
+
+.dept-action-btn--secondary:hover {
+  background: var(--color-surface-sunken);
+  color: var(--color-text);
+}
+
+.dept-action-btn--success {
+  background: var(--color-success);
+  color: var(--color-text-inverse);
+}
+
+.dept-action-btn--success:hover {
+  background: var(--color-green-dark);
+}
+
+.dept-action-btn--ghost {
+  background: transparent;
+  color: var(--dept-accent);
+}
+
+.dept-action-btn--ghost:hover {
+  background: var(--dept-accent-bg);
+}
+
+.dept-action-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Back link on detail screens. */
+.dept-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--tap-target);
+  padding: 0 var(--space-3) 0 var(--space-2);
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.dept-back-btn:hover {
+  background: var(--color-surface-sunken);
+  color: var(--color-text);
+}
+
+/* One visible focus ring for every interactive element in the
+   portal — several components previously had none. */
+.dept-shell :focus-visible,
+.deptlogin :focus-visible {
+  outline: 2px solid var(--dept-accent);
+  outline-offset: 2px;
+}
+
+/* The dialog panel takes focus programmatically when it opens; that
+   should not draw a ring around the whole panel. */
+.dept-modal:focus-visible {
+  outline: none;
+}
+
+/* ============================================================
+   PILLS — complaint status and SLA health
+   ============================================================ */
+
+.dept-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.dept-status-pill::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.dept-status-pill--pending {
+  background: var(--status-pending-bg);
+  border-color: var(--status-pending-border);
+  color: var(--status-pending-fg);
+}
+
+.dept-status-pill--assigned {
+  background: var(--status-assigned-bg);
+  border-color: var(--status-assigned-border);
+  color: var(--status-assigned-fg);
+}
+
+.dept-status-pill--in-progress,
+.dept-status-pill--resolution-submitted {
+  background: var(--status-progress-bg);
+  border-color: var(--status-progress-border);
+  color: var(--status-progress-fg);
+}
+
+.dept-status-pill--resolved {
+  background: var(--status-resolved-bg);
+  border-color: var(--status-resolved-border);
+  color: var(--status-resolved-fg);
+}
+
+.dept-status-pill--escalated {
+  background: var(--status-escalated-bg);
+  border-color: var(--status-escalated-border);
+  color: var(--status-escalated-fg);
+}
+
+.dept-sla-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.dept-sla-pill--breached {
+  background: var(--sla-exceeded-bg);
+  border-color: var(--sla-exceeded-border);
+  color: var(--sla-exceeded-fg);
+}
+
+.dept-sla-pill--atrisk {
+  background: var(--sla-approaching-bg);
+  border-color: var(--sla-approaching-border);
+  color: var(--sla-approaching-fg);
+}
+
+/* Priority tag — the coloured corner label on queue thumbnails. */
+.dept-priority-tag {
+  text-transform: capitalize;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  letter-spacing: var(--tracking-wide);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-inverse);
+  white-space: nowrap;
+}
+
+.dept-priority-tag--critical { background: var(--red-600); }
+.dept-priority-tag--high     { background: var(--saffron-600); }
+.dept-priority-tag--medium   { background: var(--blue-600); }
+.dept-priority-tag--low      { background: var(--slate-500); }
+
+/* ============================================================
+   FILTER TABS — shared by the queue and the map
+   ============================================================ */
+
+.dept-tabs-scroll {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-block-end: var(--space-1);
+  scrollbar-width: none;
+  /* Bleed to the content edge so the last tab isn't visually clipped. */
+  margin-inline: calc(var(--space-1) * -1);
+  padding-inline: var(--space-1);
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+}
+
+.dept-tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.dept-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.25rem;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  scroll-snap-align: start;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast),
+              color var(--transition-fast);
+}
+
+.dept-tab-btn:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+
+.dept-tab-btn--active {
+  background: var(--dept-accent);
+  border-color: var(--dept-accent);
+  color: var(--color-text-inverse);
+  font-weight: var(--font-bold);
+}
+
+.dept-tab-count {
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+}
+
+.dept-tab-btn--active .dept-tab-count {
+  background: rgba(255, 255, 255, 0.24);
+  color: var(--color-text-inverse);
+}
+
+/* ============================================================
+   STATE SCREENS — loading, empty, not-found
+   ------------------------------------------------------------
+   .dept-loading was rendered by five pages and styled by none.
+   ============================================================ */
+
+.dept-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  text-align: center;
+  padding: var(--space-12) var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--dept-card-radius);
+  min-height: 14rem;
+}
+
+.dept-state__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
+}
+
+.dept-state--ok .dept-state__icon {
+  background: var(--color-success-bg);
+  color: var(--color-success-fg);
+}
+
+.dept-state__title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--font-extrabold);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.dept-state__desc {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  max-inline-size: 44ch;
+}
+
+.dept-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: 12rem;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
+}
+
+.dept-loading::before {
+  content: '';
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 50%;
+  border: 2px solid var(--color-border-strong);
+  border-top-color: var(--dept-accent);
+  animation: dept-spin 700ms linear infinite;
+}
+
+@keyframes dept-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dept-loading::before { animation-duration: 2.4s; }
+}
+
+/* ============================================================
+   INLINE FEEDBACK
+   ============================================================ */
+
+.dept-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid transparent;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.dept-alert strong { font-weight: var(--font-bold); }
+
+.dept-alert--error {
+  background: var(--color-error-bg);
+  border-color: var(--color-error-border);
+  color: var(--color-error-fg);
+}
+
+.dept-alert--warning {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+  color: var(--color-warning-fg);
+}
+
+.dept-alert--success {
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+  color: var(--color-success-fg);
+}
+
+.dept-alert--info {
+  background: var(--color-info-bg);
+  border-color: var(--color-info-border);
+  color: var(--color-info-fg);
+}
+
+/* ============================================================
+   FORM CONTROLS
+   ============================================================ */
+
+.dept-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.dept-field__label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
+}
+
+.dept-field__hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.dept-input,
+.dept-select,
+.dept-form-textarea {
+  width: 100%;
+  min-height: var(--tap-target);
+  padding: 0 var(--field-padding-x);
+  font-family: inherit;
+  /* 16px on mobile — anything smaller makes iOS Safari zoom on focus. */
+  font-size: max(1rem, var(--text-base));
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1.5px solid var(--field-border);
+  border-radius: var(--field-radius);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.dept-form-textarea {
+  min-height: 6rem;
+  padding: var(--space-3) var(--field-padding-x);
+  line-height: var(--leading-normal);
+  resize: vertical;
+}
+
+.dept-select {
+  appearance: none;
+  padding-inline-end: var(--space-10);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235F6C82' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-4) center;
+  cursor: pointer;
+}
+
+.dept-input::placeholder,
+.dept-form-textarea::placeholder {
+  color: var(--field-placeholder);
+}
+
+.dept-input:focus,
+.dept-select:focus,
+.dept-form-textarea:focus {
+  outline: none;
+  border-color: var(--field-border-focus);
+  box-shadow: 0 0 0 3px var(--field-ring);
+}
+
+.dept-input[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+/* ============================================================
+   STICKY ACTION BAR
+   ------------------------------------------------------------
+   Wraps instead of overflowing — the detail view can show four
+   buttons at once, which ran off the edge at 360px before.
+   ============================================================ */
+
+.dept-sticky-actions {
+  position: sticky;
+  bottom: calc(var(--dept-mobilenav-h) + var(--safe-bottom) + var(--space-3));
+  z-index: var(--z-sticky);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: rgba(255, 255, 255, 0.94);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
+
+@media (max-width: 479px) {
+  .dept-sticky-actions .dept-action-btn {
+    flex: 1 1 100%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dept-sticky-actions {
+    bottom: var(--space-5);
+  }
+}
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+
+.dept-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: rgba(16, 24, 40, 0.55);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  padding: var(--space-4);
+  /* Bottom sheet on phones, centred dialog from tablet up. */
+  align-items: flex-end;
+}
+
+@media (min-width: 640px) {
+  .dept-modal-backdrop {
+    align-items: center;
+  }
+}
+
+.dept-modal {
+  width: 100%;
+  max-width: 34rem;
+  background: var(--color-surface);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-height: min(88dvh, 44rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (min-width: 640px) {
+  .dept-modal {
+    padding: var(--space-6);
+  }
+}
+
+.dept-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.dept-modal__title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--font-extrabold);
+  color: var(--color-navy);
+  margin: 0;
+}
+
+.dept-modal__sub {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.dept-modal__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-target);
+  height: var(--tap-target);
+  margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-xl);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.dept-modal__close:hover {
+  background: var(--color-surface-sunken);
+  color: var(--color-text);
+}
+
+.dept-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.dept-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.dept-modal-btn {
+  min-height: var(--tap-target);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-lg);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.dept-modal-btn--secondary {
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+  color: var(--color-text-secondary);
+}
+
+.dept-modal-btn--secondary:hover { background: var(--color-surface-sunken); }
+
+.dept-modal-btn--primary {
+  background: var(--dept-accent);
+  color: var(--color-text-inverse);
+}
+
+.dept-modal-btn--success {
+  background: var(--color-success);
+  color: var(--color-text-inverse);
+}
+
+/* Photo attachment controls, shared by both update modals. */
+.dept-photo-upload-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.dept-photo-preview-item {
+  position: relative;
+  width: 5rem;
+  height: 5rem;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.dept-photo-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dept-photo-remove-btn {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: none;
+  border-radius: 50%;
+  background: rgba(16, 24, 40, 0.65);
+  color: var(--color-text-inverse);
+  font-size: 0.625rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dept-photo-upload-btn {
+  width: 5.5rem;
+  height: 5rem;
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.dept-photo-upload-btn:hover {
+  border-color: var(--dept-accent);
+  color: var(--dept-accent);
+}
+
+.dept-form-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.dept-form-checkbox-row input {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--dept-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dept-card,
+  .dept-action-btn,
+  .dept-tab-btn {
+    transition: none;
+  }
+}

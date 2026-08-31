@@ -1,0 +1,241 @@
+/* ============================================================
+   City Map
+   ------------------------------------------------------------
+   The canvas was locked at 540px, which left a phone with a tall
+   grey block and a drawer sitting on top of the pins. It scales
+   with the viewport now, and the detail card only overlays the
+   canvas once the canvas is wide enough to spare the room.
+   ============================================================ */
+
+@import '../department-shared.css';
+
+/* Positioning context for the detail card, and the flow container that
+   stacks it under the canvas on narrow screens. */
+.dept-map-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dept-map {
+  position: relative;
+  width: 100%;
+  height: clamp(20rem, 52dvh, 34rem);
+  background: var(--slate-100);
+  border: 1px solid var(--color-border);
+  border-radius: var(--dept-card-radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+}
+
+@media (min-width: 64rem) {
+  .dept-map {
+    height: clamp(28rem, 62dvh, 42rem);
+  }
+}
+
+.dept-map__canvas {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.75) 0%, rgba(240, 243, 247, 0.95) 100%),
+    linear-gradient(rgba(155, 165, 183, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(155, 165, 183, 0.18) 1px, transparent 1px);
+  background-size: 100% 100%, 32px 32px, 32px 32px;
+}
+
+/* ------------------------------------------------------------
+   Legend
+   ------------------------------------------------------------ */
+
+.dept-map__legend {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 2;
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  max-width: calc(100% - var(--space-6));
+  background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+/* A four-item column of labels ate a third of a small canvas. */
+@media (min-width: 40rem) {
+  .dept-map__legend {
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+}
+
+.dept-map__legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.dept-map__legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dept-map__legend-dot--critical { background: var(--red-600); }
+.dept-map__legend-dot--high     { background: var(--saffron-600); }
+.dept-map__legend-dot--medium   { background: var(--blue-500); }
+.dept-map__legend-dot--resolved { background: var(--green-500); }
+
+/* ------------------------------------------------------------
+   Pins
+   ------------------------------------------------------------ */
+
+.dept-map__pin {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, -100%);
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: transform var(--duration-normal) var(--ease-spring);
+}
+
+.dept-map__pin:hover,
+.dept-map__pin.is-selected {
+  transform: translate(-50%, -112%) scale(1.2);
+  z-index: 4;
+}
+
+.dept-map__pin-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  border: 2px solid var(--color-surface);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text-inverse);
+}
+
+.dept-map__pin-badge svg {
+  transform: rotate(45deg);
+}
+
+.dept-map__pin-badge--critical { background: var(--red-600); }
+.dept-map__pin-badge--high     { background: var(--saffron-600); }
+.dept-map__pin-badge--medium   { background: var(--blue-500); }
+.dept-map__pin-badge--resolved { background: var(--green-500); }
+
+.dept-map__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* ------------------------------------------------------------
+   Selected pin detail
+   ------------------------------------------------------------ */
+
+.dept-map__detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--dept-card-radius);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Overlays the canvas once the canvas is wide enough to spare the room;
+   below that it stays in flow underneath, clear of the pins. */
+@media (min-width: 48rem) {
+  .dept-map__detail {
+    position: absolute;
+    left: var(--space-4);
+    bottom: var(--space-4);
+    z-index: 5;
+    width: min(22rem, calc(100% - var(--space-8)));
+  }
+}
+
+.dept-map__detail-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dept-map__detail-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-text-secondary);
+}
+
+.dept-map__detail-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-inline-start: auto;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.dept-map__detail-close:hover {
+  background: var(--color-surface-sunken);
+  color: var(--color-text);
+}
+
+.dept-map__detail-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  color: var(--color-text);
+  margin: 0;
+  line-height: var(--leading-snug);
+}
+
+.dept-map__detail-place {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.dept-map__detail-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.dept-map__detail-actions > * {
+  flex: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dept-map__pin {
+    transition: none;
+  }
+}

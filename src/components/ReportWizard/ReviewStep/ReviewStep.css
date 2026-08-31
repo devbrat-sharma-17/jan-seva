@@ -1,0 +1,116 @@
+/* ============================================================
+   Review Step Styles
+   ============================================================ */
+
+.review-step {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.review-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.review-card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--slate-200);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 2px 6px rgba(15, 27, 45, 0.02);
+}
+
+.review-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.review-card-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--slate-500);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.review-edit-btn {
+  background: none;
+  border: none;
+  color: var(--blue-600);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  transition: background-color 0.15s ease;
+}
+
+.review-edit-btn:hover {
+  background-color: var(--blue-50);
+}
+
+/* Photos thumbnail tray in review */
+.review-photos-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.review-photo-thumb {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid var(--slate-200);
+}
+
+/* Text elements in review cards */
+.review-text-content {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--slate-900);
+  line-height: 1.45;
+  margin: 0;
+  word-break: break-word;
+}
+
+.review-sub-info {
+  font-size: 0.8125rem;
+  color: var(--slate-500);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Civic promise banner */
+.review-promise-banner {
+  background: var(--blue-50);
+  border: 1px solid var(--blue-100);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.8125rem;
+  color: var(--blue-900);
+  line-height: 1.45;
+}
+
+.review-promise-banner svg {
+  color: var(--blue-600);
+  flex-shrink: 0;
+  margin-top: 1px;
+}

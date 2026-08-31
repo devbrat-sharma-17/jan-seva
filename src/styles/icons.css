@@ -1,0 +1,157 @@
+/* ============================================================
+   Icon System
+   Glyphs are sized in `em` and driven by fluid size tokens, so an
+   icon scales with the viewport the way type does — a fixed px
+   prop cannot do that.
+   ============================================================ */
+
+.icon {
+  /* 1em against a token-set font-size == fully fluid, one knob to turn */
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  display: block;
+  color: inherit;
+  overflow: visible;
+  transition: transform var(--duration-normal) var(--ease-icon-spring),
+              color var(--transition-base);
+}
+
+/* --- Fluid size scale --- */
+.icon--xs { font-size: var(--icon-xs); stroke-width: var(--icon-stroke-xs); }
+.icon--sm { font-size: var(--icon-sm); stroke-width: var(--icon-stroke-sm); }
+.icon--md { font-size: var(--icon-md); stroke-width: var(--icon-stroke-md); }
+.icon--lg { font-size: var(--icon-lg); stroke-width: var(--icon-stroke-lg); }
+.icon--xl { font-size: var(--icon-xl); stroke-width: var(--icon-stroke-xl); }
+
+/* Inherit the parent's font-size — for icons sitting inline with text */
+.icon--inherit { font-size: 1em; }
+
+/* Weight modifiers. The size tokens set stroke-width, so glyphs that are
+   meant to read heavier (CTA arrows, chevrons) opt in here. */
+.icon--strong { stroke-width: 2.25; }
+.icon--light  { stroke-width: 1.4; }
+
+/* ============================================================
+   Icon tile — the rounded plate a glyph sits on
+   ============================================================ */
+.icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-tile-md);
+  height: var(--icon-tile-md);
+  border-radius: var(--icon-tile-radius);
+  background: var(--icon-tile-bg);
+  color: var(--tile-accent, var(--color-civic-blue));
+  flex-shrink: 0;
+  position: relative;
+  isolation: isolate;
+  transition: transform var(--duration-normal) var(--ease-icon-spring),
+              box-shadow var(--transition-base),
+              background var(--transition-base),
+              color var(--transition-base);
+}
+
+.icon-tile--sm { width: var(--icon-tile-sm); height: var(--icon-tile-sm); }
+.icon-tile--lg { width: var(--icon-tile-lg); height: var(--icon-tile-lg); border-radius: var(--radius-xl); }
+
+.icon-tile--raised {
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--icon-tile-border);
+}
+
+/* Accent wash that blooms in behind the glyph */
+.icon-tile--bloom::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--tile-gradient, var(--cat-roads-grad));
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease-default);
+}
+
+/* ============================================================
+   Cinematic motion
+   ------------------------------------------------------------
+   `draw`  — strokes trace themselves in. Every shape carries
+             pathLength="1", so one keyframe normalises across
+             glyphs of wildly different real path lengths.
+   `settle`— the tile springs up under the glyph.
+   ============================================================ */
+
+.icon--draw :is(path, circle, rect, line, polyline, polygon, ellipse) {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+/* Fills would pop in before their outline finished drawing */
+.icon--draw [fill]:not([fill='none']) {
+  opacity: 0;
+}
+
+/* Playback is gated on the section's reveal class so the animation
+   fires when the icon is actually seen, not at page load. */
+.animate-in .icon--draw :is(path, circle, rect, line, polyline, polygon, ellipse) {
+  animation: iconDraw var(--icon-draw-duration) var(--ease-cinematic) forwards;
+}
+
+.animate-in .icon--draw [fill]:not([fill='none']) {
+  animation: iconFillIn 420ms var(--ease-out) forwards;
+  animation-delay: calc(var(--icon-draw-duration) * 0.55);
+}
+
+@keyframes iconDraw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes iconFillIn {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Stagger each glyph's strokes so a multi-part icon draws part by part */
+.icon--draw :nth-child(2) { animation-delay: 90ms; }
+.icon--draw :nth-child(3) { animation-delay: 170ms; }
+.icon--draw :nth-child(4) { animation-delay: 240ms; }
+.icon--draw :nth-child(5) { animation-delay: 300ms; }
+
+/* --- Tile settle --- */
+.animate-in .icon-tile--settle {
+  animation: iconSettle var(--icon-settle-duration) var(--ease-icon-spring) both;
+}
+
+@keyframes iconSettle {
+  0%   { opacity: 0; transform: scale(0.72) translateY(10px); }
+  60%  { opacity: 1; }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ============================================================
+   Reduced motion — show the finished state, skip the performance
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .icon,
+  .icon-tile {
+    transition: color var(--duration-fast) linear;
+  }
+
+  .icon--draw :is(path, circle, rect, line, polyline, polygon, ellipse),
+  .animate-in .icon--draw :is(path, circle, rect, line, polyline, polygon, ellipse) {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+
+  .icon--draw [fill]:not([fill='none']),
+  .animate-in .icon--draw [fill]:not([fill='none']) {
+    opacity: 1;
+    animation: none;
+  }
+
+  .animate-in .icon-tile--settle {
+    animation: none;
+  }
+}

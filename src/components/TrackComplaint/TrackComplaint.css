@@ -1,0 +1,2146 @@
+/* ============================================================
+   JAN-SEVA — Track Complaint Stylesheet
+   Calm, functional, civic tracking design
+   ============================================================ */
+
+.track-container {
+  min-height: 100dvh;
+  background-color: var(--slate-50);
+  color: var(--slate-900);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.track-container::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: 
+    radial-gradient(var(--slate-200) 1px, transparent 1px),
+    radial-gradient(rgba(46, 88, 217, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px, 48px 48px;
+  background-position: 0 0, 12px 12px;
+  pointer-events: none;
+  opacity: 0.6;
+  z-index: 0;
+}
+
+.track-shell {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  background: var(--color-surface);
+  box-shadow: 0 0 40px rgba(16, 24, 40, 0.06);
+}
+
+@media (min-width: 640px) {
+  .track-container {
+    padding: 24px 16px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .track-shell {
+    border-radius: 24px;
+    border: 1px solid var(--color-border);
+    min-height: 720px;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+}
+
+/* Header */
+.track-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--slate-200);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.track-header__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--slate-700);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.track-header__back:hover {
+  background-color: var(--slate-100);
+}
+
+.track-header__title {
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+  margin: 0;
+  /* A full ticket ID is long; truncate rather than shove the home icon
+     off the bar on a 360px handset. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Body Content */
+.track-body {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Search Tabs */
+.track-search-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--slate-100);
+  padding: 4px;
+  border-radius: 14px;
+  gap: 4px;
+}
+
+.track-search-tab {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--slate-600);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.track-search-tab--active {
+  background: var(--color-surface);
+  color: var(--blue-600);
+  box-shadow: 0 2px 6px rgba(15, 27, 45, 0.06);
+}
+
+/* Search Box Form */
+.track-search-card {
+  background: var(--slate-50);
+  border: 1px solid var(--slate-200);
+  border-radius: 18px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.track-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.track-input-box {
+  display: flex;
+  align-items: center;
+  background: var(--field-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--field-radius);
+  padding: 0 14px;
+  min-height: 3rem;
+  /* 8px left the magnifier butting against a monospace ticket ID. */
+  gap: var(--space-3);
+}
+
+.track-input-box:focus-within {
+  border-color: var(--blue-500);
+  box-shadow: 0 0 0 3px var(--blue-50);
+}
+
+.track-input-elem {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--slate-900);
+  font-family: inherit;
+}
+
+.track-input-elem:focus {
+  outline: none;
+}
+
+/* Recent Complaints Card List */
+
+
+
+
+/* ------------------------------------------------------------
+   Status pill.
+   One `--status-*` triplet per lifecycle state, so the pill, the
+   timeline node and the card accent for a given status cannot drift
+   apart. A leading dot carries the same information as the fill, so
+   the state survives a monochrome print and colour-blind viewing.
+   ------------------------------------------------------------ */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--pill-font-size);
+  font-weight: var(--pill-font-weight);
+  text-transform: uppercase;
+  padding: var(--pill-padding-y) var(--pill-padding-x);
+  border-radius: var(--pill-radius);
+  letter-spacing: var(--pill-tracking);
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.status-pill::before {
+  content: '';
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: var(--radius-full);
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.status-pill--pending {
+  background: var(--status-pending-bg);
+  color: var(--status-pending-fg);
+  border-color: var(--status-pending-border);
+}
+
+.status-pill--assigned {
+  background: var(--status-assigned-bg);
+  color: var(--status-assigned-fg);
+  border-color: var(--status-assigned-border);
+}
+
+.status-pill--in-progress {
+  background: var(--status-progress-bg);
+  color: var(--status-progress-fg);
+  border-color: var(--status-progress-border);
+}
+
+.status-pill--resolved {
+  background: var(--status-resolved-bg);
+  color: var(--status-resolved-fg);
+  border-color: var(--status-resolved-border);
+}
+
+.status-pill--escalated {
+  background: var(--status-escalated-bg);
+  color: var(--status-escalated-fg);
+  border-color: var(--status-escalated-border);
+}
+
+/* An escalated complaint is the one state worth a heartbeat. */
+.status-pill--escalated::before {
+  animation: status-pulse 2s var(--ease-default) infinite;
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.45; transform: scale(0.82); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-pill--escalated::before { animation: none; }
+}
+
+/* Latest Update Card */
+.latest-update-card {
+  background: var(--card-bg);
+  border: 1.5px solid var(--blue-200);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(46, 88, 217, 0.06);
+}
+
+.latest-update-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.latest-update-tag {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--blue-600);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.latest-update-time {
+  font-size: 0.75rem;
+  color: var(--slate-500);
+}
+
+.latest-update-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--slate-900);
+  margin: 0;
+}
+
+.latest-update-desc {
+  font-size: 0.875rem;
+  color: var(--slate-600);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Two-Layer Timeline */
+.timeline-card {
+  background: var(--color-surface);
+  border: 1px solid var(--slate-200);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.timeline-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  padding: 8px 4px;
+}
+
+.timeline-stepper::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 24px;
+  right: 24px;
+  height: 3px;
+  background: var(--slate-200);
+  z-index: 1;
+}
+
+.stepper-node {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.stepper-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 2.5px solid var(--slate-300);
+  color: var(--slate-400);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  transition: all 0.2s ease;
+}
+
+.stepper-node--active .stepper-circle {
+  border-color: var(--blue-500);
+  background: var(--blue-500);
+  color: var(--color-text-inverse);
+  box-shadow: 0 0 0 3px var(--blue-100);
+}
+
+.stepper-node--done .stepper-circle {
+  border-color: var(--color-success);
+  background: var(--color-success);
+  color: var(--color-text-inverse);
+}
+
+.stepper-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--slate-600);
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Detailed Event Timeline */
+.detailed-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid var(--slate-100);
+  padding-top: 14px;
+}
+
+.timeline-event-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  position: relative;
+}
+
+.timeline-event-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--blue-500);
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.timeline-event-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timeline-event-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--slate-900);
+}
+
+.timeline-event-desc {
+  font-size: 0.8125rem;
+  color: var(--slate-600);
+  line-height: 1.4;
+}
+
+.timeline-event-time {
+  font-size: 0.75rem;
+  color: var(--slate-400);
+}
+
+/* SLA Banner */
+.sla-card {
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sla-card--normal {
+  background: var(--sla-normal-bg);
+  border: 1px solid var(--sla-normal-border);
+}
+
+.sla-card--approaching {
+  background: var(--sla-approaching-bg);
+  border: 1px solid var(--sla-approaching-border);
+}
+
+.sla-card--exceeded {
+  background: var(--sla-exceeded-bg);
+  border: 1.5px solid var(--sla-exceeded-border);
+}
+
+.sla-card--met {
+  background: var(--status-resolved-bg);
+  border: 1px solid var(--status-resolved-border);
+}
+
+/* Officer Card */
+.officer-card {
+  background: var(--card-bg);
+  border: 1px solid var(--slate-200);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.officer-dept-name {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--slate-500);
+  letter-spacing: 0.04em;
+}
+
+.officer-details {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.officer-avatar-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--blue-50);
+  color: var(--blue-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.officer-name {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--slate-900);
+  margin: 0;
+}
+
+.officer-role {
+  font-size: 0.8125rem;
+  color: var(--slate-600);
+  margin: 0;
+}
+
+/* Linked Duplicate Banner */
+.linked-dup-banner {
+  background: var(--amber-50);
+  border: 1px solid rgba(224, 160, 52, 0.35);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.8125rem;
+  color: var(--color-warning-fg);
+}
+
+/* Citizen Verification Feedback Box */
+.resolution-verify-box {
+  background: var(--card-bg);
+  border: 1.5px solid var(--status-resolved-border);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.resolution-verify-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--slate-900);
+  margin: 0;
+}
+
+.star-rating-row {
+  display: flex;
+  gap: 8px;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--color-border-strong);
+  cursor: pointer;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.star-btn--active {
+  color: var(--amber-400);
+}
+
+/* Print Receipt Styles */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .receipt-print-area, .receipt-print-area * {
+    visibility: visible;
+  }
+  .receipt-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}
+
+/* ============================================================
+   Stack & card primitives
+   These replace the per-element inline styles the tracking views
+   previously carried, which meant no hover, focus or active states
+   and no way to retheme.
+   ============================================================ */
+
+.track-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.track-stack--tight {
+  gap: var(--space-2);
+}
+
+/* --- Complaint summary header --- */
+.complaint-head {
+  background: var(--card-bg);
+  border: var(--card-border-width) solid var(--card-border);
+  border-radius: var(--card-radius);
+  padding: var(--card-padding);
+}
+
+.complaint-head__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.complaint-head__label {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.complaint-head__id {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-black);
+  color: var(--color-civic-blue-dark);
+  /* Ticket IDs get read aloud over the phone - fix the digit widths. */
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: -0.01em;
+}
+
+.complaint-head__title {
+  margin: 0 0 var(--space-2) 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-extrabold);
+  color: var(--color-text);
+  line-height: var(--leading-snug);
+}
+
+.complaint-head__desc {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-normal);
+}
+
+/* --- Meta rows (location, timestamps) --- */
+.meta-card {
+  background: var(--card-bg);
+  border: var(--card-border-width) solid var(--card-border);
+  border-radius: var(--card-radius);
+  padding: var(--card-padding);
+}
+
+.meta-card__value {
+  margin: var(--space-1) 0 2px 0;
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+}
+
+.meta-card__sub {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* --- SLA card internals --- */
+.sla-card__body {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.sla-card__icon { flex-shrink: 0; }
+.sla-card__text { flex: 1; min-width: 0; }
+
+.sla-card__headline {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-extrabold);
+  line-height: var(--leading-snug);
+}
+
+.sla-card__detail {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin-top: 1px;
+}
+
+.sla-card--normal      { color: var(--sla-normal-fg); }
+.sla-card--normal      .sla-card__icon { color: var(--sla-normal-accent); }
+.sla-card--approaching { color: var(--sla-approaching-fg); }
+.sla-card--approaching .sla-card__icon { color: var(--sla-approaching-accent); }
+.sla-card--exceeded    { color: var(--sla-exceeded-fg); }
+.sla-card--exceeded    .sla-card__icon { color: var(--sla-exceeded-accent); }
+.sla-card--met         { color: var(--status-resolved-fg); }
+.sla-card--met         .sla-card__icon { color: var(--color-success); }
+
+.sla-card--exceeded .sla-card__detail,
+.sla-card--approaching .sla-card__detail,
+.sla-card--met .sla-card__detail {
+  color: currentColor;
+  opacity: 0.82;
+}
+
+/* Elapsed share of the SLA window - the number alone reads as abstract. */
+.sla-meter {
+  margin-top: var(--space-2);
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: rgba(16, 24, 40, 0.10);
+  overflow: hidden;
+}
+
+.sla-meter__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: currentColor;
+  transition: width var(--transition-slow);
+}
+
+/* --- Not-found / empty states --- */
+.track-empty {
+  text-align: center;
+  padding: var(--space-8) var(--space-5);
+  border-radius: var(--card-radius-lg);
+}
+
+.track-empty--error {
+  background: var(--color-error-bg);
+  border: 1.5px solid var(--color-error-border);
+  color: var(--color-error-fg);
+}
+
+.track-empty--muted {
+  background: var(--color-bg);
+  border: 1.5px dashed var(--color-border-strong);
+}
+
+.track-empty__icon {
+  margin: 0 auto var(--space-3);
+  color: currentColor;
+}
+
+.track-empty__title {
+  margin: 0 0 var(--space-2) 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-extrabold);
+  color: inherit;
+}
+
+.track-empty--muted .track-empty__title {
+  color: var(--color-text);
+}
+
+.track-empty__text {
+  margin: 0 0 var(--space-5) 0;
+  font-size: var(--text-sm);
+  color: inherit;
+  opacity: 0.9;
+}
+
+.track-empty--muted .track-empty__text {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+.track-empty__actions {
+  display: flex;
+  gap: var(--space-3);
+  max-width: 22rem;
+  margin: 0 auto;
+}
+
+.track-empty__actions > * { flex: 1; }
+
+/* --- Filter pills --- */
+.filter-row {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+  scrollbar-width: none;
+}
+
+.filter-row::-webkit-scrollbar { display: none; }
+
+.filter-pill {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-sunken);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  white-space: nowrap;
+  min-height: var(--tap-target);
+  transition: background-color var(--transition-fast), color var(--transition-fast),
+              border-color var(--transition-fast);
+}
+
+.filter-pill:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+
+.filter-pill[aria-pressed="true"] {
+  background: var(--color-civic-blue);
+  border-color: var(--color-civic-blue);
+  color: var(--color-text-inverse);
+}
+
+.filter-pill__count {
+  margin-left: var(--space-2);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+/* --- Citizen welcome banner --- */
+.citizen-banner {
+  background: var(--color-info-bg);
+  border: 1px solid var(--color-info-border);
+  border-radius: var(--card-radius);
+  padding: var(--card-padding);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.citizen-banner__eyebrow {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-info-fg);
+}
+
+.citizen-banner__name {
+  margin: 2px 0 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-extrabold);
+  color: var(--color-text);
+}
+
+.citizen-banner__switch {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  min-height: var(--tap-target);
+}
+
+.citizen-banner__switch:hover { color: var(--color-text); }
+
+/* --- Complaint row (recent + my complaints) --- */
+
+
+
+
+
+
+
+
+
+
+/* --- Utility action grid --- */
+.track-action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.track-action-grid .report-btn {
+  min-height: var(--tap-target);
+  font-size: var(--text-sm);
+}
+
+.icon-whatsapp { color: var(--color-whatsapp); }
+
+/* --- Live sync strip --- */
+.sync-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.sync-bar__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.sync-bar__dot {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: var(--radius-full);
+  background: var(--color-success);
+  flex-shrink: 0;
+}
+
+.sync-bar--offline .sync-bar__dot { background: var(--color-warning); }
+
+.sync-bar__refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-civic-blue);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  min-height: 2rem;
+  transition: background-color var(--transition-fast);
+}
+
+.sync-bar__refresh:hover { background: var(--color-civic-blue-bg); }
+.sync-bar__refresh:disabled { opacity: 0.5; cursor: default; }
+
+.sync-bar__refresh--spinning svg { animation: sync-spin 800ms linear infinite; }
+
+@keyframes sync-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sync-bar__refresh--spinning svg { animation: none; }
+}
+
+/* --- Skeletons ---
+   A bare spinner says "wait"; a skeleton says what is arriving and
+   holds the layout so nothing jumps when it lands. */
+.skeleton {
+  background: var(--skeleton-bg);
+  border-radius: var(--skeleton-radius);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--skeleton-sheen), transparent);
+  transform: translateX(-100%);
+  animation: skeleton-sweep 1.4s var(--ease-default) infinite;
+}
+
+@keyframes skeleton-sweep {
+  to { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after { animation: none; }
+}
+
+.skeleton-card {
+  background: var(--card-bg);
+  border: var(--card-border-width) solid var(--card-border);
+  border-radius: var(--card-radius);
+  padding: var(--card-padding);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.skeleton-line { height: 0.75rem; }
+.skeleton-line--title { height: 1.125rem; width: 70%; }
+.skeleton-line--short { width: 40%; }
+.skeleton-line--mid { width: 85%; }
+
+/* ============================================================
+   Search card, timeline, officer and resolution internals
+   ============================================================ */
+
+.track-card-title {
+  margin: 0 0 var(--space-2) 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-extrabold);
+  color: var(--color-text);
+}
+
+.track-card-subtitle {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-normal);
+}
+
+.track-input-icon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+/* Ticket IDs are compared character by character against a printed slip. */
+.track-input-elem--ticket {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.input-field-hint {
+  margin: var(--space-2) 0 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* --- Timeline --- */
+.timeline-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.timeline-card__title {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--weight-extrabold);
+  color: var(--color-text);
+}
+
+.timeline-card__count {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-stepper--escalated .stepper-node--alert .stepper-circle {
+  border-color: var(--color-error);
+  background: var(--color-error);
+  color: var(--color-text-inverse);
+  box-shadow: 0 0 0 3px var(--color-error-bg);
+}
+
+.timeline-event-desc {
+  margin: 0;
+}
+
+/* Colour the event dot by the status it recorded, so scanning the log
+   shows the shape of the complaint's history at a glance. */
+.timeline-event-item--pending     .timeline-event-dot { background: var(--status-pending-dot); }
+.timeline-event-item--assigned    .timeline-event-dot { background: var(--status-assigned-dot); }
+.timeline-event-item--in-progress .timeline-event-dot { background: var(--status-progress-dot); }
+.timeline-event-item--resolved    .timeline-event-dot { background: var(--status-resolved-dot); }
+.timeline-event-item--escalated   .timeline-event-dot { background: var(--status-escalated-dot); }
+
+.timeline-event-ago,
+.timeline-event-actor {
+  color: var(--color-text-muted);
+}
+
+/* --- Officer card actions --- */
+.officer-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.officer-actions > * {
+  flex: 1;
+  min-height: var(--tap-target);
+  font-size: var(--text-sm);
+}
+
+/* --- Resolution verification --- */
+.resolution-verify-box--confirmed {
+  background: var(--status-resolved-bg);
+  border-color: var(--status-resolved-border);
+  color: var(--status-resolved-fg);
+}
+
+.resolution-verify-box--reinspect {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+  color: var(--color-warning-fg);
+}
+
+.resolution-verify-box--confirmed .resolution-verify-title,
+.resolution-verify-box--reinspect .resolution-verify-title {
+  color: inherit;
+}
+
+.resolution-verify-text {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-normal);
+}
+
+.resolution-verify-box--confirmed .resolution-verify-text,
+.resolution-verify-box--reinspect .resolution-verify-text {
+  color: inherit;
+  opacity: 0.9;
+}
+
+.resolution-verify-quote {
+  margin: 0;
+  padding-left: var(--space-3);
+  border-left: 2px solid currentColor;
+  font-size: var(--text-sm);
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.resolution-choice-row {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.resolution-choice-row > * {
+  flex: 1;
+  min-height: var(--tap-target);
+  font-size: var(--text-sm);
+}
+
+.resolution-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.resolution-form__label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+}
+
+.resolution-input {
+  width: 100%;
+  min-height: var(--tap-target);
+  padding: var(--space-2) var(--field-padding-x);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--field-bg);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.resolution-input::placeholder {
+  color: var(--field-placeholder);
+}
+
+.resolution-input:focus {
+  outline: none;
+  border-color: var(--field-border-focus);
+  box-shadow: 0 0 0 3px var(--field-ring);
+}
+
+.resolution-textarea {
+  min-height: 5rem;
+  font-size: var(--text-sm);
+}
+
+.resolution-notice {
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  color: var(--color-warning-fg);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.resolution-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.resolution-actions > *:first-child { flex: 0 0 auto; }
+.resolution-actions > *:last-child { flex: 1; }
+
+.resolution-actions > * {
+  min-height: var(--tap-target);
+  font-size: var(--text-sm);
+}
+
+/* ------------------------------------------------------------
+   Semantic button variants.
+   Confirming a fix and requesting a reinspection are different
+   commitments and should not both wear the brand blue. These were
+   previously inline `background: var(--color-success)` overrides on the primary
+   button, which lost every hover, focus and disabled state.
+   ------------------------------------------------------------ */
+.report-btn--confirm {
+  background: var(--color-success);
+  color: var(--color-text-inverse);
+  border: 1.5px solid transparent;
+}
+
+.report-btn--confirm:hover:not(:disabled) {
+  background: var(--color-green-dark, var(--green-600));
+}
+
+.report-btn--confirm:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.report-btn--warn {
+  background: var(--amber-500);
+  color: var(--color-text-inverse);
+  border: 1.5px solid transparent;
+}
+
+.report-btn--warn:hover:not(:disabled) {
+  background: var(--amber-600);
+}
+
+.report-btn--warn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ============================================================
+   Acknowledgement slip
+   Designed to survive printing: the print stylesheet hides the rest
+   of the page, so this block has to stand on its own on paper.
+   ============================================================ */
+
+.receipt {
+  max-width: 29rem;
+  padding: var(--space-6);
+}
+
+.receipt__header {
+  text-align: center;
+  border-bottom: 2px solid var(--color-text);
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.receipt__brand {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-black);
+  color: var(--color-civic-blue-dark);
+  letter-spacing: var(--tracking-tight);
+  margin-bottom: var(--space-1);
+}
+
+.receipt__title {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--weight-extrabold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text);
+}
+
+.receipt__org {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.receipt__ticket {
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  margin-bottom: var(--space-4);
+}
+
+.receipt__ticket-label {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.receipt__ticket-id {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-black);
+  color: var(--color-civic-blue-dark);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.receipt__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4) 0;
+  font-size: var(--text-sm);
+}
+
+.receipt__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.receipt__key {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.receipt__value {
+  margin: 0;
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+  text-align: right;
+}
+
+.receipt__footnote {
+  margin: 0 0 var(--space-4) 0;
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--color-border-strong);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.receipt__actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.receipt__actions > * {
+  flex: 1;
+  min-height: var(--tap-target);
+}
+
+/* The buttons are chrome, not part of the record. */
+@media print {
+  .receipt__actions {
+    display: none;
+  }
+
+  .receipt {
+    max-width: none;
+    box-shadow: none;
+    border: none;
+  }
+}
+
+/* --- Success screen note --- */
+.success-note {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-info-bg);
+  border: 1px solid var(--color-info-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  color: var(--color-info-fg);
+  line-height: var(--leading-normal);
+  text-align: center;
+}
+
+/* ============================================================
+   Evidence gallery
+   ============================================================ */
+
+.evidence-card {
+  background: var(--card-bg);
+  border: var(--card-border-width) solid var(--card-border);
+  border-radius: var(--card-radius);
+  padding: var(--card-padding);
+}
+
+.evidence-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.evidence-toggle {
+  display: flex;
+  gap: 2px;
+  background: var(--color-surface-sunken);
+  padding: 2px;
+  border-radius: var(--radius-md);
+}
+
+.evidence-toggle__btn {
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  min-height: 1.75rem;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.evidence-toggle__btn[aria-pressed="true"] {
+  background: var(--color-surface);
+  color: var(--color-civic-blue-dark);
+  box-shadow: var(--shadow-xs);
+}
+
+/* "After" photos are proof of resolution — colour them accordingly. */
+.evidence-toggle__btn--after[aria-pressed="true"] {
+  color: var(--status-resolved-fg);
+}
+
+.evidence-strip {
+  display: flex;
+  gap: var(--space-3);
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+  scrollbar-width: none;
+}
+
+.evidence-strip::-webkit-scrollbar { display: none; }
+
+.evidence-thumb {
+  position: relative;
+  width: 6.25rem;
+  height: 6.25rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  padding: 0;
+  background: var(--color-surface-sunken);
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.evidence-thumb:hover {
+  border-color: var(--card-border-hover);
+  transform: translateY(-2px);
+}
+
+.evidence-thumb:focus-visible {
+  outline: 2px solid var(--color-civic-blue);
+  outline-offset: 2px;
+}
+
+.evidence-thumb__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* --- Lightbox --- */
+.evidence-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  /* Deliberately near-opaque black: a photo of a pothole needs a neutral
+     surround to be judged, in either theme. */
+  background: rgba(0, 0, 0, 0.92);
+  cursor: zoom-out;
+}
+
+.evidence-lightbox__img {
+  max-width: 92vw;
+  max-height: 82vh;
+  object-fit: contain;
+  border-radius: var(--radius-xl);
+}
+
+.evidence-lightbox__close {
+  position: absolute;
+  top: calc(var(--safe-top) + var(--space-4));
+  right: var(--space-4);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-target);
+  height: var(--tap-target);
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--color-text-inverse);
+  transition: background-color var(--transition-fast);
+}
+
+.evidence-lightbox__close:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.evidence-lightbox__close:focus-visible {
+  outline: 2px solid var(--color-text-inverse);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .evidence-thumb:hover { transform: none; }
+}
+
+/* ============================================================
+   TRACK v2 — privacy-tiered layout
+   ============================================================ */
+
+/* --- Search screen: the alternate route --- */
+.track-alt {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-4);
+  border-radius: var(--card-radius);
+  background: var(--color-surface-sunken);
+  border: 1px dashed var(--color-border-strong);
+  text-align: center;
+}
+
+.track-alt__label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.track-alt .report-btn {
+  min-height: var(--tap-target);
+}
+
+/* ============================================================
+   Identity verification
+   ============================================================ */
+
+.verify-card {
+  background: var(--card-bg);
+  border: var(--card-border-width) solid var(--card-border);
+  border-radius: var(--card-radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  box-shadow: var(--card-shadow);
+}
+
+.verify-card__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.verify-card__shield {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-info-bg);
+  border: 1px solid var(--color-info-border);
+  color: var(--color-civic-blue);
+}
+
+.verify-card__title {
+  margin: 0 0 var(--space-1) 0;
+  font-size: var(--text-xl);
+  font-weight: var(--weight-extrabold);
+  color: var(--color-text);
+}
+
+.verify-card__body {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-normal);
+}
+
+.verify-card__sent {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.verify-card__sent strong {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.verify-card__actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.verify-card__actions > * {
+  flex: 1;
+  min-height: var(--tap-target);
+}
+
+.verify-card__resend {
+  background: none;
+  border: none;
+  align-self: center;
+  color: var(--color-civic-blue);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  min-height: var(--tap-target);
+}
+
+.verify-card__resend:hover:not(:disabled) {
+  background: var(--color-civic-blue-bg);
+}
+
+.verify-card__resend:disabled {
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+/* --- OTP boxes --- */
+.otp-row {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: center;
+}
+
+.otp-box {
+  width: 100%;
+  max-width: 3rem;
+  aspect-ratio: 1 / 1.15;
+  text-align: center;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-extrabold);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  background: var(--field-bg);
+  border: 1.5px solid var(--field-border);
+  border-radius: var(--field-radius);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.otp-box--filled {
+  border-color: var(--color-civic-blue);
+}
+
+.otp-box:focus {
+  outline: none;
+  border-color: var(--field-border-focus);
+  box-shadow: 0 0 0 3px var(--field-ring);
+}
+
+.otp-box:disabled {
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+}
+
+.otp-sent-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* ============================================================
+   Complaint cards
+   ============================================================ */
+
+.complaint-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+
+.complaint-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  text-align: left;
+  padding: var(--card-padding);
+  background: var(--card-bg);
+  border: var(--card-border-width) solid var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast),
+              transform var(--transition-fast);
+}
+
+.complaint-card:hover {
+  border-color: var(--card-border-hover);
+  box-shadow: var(--card-shadow-hover);
+}
+
+.complaint-card:active {
+  transform: scale(0.995);
+}
+
+.complaint-card:focus-visible {
+  outline: 2px solid var(--color-civic-blue);
+  outline-offset: 2px;
+}
+
+.complaint-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.complaint-card__id {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-extrabold);
+  color: var(--color-civic-blue-dark);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+.complaint-card__title {
+  font-size: var(--text-base);
+  font-weight: var(--weight-extrabold);
+  color: var(--color-text);
+  line-height: var(--leading-snug);
+}
+
+.complaint-card__place {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.complaint-card__place svg { flex-shrink: 0; }
+
+.complaint-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.complaint-card__updated {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.complaint-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--color-civic-blue);
+}
+
+.complaint-card__cta svg {
+  transition: transform var(--transition-fast);
+}
+
+.complaint-card:hover .complaint-card__cta svg {
+  transform: translateX(3px);
+}
+
+.complaint-card__expiry {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-warning-fg);
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-1) var(--space-2);
+  align-self: flex-start;
+}
+
+/* ============================================================
+   Detail layout
+   ============================================================ */
+
+.detail-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  /* Room for the sticky action so the last card is never trapped beneath it. */
+  padding-bottom: calc(var(--tap-target) + var(--space-8));
+}
+
+.detail-primary,
+.detail-secondary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.complaint-head__area {
+  margin: 0 0 var(--space-2) 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-civic-blue-dark);
+}
+
+.complaint-head__updated {
+  margin: var(--space-3) 0 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.retention-note {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  color: var(--color-warning-fg);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+/* --- Area plate (schematic, not a live map) --- */
+.area-plate {
+  position: relative;
+  height: 6.5rem;
+  margin: var(--space-3) 0;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.area-plate__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--color-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-border) 1px, transparent 1px);
+  background-size: 22px 22px;
+  opacity: 0.55;
+}
+
+.area-plate__pin {
+  position: relative;
+  z-index: 1;
+  color: var(--color-civic-blue);
+}
+
+/* A soft halo rather than a precise dot: the public view knows the area,
+   not the address, and the graphic should not imply otherwise. */
+.area-plate__halo {
+  position: absolute;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: var(--radius-full);
+  background: var(--color-civic-blue-ring);
+  border: 1px solid var(--color-civic-blue-100);
+}
+
+.meta-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  color: var(--status-resolved-fg);
+}
+
+.meta-card__unlock {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-info-bg);
+  border: 1px solid var(--color-info-border);
+  color: var(--color-info-fg);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  min-height: 2.25rem;
+  transition: background-color var(--transition-fast);
+}
+
+.meta-card__unlock:hover {
+  background: var(--color-civic-blue-100);
+}
+
+/* ============================================================
+   Protected photos
+   ============================================================ */
+
+.evidence-thumb--protected {
+  cursor: default;
+  position: relative;
+}
+
+/* Blur strong enough to defeat faces, plates and house numbers, light
+   enough that the nature of the issue still reads. */
+.evidence-thumb__img--blurred {
+  filter: blur(7px) saturate(0.88);
+  transform: scale(1.14);
+}
+
+.evidence-thumb__lock {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-inverse);
+  background: rgba(15, 27, 45, 0.34);
+}
+
+.evidence-unlock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  margin-top: var(--space-3);
+  min-height: var(--tap-target);
+  border-radius: var(--radius-lg);
+  background: var(--color-info-bg);
+  border: 1.5px solid var(--color-info-border);
+  color: var(--color-info-fg);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-extrabold);
+  letter-spacing: var(--tracking-wide);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.evidence-unlock:hover {
+  background: var(--color-civic-blue-100);
+  border-color: var(--color-civic-blue);
+}
+
+.evidence-note {
+  margin: var(--space-2) 0 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* ============================================================
+   Sticky action
+   ============================================================ */
+
+.sticky-action {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0 calc(var(--space-5) * -1) calc(var(--space-5) * -1);
+  padding: var(--space-3) var(--space-5);
+  padding-bottom: calc(var(--space-3) + var(--safe-bottom));
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--color-border);
+}
+
+.sticky-action__btn {
+  width: 100%;
+  min-height: var(--tap-target);
+}
+
+.sticky-action__hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* ============================================================
+   Empty / notice states
+   ============================================================ */
+
+.track-empty__icon--muted {
+  color: var(--color-text-muted);
+}
+
+.track-empty__code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.track-empty__footnote {
+  margin: var(--space-4) 0 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.track-empty__single {
+  max-width: 16rem;
+  margin: 0 auto;
+  min-height: var(--tap-target);
+}
+
+.citizen-banner__ident {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   Resolution & timeline additions
+   ============================================================ */
+
+.resolution-form__lead {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.star-rating-row {
+  align-items: center;
+}
+
+.star-rating-row__value {
+  margin-left: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* An upcoming step is drawn as a hollow node — visibly different from a
+   completed one without relying on colour. */
+.timeline-event-item--upcoming .timeline-event-dot {
+  background: transparent;
+  border: 2px dashed var(--color-border-strong);
+}
+
+.timeline-event-item--upcoming .timeline-event-title,
+.timeline-event-item--upcoming .timeline-event-time {
+  color: var(--color-text-muted);
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+
+/* Two columns once there is room — status and history on the left,
+   context and actions on the right. */
+@media (min-width: 900px) {
+  .track-container {
+    /* Release the centred phone-frame framing — from here the page is a
+       document, not a device mock. */
+    align-items: flex-start;
+    padding-block: var(--space-8);
+  }
+
+  .track-shell {
+    max-width: 62rem;
+    /* Dropping the height cap lets the page scroll normally, which is also
+       what makes `position: sticky` resolve against the viewport. */
+    min-height: 0;
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  .track-body {
+    padding: var(--space-6);
+  }
+
+  .detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-5);
+  }
+
+  .complaint-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sticky-action {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1280px) {
+  .complaint-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Very small handsets: the OTP row is the first thing to overflow. */
+@media (max-width: 380px) {
+  .otp-row {
+    gap: var(--space-1);
+  }
+
+  .otp-box {
+    font-size: var(--text-xl);
+  }
+
+  .track-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .verify-card {
+    padding: var(--space-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .complaint-card:hover .complaint-card__cta svg { transform: none; }
+  .complaint-card:active { transform: none; }
+}
+
+/* The bare <input> was 24px tall inside a 48px box, so the box's vertical
+   padding did not focus the field. Filling the box height makes the whole
+   control the hit area. */
+.track-input-elem {
+  align-self: stretch;
+  min-height: var(--tap-target);
+}

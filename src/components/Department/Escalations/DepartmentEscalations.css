@@ -1,0 +1,128 @@
+/* ============================================================
+   Escalations — SLA breaches
+   ------------------------------------------------------------
+   The standing red "accountability notice" banner is gone: it
+   said the same thing on every visit whether or not anything
+   was overdue, so it stopped being read. The consequence now
+   sits in the page description, where it is read once.
+   ============================================================ */
+
+@import '../department-shared.css';
+
+.dept-escalation-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  color: var(--color-error-fg);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  white-space: nowrap;
+}
+
+.dept-escalations-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dept-escalation-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-error-border);
+  border-left: 4px solid var(--color-error);
+  border-radius: var(--dept-card-radius);
+  box-shadow: var(--shadow-xs);
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.dept-escalation-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.dept-escalation-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.dept-escalation-card__id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-error-fg);
+}
+
+.dept-escalation-card__title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  line-height: var(--leading-snug);
+  color: var(--color-text);
+}
+
+.dept-escalation-card__place {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dept-escalation-card__place svg {
+  flex-shrink: 0;
+}
+
+.dept-escalation-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-error-border);
+}
+
+.dept-escalation-card__owner {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.dept-escalation-card__owner strong {
+  color: var(--color-warning-fg);
+  font-weight: var(--font-bold);
+}
+
+.dept-escalation-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--color-error-fg);
+}
+
+.dept-escalation-card:hover .dept-escalation-card__cta {
+  text-decoration: underline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dept-escalation-card {
+    transition: none;
+  }
+}

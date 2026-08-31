@@ -1,0 +1,410 @@
+/* ============================================================
+   JAN-SEVA Header Stylesheet — 3-Zone Grid Layout
+   Zero overlap between Brand, Navigation, and Controls
+   ============================================================ */
+
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-sticky, 200);
+  height: var(--header-total);
+  padding-top: var(--safe-top, 0px);
+  background: rgba(255, 255, 255, 0.85);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+  transition: background var(--transition-base, 250ms ease),
+              box-shadow var(--transition-base, 250ms ease),
+              border-color var(--transition-base, 250ms ease);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .header {
+    background: rgba(255, 255, 255, 0.98);
+  }
+}
+
+.header--scrolled {
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom-color: var(--color-border, #E2E8F0);
+  box-shadow: 0 4px 20px rgba(15, 27, 45, 0.06);
+}
+
+/* ------------------------------------------------------------
+   The bar is capped by `.container` at the 1200px body width, which
+   left the centre track at ~415px however wide the monitor was — the
+   reason a 1920px screen overflowed exactly like a 1280px one. A
+   header spanning wider than body copy is standard, and it is what
+   gives the navigation room to breathe.
+   ------------------------------------------------------------ */
+@media (min-width: 1280px) {
+  .header__inner.container {
+    max-width: 82.5rem;   /* 1320px */
+  }
+}
+
+@media (min-width: 1536px) {
+  .header__inner.container {
+    max-width: 88rem;     /* 1408px */
+  }
+}
+
+/* Header Inner — Mobile: Flex / Desktop: 3-Zone Grid */
+.header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-height);
+  gap: var(--space-3, 12px);
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .header__inner {
+    display: grid;
+    /* Brand | Navigation | Controls.
+       `auto` on the outer tracks (not `minmax(250px, auto)`) lets the brand
+       size to its content instead of reserving width the nav then has to
+       overflow into. The centre track is the only flexible one. */
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .header__inner {
+    gap: 24px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .header__inner {
+    gap: 32px;
+  }
+}
+
+/* Zone 1: Brand Logo Anchor */
+.header__logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+  min-width: 0;
+  border-radius: var(--radius-md, 8px);
+}
+
+/* The brand sizes to its lockup. Forcing a 250px minimum here was what
+   squeezed the nav track until its links spilled over the controls. */
+
+/* Zone 2: Center Navigation (Desktop Only) */
+.header__nav {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  /* Last line of defence: if a translation or a font swap ever makes the
+     links wider than the track, they are clipped rather than allowed to
+     overlap the city selector. */
+  overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+  .header__nav {
+    display: flex;
+    gap: 4px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .header__nav {
+    gap: 6px;
+  }
+}
+
+@media (min-width: 1366px) {
+  .header__nav {
+    gap: 8px;
+  }
+}
+
+.header__nav-link {
+  position: relative;
+  padding: 6px 8px;
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-secondary, #475569);
+  border-radius: var(--radius-md, 8px);
+  transition: color var(--transition-fast, 150ms ease), background var(--transition-fast, 150ms ease);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+@media (min-width: 1200px) {
+  .header__nav-link {
+    padding: 6px 12px;
+    font-size: 0.875rem;
+  }
+}
+
+/* Deliberately not scaled beyond this. Growing the type at 1366px+ added
+   ~90px across the row and was pushing the links back into the controls. */
+@media (min-width: 1366px) {
+  .header__nav-link {
+    padding: 8px 14px;
+  }
+}
+
+/* Navigation Link Underline Indicator */
+.header__nav-link::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-civic-blue, #2E58D9);
+  transform: translateX(-50%);
+  transition: width var(--transition-base, 250ms ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .header__nav-link:hover {
+    color: var(--color-civic-blue, #2E58D9);
+    background: rgba(46, 88, 217, 0.04);
+  }
+
+  .header__nav-link:hover::after {
+    width: calc(100% - 16px);
+  }
+}
+
+/* Zone 3: Right Controls */
+.header__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  /* `.header__nav-link` is positioned (it carries the underline), so it
+     would otherwise paint above these unpositioned controls — which is how
+     a nav label ended up rendered on top of the city selector. */
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 1200px) {
+  .header__controls {
+    gap: 12px;
+  }
+}
+
+/* Portal buttons — desktop only */
+
+.header__portal-btns {
+  display: none;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (min-width: 1200px) {
+  .header__portal-btns {
+    display: flex;
+    gap: 8px;
+    margin-left: 4px;
+  }
+}
+
+.header__portal-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary, #475569);
+  border: 1.5px solid var(--color-border, #E2E8F0);
+  border-radius: var(--radius-full, 9999px);
+  transition: all var(--transition-fast, 150ms ease);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+@media (min-width: 1200px) {
+  .header__portal-btn {
+    padding: 7px 16px;
+    font-size: 0.8125rem;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .header__portal-btn:hover {
+    border-color: var(--color-civic-blue, #2E58D9);
+    color: var(--color-civic-blue, #2E58D9);
+    background: rgba(46, 88, 217, 0.05);
+  }
+}
+
+.header__portal-btn--primary {
+  background: var(--color-navy, #0F1B2D);
+  color: #FFFFFF;
+  border-color: var(--color-navy, #0F1B2D);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .header__portal-btn--primary:hover {
+    background: #1E293B;
+    border-color: #1E293B;
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(15, 27, 45, 0.15);
+  }
+}
+
+/* Hamburger — Mobile / Tablet only (< 1024px) */
+.header__hamburger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-target, 44px);
+  height: var(--tap-target, 44px);
+  margin-right: -4px;
+  border-radius: var(--radius-md, 8px);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition-fast, 150ms ease);
+}
+
+.header__hamburger:active {
+  background: var(--color-gray-100, #F1F5F9);
+}
+
+@media (min-width: 1200px) {
+  .header__hamburger {
+    display: none;
+  }
+}
+
+.header__hamburger-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 20px;
+  height: 16px;
+}
+
+.header__hamburger-line {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: var(--color-navy, #0F1B2D);
+  border-radius: 2px;
+  transition: transform var(--transition-base, 250ms ease), opacity var(--transition-fast, 150ms ease);
+  transform-origin: center;
+}
+
+.header__hamburger--open .header__hamburger-line:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.header__hamburger--open .header__hamburger-line:nth-child(2) {
+  opacity: 0;
+}
+
+.header__hamburger--open .header__hamburger-line:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header,
+  .header__nav-link::after,
+  .header__hamburger-line {
+    transition: none;
+  }
+}
+
+
+/* ============================================================
+   Navigation priority tiers
+   Six nowrap links do not fit beside the brand and the controls
+   between 1024px and 1440px. Rather than let them overflow, the
+   lower-priority ones step out of the bar. The drawer keeps all six.
+   ============================================================ */
+.header__nav-link--p2,
+.header__nav-link--p3 {
+  display: none;
+}
+
+/* Measured: at 1024px the four links total 344px against a 439px track,
+   so tier 2 shows as soon as the desktop bar appears. The tier mechanism
+   stays for whatever gets added next. */
+@media (min-width: 1024px) {
+  .header__nav-link--p2 {
+    display: inline-flex;
+  }
+}
+
+@media (min-width: 1440px) {
+  .header__nav-link--p3 {
+    display: inline-flex;
+  }
+}
+
+/* ============================================================
+   Control sizing
+   ============================================================ */
+
+/* The city pill was translucent, so overflowing text showed straight
+   through it. Opaque now, so it reads as a solid control in every state. */
+.header .city-selector {
+  background: var(--color-surface);
+}
+
+/* Between 1024 and 1200 the bar carries brand + 3 links + city + language
+   + hamburger. Trimming the pill keeps that comfortable rather than tight. */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .header .city-selector {
+    max-width: 8rem;
+  }
+}
+
+/* ------------------------------------------------------------
+   Phone bar: brand + hamburger, nothing else.
+
+   Measured, the brand lockup (250px with its tagline), the city pill
+   (121px) and the hamburger (44px) need a 471px viewport before they
+   stop colliding — so on a 360-412px handset the hamburger was being
+   pushed off the right edge entirely. The city is not lost: it is in
+   the drawer header and again on the hero badge directly below.
+   ------------------------------------------------------------ */
+@media (max-width: 599px) {
+  .header .city-selector,
+  .header__lang {
+    display: none;
+  }
+}
+
+@media (min-width: 600px) {
+  .header .city-selector {
+    display: inline-flex;
+  }
+}
+
+/* The language chip needs more room than the city pill to be worth it. */
+@media (max-width: 767px) {
+  .header__lang {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .header__lang {
+    display: flex;
+  }
+}
