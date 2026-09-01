@@ -1,0 +1,121 @@
+/* ============================================================
+   Open civic record
+   ============================================================ */
+
+.od-guarantee {
+  padding: 1.125rem;
+  margin-bottom: 1.25rem;
+  background: var(--color-success-bg);
+  border: 1px solid var(--color-success-border);
+  border-radius: var(--card-radius-lg);
+}
+
+.od-guarantee__title {
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--color-success-fg);
+}
+
+.od-guarantee__list {
+  display: grid;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0 0 0 1.125rem;
+}
+
+.od-guarantee__list li {
+  font-size: 0.8125rem;
+  line-height: 1.65;
+  color: var(--color-text-secondary);
+}
+
+.od-guarantee__list strong {
+  color: var(--color-text);
+}
+
+.od-guarantee code,
+.od-footnote code,
+.od-service code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  padding: 0.0625rem 0.25rem;
+  background: var(--color-surface);
+  border-radius: var(--radius-sm, 4px);
+}
+
+.od-services,
+.od-sample {
+  padding: 1.125rem;
+  margin-bottom: 1.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius-lg);
+}
+
+.od-services__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.625rem;
+  margin-top: 0.75rem;
+}
+
+.od-service {
+  display: grid;
+  gap: 0.1875rem;
+  padding: 0.625rem 0.75rem;
+  background: var(--color-surface-sunken);
+  border-radius: var(--card-radius);
+  font-size: 0.8125rem;
+}
+
+.od-service code {
+  justify-self: start;
+  color: var(--color-civic-blue-dark);
+}
+
+.od-service__group {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+.od-sample__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.od-sample__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Code blocks scroll inside their own container; the page body must
+   never scroll sideways. */
+.od-sample__code {
+  overflow-x: auto;
+  max-height: 22rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.875rem 1rem;
+  background: var(--navy-900);
+  border-radius: var(--card-radius);
+  color: var(--slate-200);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.od-footnote {
+  margin: 0;
+  padding: 0.875rem 1rem;
+  background: var(--color-surface-sunken);
+  border-radius: var(--card-radius);
+  font-size: 0.75rem;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+}

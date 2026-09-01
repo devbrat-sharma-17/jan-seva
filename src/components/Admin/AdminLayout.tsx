@@ -35,6 +35,9 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/admin/escalations', icon: 'escalations', label: 'Escalations', short: 'Alerts' },
   { path: '/admin/feedback', icon: 'feedback', label: 'Citizen feedback', short: 'Feedback' },
   { path: '/admin/performance', icon: 'performance', label: 'Performance', short: 'Score' },
+  { path: '/admin/assets', icon: 'map', label: 'Asset ledger', short: 'Assets' },
+  { path: '/admin/wards', icon: 'departments', label: 'Ward reality', short: 'Wards' },
+  { path: '/admin/open-data', icon: 'reports', label: 'Open data', short: 'Data' },
   { path: '/admin/initiatives', icon: 'initiatives', label: 'Initiatives', short: 'Projects' },
   { path: '/admin/reports', icon: 'reports', label: 'Reports', short: 'Reports' },
 ];

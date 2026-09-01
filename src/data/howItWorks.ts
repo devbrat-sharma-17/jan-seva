@@ -9,8 +9,8 @@ export const howItWorksSteps: ProcessStep[] = [
   },
   {
     step: 2,
-    title: 'We Analyze',
-    description: 'AI identifies issue & category',
+    title: 'We Match',
+    description: 'Your description is matched to a category and department — you confirm it before submitting',
     icon: 'analyze',
   },
   {

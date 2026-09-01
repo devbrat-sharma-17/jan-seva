@@ -123,6 +123,16 @@ export function DepartmentLayout({ children }: DepartmentLayoutProps) {
       badgeVariant: 'warning',
     };
 
+    /* The Work Card sits directly under "My work" because it IS the
+       officer's day, routed. Burying a field tool under Map or
+       Performance would put it where a field officer never looks. */
+    const workCard: NavItem = {
+      to: '/department/work-card',
+      label: 'Work card',
+      shortLabel: 'Route',
+      icon: ICONS.map,
+    };
+
     const rest: NavItem[] = [
       { to: '/department/map', label: 'City map', shortLabel: 'Map', icon: ICONS.map },
       {
@@ -139,8 +149,8 @@ export function DepartmentLayout({ children }: DepartmentLayoutProps) {
     // A field officer's day is their own task list, not the department's
     // triage board, so their queue leads and the dashboard follows.
     return isFieldOfficer
-      ? [myWork, dashboard, queue, ...rest]
-      : [dashboard, queue, myWork, ...rest];
+      ? [myWork, workCard, dashboard, queue, ...rest]
+      : [dashboard, queue, myWork, workCard, ...rest];
   }, [metrics?.pending, metrics?.escalated, isFieldOfficer]);
 
   if (!user) return null;

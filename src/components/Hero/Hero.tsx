@@ -1,37 +1,60 @@
 import { useMemo } from 'react';
 import { useCityConfig } from '../../hooks/useCityConfig';
 import { useCinematicStats, type StatItem } from '../../hooks/useCountUp';
+import { useDeferredCityStats } from '../../hooks/useDeferredCityStats';
+import { useTranslation } from '../../hooks/useTranslation';
+import { getProgrammeStats } from '../../services/programmeStats';
 import { PrimaryCTA } from '../ui/PrimaryCTA';
 import { SecondaryCTA } from '../ui/SecondaryCTA';
 import './Hero.css';
 
 export function Hero() {
   const city = useCityConfig();
+  const { t } = useTranslation();
+
+  /* --------------------------------------------------------------
+     Every number in the trust bar is DERIVED from the complaint store
+     on each read. The previous version animated three constants —
+     12,480 / 94% / 42 — one of which contradicted another constant in
+     the same object. Constants on a trust bar are the one place a
+     civic product cannot afford them.
+
+     The middle figure is deliberately the least flattering one
+     available: resolutions the CITIZEN confirmed, not resolutions a
+     department claimed. It is the product thesis stated as a number.
+
+     Reading the store is deferred to an idle callback, because it pulls
+     in the seeded asset registry, repair ledger and complaint history —
+     none of which should block the first paint. The bar is below the
+     fold and counts up on scroll, so the placeholder is never seen in
+     practice. See `useDeferredCityStats`.
+     -------------------------------------------------------------- */
+  const { stats: live, ready } = useDeferredCityStats(city.id);
+
+  // Programme totals need no store, so they render in the first paint.
+  const programme = useMemo(() => getProgrammeStats(city), [city]);
 
   const statItems = useMemo<StatItem[]>(
     () => [
-      {
-        target: city.statistics.issuesReported,
-        suffix: '+',
-        duration: 1900,
-      },
-      {
-        target: city.statistics.resolutionRate,
-        suffix: '%',
-        duration: 1700,
-      },
-      {
-        target: city.statistics.activeInitiatives,
-        duration: 1600,
-      },
+      { target: live?.reported ?? 0, duration: 1900 },
+      { target: live?.verifiedRatePercent ?? 0, suffix: '%', duration: 1700 },
+      { target: live?.repeatFailures ?? 0, duration: 1600 },
     ],
-    [city.statistics.issuesReported, city.statistics.resolutionRate, city.statistics.activeInitiatives]
+    [live?.reported, live?.verifiedRatePercent, live?.repeatFailures]
   );
 
   const { containerRef, displayValues } = useCinematicStats<HTMLDListElement>(statItems, {
     threshold: 0.25,
     duration: 1800,
+    // The animation runs once. Arming it before the figures arrive
+    // would count up to zero and leave it there.
+    enabled: ready,
   });
+
+  /* An em dash until the figures are real. Rendering 0 for "not loaded
+     yet" would be the same class of mistake as rendering 94% for a rate
+     nobody had computed. */
+  const show = (index: number) => (ready ? displayValues[index] : '—');
 
   return (
     <section className="hero" id="hero" aria-label="Hero">
@@ -64,24 +87,26 @@ export function Hero() {
 
           {/* Headline */}
           <h1 className="hero__headline">
-            <span className="hero__headline-line">YOUR CITY.</span>
-            <span className="hero__headline-line">YOUR VOICE.</span>
+            <span className="hero__headline-line">{t('hero.line1')}</span>
+            <span className="hero__headline-line">{t('hero.line2')}</span>
             <span className="hero__headline-line">
-              OUR <span className="hero__headline-accent">JAN-SEVA</span>.
+              {t('hero.line3')}{' '}
+              <span className="hero__headline-accent">{t('app.name')}</span>.
             </span>
           </h1>
 
           {/* Subtitle */}
           <p className="hero__description">
-            Report civic issues in {city.name} — potholes, garbage, water leaks,
-            broken streetlights — and watch them get resolved.
+            {/* The city name is interpolated rather than concatenated so
+                Hindi word order does not have to match English. */}
+            {t('hero.description').replace('{city}', city.name)}
           </p>
 
           {/* CTAs */}
           <div className="hero__ctas">
             <PrimaryCTA
-              label="REPORT AN ISSUE"
-              subtitle="Click a photo &amp; submit in 60 seconds"
+              label={t('hero.cta.report')}
+              subtitle={t('hero.cta.report.sub')}
               href="/report"
               size="lg"
               fullWidth
@@ -94,8 +119,8 @@ export function Hero() {
               }
             />
             <SecondaryCTA
-              label="TRACK COMPLAINT"
-              subtitle="Check your complaint status"
+              label={t('hero.cta.track')}
+              subtitle={t('hero.cta.track.sub')}
               href="/track"
               fullWidth
               id="hero-track-cta"
@@ -108,29 +133,35 @@ export function Hero() {
             />
           </div>
 
-          {/* Trust bar */}
+          {/* Trust bar — live figures only */}
           <dl className="hero__trust" ref={containerRef}>
             <div className="hero__trust-item">
-              <dt className="hero__trust-label">Issues Reported</dt>
-              <dd className="hero__trust-number">
-                {displayValues[0]}
-              </dd>
+              <dt className="hero__trust-label">{t('hero.stat.reported')}</dt>
+              <dd className="hero__trust-number">{show(0)}</dd>
             </div>
             <div className="hero__trust-divider" aria-hidden="true" />
             <div className="hero__trust-item">
-              <dt className="hero__trust-label">Resolution Rate</dt>
+              <dt className="hero__trust-label">{t('hero.stat.resolved')}</dt>
               <dd className="hero__trust-number hero__trust-number--success">
-                {displayValues[1]}
+                {/* A city with nothing reported has no rate. Rendering a
+                    dash is the honest answer; rendering 100% is not. */}
+                {live?.verifiedRatePercent == null ? '—' : show(1)}
               </dd>
             </div>
             <div className="hero__trust-divider" aria-hidden="true" />
             <div className="hero__trust-item">
-              <dt className="hero__trust-label">Active Initiatives</dt>
-              <dd className="hero__trust-number">
-                {displayValues[2]}
-              </dd>
+              <dt className="hero__trust-label">{t('hero.stat.initiatives')}</dt>
+              <dd className="hero__trust-number">{show(2)}</dd>
             </div>
           </dl>
+
+          <p className="hero__trust-note">
+            {t('hero.trust.note')}{' '}
+            <span className="hero__trust-note-aside">
+              {city.name} programme totals ({programme.reported.toLocaleString('en-IN')} reported,{' '}
+              {programme.resolutionRatePercent}% resolved) are illustrative municipal figures.
+            </span>
+          </p>
         </div>
       </div>
     </section>

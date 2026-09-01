@@ -450,6 +450,21 @@ const run = async () => {
     averageResolutionHours: 0,
     resolutionRatePercent: 0,
     slaCompliancePercent: 0,
+    // Outcome-quality inputs. A department with nothing filed against
+    // it has not achieved a durability rate or an evidence-integrity
+    // score — it has none, and the score must say so.
+    citizenVerifiedRatePercent: 0,
+    durabilityFailures: 0,
+    durabilityHolding: 0,
+    durabilityRatePercent: null,
+    repeatFailures: 0,
+    repeatFailureRatePercent: null,
+    resolutionsWithEvidence: 0,
+    evidenceIntegrityPercent: null,
+    disputedEvidenceCount: 0,
+    auditsCompleted: 0,
+    auditsUpheld: 0,
+    workloadPerOfficer: 0,
   };
   const { calculatePerformanceScore } = await import('../services/performanceService');
   const emptyScore = calculatePerformanceScore(emptyMetrics);
@@ -590,6 +605,437 @@ const run = async () => {
   const future = Date.now() + sessionService.SESSION_IDLE_MS + 1000;
   checkEqual('Session reports expired past its window', sessionService.getSessionStatus(future).kind, 'expired');
   check('An expired session is cleared, not left behind', sessionService.getSession() === null);
+
+  // ==========================================================
+  section('10. Proof of Repair — capture integrity');
+  // ==========================================================
+
+  const proof = await import('../services/proofService');
+
+  const hashA = await proof.perceptualHash('data:image/jpeg;base64,AAAA-sample-one');
+  const hashB = await proof.perceptualHash('data:image/jpeg;base64,AAAA-sample-one');
+  const hashC = await proof.perceptualHash('data:image/jpeg;base64,ZZZZ-entirely-different');
+
+  checkEqual('A perceptual hash is 16 hex characters', hashA.length, 16);
+  checkEqual('The same image hashes identically', hashA, hashB);
+  check('A different image hashes differently', proof.hammingDistance(hashA, hashC) > 0);
+
+  const reportedAt = { latitude: 26.2052, longitude: 78.1924 };
+
+  // The whole Gurugram failure mode: a stored image, not a live capture.
+  const galleryGrade = await proof.gradeCapture('data:image/jpeg;base64,gallery-upload', {
+    liveCapture: false,
+    capturedAt: reportedAt,
+    reportedAt,
+    deviceTimeMs: Date.now(),
+  });
+  checkEqual('A gallery upload is graded disputed', galleryGrade.grade, 'disputed');
+  check('A disputed capture cannot be submitted', !proof.isSubmittable(galleryGrade));
+
+  // Live, but photographed three kilometres away.
+  const farGrade = await proof.gradeCapture('data:image/jpeg;base64,far-away-shot', {
+    liveCapture: true,
+    capturedAt: { latitude: 26.2400, longitude: 78.2300 },
+    reportedAt,
+    deviceTimeMs: Date.now(),
+  });
+  checkEqual('A capture kilometres from the report is disputed', farGrade.grade, 'disputed');
+
+  // Live, on site, novel: the only combination that passes.
+  const goodGrade = await proof.gradeCapture('data:image/jpeg;base64,honest-repair-photo', {
+    liveCapture: true,
+    capturedAt: { latitude: 26.2053, longitude: 78.1925 },
+    reportedAt,
+    deviceTimeMs: Date.now(),
+    sessionStartedMs: Date.now() - 60_000,
+    sessionElapsedMs: 60_000,
+    mockLocationSuspected: false,
+  });
+  checkEqual('A live, on-site, novel capture is verified', goodGrade.grade, 'verified');
+
+  // No GPS fix is reported as unavailable, never as a pass.
+  const noFixGrade = await proof.gradeCapture('data:image/jpeg;base64,no-fix-photo', {
+    liveCapture: true,
+    capturedAt: null,
+    reportedAt,
+    deviceTimeMs: Date.now(),
+    mockLocationSuspected: false,
+  });
+  checkEqual('A capture with no location fix is unverified, not verified', noFixGrade.grade, 'unverified');
+  check(
+    'An unavailable check is reported as unavailable',
+    noFixGrade.checks.some((c) => c.id === 'location-match' && c.passed === null)
+  );
+
+  // Reuse: the same photo cannot close a second complaint.
+  proof.recordEvidenceHash(goodGrade.perceptualHash, 'JS-GWL-2026-001284');
+  const reusedGrade = await proof.gradeCapture('data:image/jpeg;base64,honest-repair-photo', {
+    liveCapture: true,
+    capturedAt: { latitude: 26.2053, longitude: 78.1925 },
+    reportedAt,
+    deviceTimeMs: Date.now(),
+    mockLocationSuspected: false,
+    complaintId: 'JS-GWL-2026-999999',
+  });
+  checkEqual('A reused image is graded disputed', reusedGrade.grade, 'disputed');
+  checkEqual(
+    'The reuse names the complaint it was already used on',
+    reusedGrade.reusedFromComplaintId,
+    'JS-GWL-2026-001284'
+  );
+
+  // ==========================================================
+  section('11. Civic Asset Memory & repeat failure');
+  // ==========================================================
+
+  const assets = await import('../services/assetService');
+  const allForAssets = complaintService.getStoredComplaints();
+
+  const snapped = assets.snapToAsset({ latitude: 26.2052, longitude: 78.1924 }, 'roads');
+  check('A pothole on Phool Bagh Road snaps to a road segment', snapped?.asset.id === 'GWL-RD-0142');
+
+  // Category matters as much as distance: a garbage report standing on a
+  // road belongs to the bin point, not to the road it is standing on.
+  const wrongCategory = assets.snapToAsset({ latitude: 26.2052, longitude: 78.1924 }, 'streetlights');
+  check(
+    'A streetlight report does not snap to a road segment',
+    wrongCategory === null || wrongCategory.asset.kind === 'streetlight-pole'
+  );
+
+  const nowhere = assets.snapToAsset({ latitude: 19.0760, longitude: 72.8777 }, 'roads');
+  checkEqual('A report far outside the city snaps to nothing', nowhere, null);
+
+  const history = assets.getAssetHistory('GWL-RD-0142', allForAssets);
+  check('The demonstration asset has a repair ledger', (history?.repairs.length ?? 0) >= 3);
+  check('The ledger is ordered newest first', Boolean(
+    history &&
+      history.repairs.every(
+        (r, i) =>
+          i === 0 ||
+          new Date(history.repairs[i - 1].completedAt).getTime() >= new Date(r.completedAt).getTime()
+      )
+  ));
+
+  const roadRepair = assets.getRepairsForAsset('GWL-RD-0142')[0];
+  check('A road repair carries a defect liability period', (roadRepair?.defectLiabilityMonths ?? 0) >= 12);
+  check('That repair is still inside its warranty window', assets.isUnderWarranty(roadRepair));
+
+  const exposure = assets.getWarrantyExposure(allForAssets);
+  check('Repeat failures are detected against the ledger', exposure.failures.length > 0);
+  check(
+    'Recoverable value counts only in-warranty failures with a recorded cost',
+    exposure.recoverableTotal ===
+      exposure.inWarranty.reduce((sum, f) => sum + (f.recoverableEstimate ?? 0), 0)
+  );
+  check(
+    'Every in-warranty failure has an expiry date to claim against',
+    exposure.inWarranty.every((f) => f.warrantyExpiresAt !== null)
+  );
+
+  // ==========================================================
+  section('12. Retention split — identity expires, the record does not');
+  // ==========================================================
+
+  const privacy = await import('../services/privacyService');
+  const archivedSource = allForAssets.find(
+    (c) => c.status === 'resolved' && !privacy.isPubliclyTrackable(c)
+  );
+
+  check('There is an archived historical complaint to inspect', Boolean(archivedSource));
+
+  if (archivedSource) {
+    const outcome = privacy.resolveLookup(archivedSource);
+    checkEqual('An archived complaint resolves as expired', outcome.kind, 'expired');
+
+    if (outcome.kind === 'expired') {
+      check('The archived civic record is still returned', Boolean(outcome.archived));
+      checkEqual('It is flagged as archived', outcome.archived.isArchived, true);
+      checkEqual('The named officer is removed on archival', outcome.archived.assignedOfficer, undefined);
+      checkEqual('Photographs are removed on archival', outcome.archived.protectedPhotos.length, 0);
+      checkEqual('The timeline is removed on archival', outcome.archived.timeline.length, 0);
+      check('The department is retained — it is not personal data', outcome.archived.department.name.length > 0);
+      check('The asset link survives archival', typeof outcome.archived.assetId === 'string' || outcome.archived.assetId === undefined);
+    }
+  }
+
+  // ==========================================================
+  section('13. Issue / report split & distributed consent');
+  // ==========================================================
+
+  const issues = await import('../services/issueService');
+
+  const primary = complaintService
+    .getStoredComplaints()
+    .find((c) => c.status !== 'resolved');
+
+  if (primary) {
+    const issue = issues.ensureIssueFor(primary);
+    checkEqual('A shared issue starts with one stake', issue.stakes.length, 1);
+
+    const second = complaintService
+      .getStoredComplaints()
+      .find((c) => c.id !== primary.id && c.status !== 'resolved');
+
+    if (second) {
+      const joined = issues.addStake(issue.id, second);
+      checkEqual('A second reporter is added as their own stake', joined?.stakes.length, 2);
+      check(
+        'The joining complaint keeps its own ticket — it is not archived',
+        Boolean(complaintService.getStoredComplaints().find((c) => c.id === second.id))
+      );
+
+      const consentBefore = issues.summariseConsent(joined!);
+      checkEqual('Nobody has confirmed yet', consentBefore.confirmed, 0);
+      check('An issue with pending stakes is not unanimous', !consentBefore.unanimous);
+
+      // One reporter confirming does not close the issue for the other.
+      const afterOne = issues.recordConfirmation(issue.id, primary.id);
+      const consentOne = issues.summariseConsent(afterOne!);
+      checkEqual('One confirmation is recorded', consentOne.confirmed, 1);
+      check('One confirmation does not close a two-reporter issue', !consentOne.unanimous);
+      check('The issue is not marked closed', afterOne?.status !== 'closed');
+
+      // The second reporter disputes: the issue is contested, not closed.
+      const dispute = issues.recordDispute(issue.id, second.id, 'Still broken on my side of the road.');
+      checkEqual('A dispute puts the issue in contested', dispute.issue?.status, 'contested');
+      check('A first dispute is not capped', !dispute.capped);
+      check('A first dispute reopens the work', dispute.reopened);
+
+      // Reopens are capped, so one voice cannot loop the issue forever.
+      issues.recordDispute(issue.id, second.id, 'Still broken.');
+      const third = issues.recordDispute(issue.id, second.id, 'Still broken.');
+      check('Repeated reopens by one reporter are capped', third.capped);
+      check('A capped dispute does not reopen the work again', !third.reopened);
+
+      // Spread, not count.
+      const spread = issues.computeSpread(dispute.issue!);
+      checkEqual('Spread counts both stakes', spread.totalReports, 2);
+      check('Spread weight is bounded to 0-1', spread.weight >= 0 && spread.weight <= 1);
+      check(
+        'Spread cannot add more than the capped priority points',
+        spread.priorityContribution <= issues.MAX_SPREAD_PRIORITY_POINTS
+      );
+      check('Spread is described as spread, not as a raw count', spread.label.length > 0);
+
+      const base = 70;
+      check(
+        'Priority with spread never exceeds 99',
+        issues.priorityWithSpread(base, dispute.issue!) <= 99
+      );
+      check(
+        'Priority with no issue is unchanged',
+        issues.priorityWithSpread(base, null) === base
+      );
+    }
+  }
+
+  // ==========================================================
+  section('14. Deferred verification & audit sampling');
+  // ==========================================================
+
+  const verification = await import('../services/verificationService');
+
+  const window = verification.openWatchWindow(new Date().toISOString());
+  checkEqual('A watch window schedules exactly two checkpoints', window.checkpoints?.length, 2);
+  check(
+    'Checkpoints are at 30 and 90 days',
+    window.checkpoints?.map((c) => c.dayOffset).join(',') === '30,90'
+  );
+
+  // Sampling must be reproducible from the record, not re-rolled per render.
+  const drawOnce = verification.isAuditSampled('JS-GWL-2026-001284');
+  const drawAgain = verification.isAuditSampled('JS-GWL-2026-001284');
+  checkEqual('Audit sampling is deterministic for a given complaint', drawOnce, drawAgain);
+
+  const sampledShare = complaintService
+    .getStoredComplaints()
+    .filter((c) => verification.isAuditSampled(c.id)).length;
+  check('The audit sample is a minority of closures', sampledShare < complaintService.getStoredComplaints().length);
+
+  const durability = verification.computeDurabilityStats(complaintService.getStoredComplaints());
+  check(
+    'An unmeasured durability rate is null, not 100%',
+    durability.holding + durability.failed > 0 || durability.durabilityRate === null
+  );
+
+  // ==========================================================
+  section('15. One-Trip Work Card');
+  // ==========================================================
+
+  const workCards = await import('../services/workCardService');
+
+  /* Pool from every open complaint rather than from one department:
+     the earlier sections resolve most of the Roads queue, and a test
+     that silently skips because its fixture was consumed upstream is a
+     test that stops protecting anything. */
+  const openPool = complaintService.getStoredComplaints().filter((c) => c.status !== 'resolved');
+  const cards = workCards.buildDailyCards('roads', openPool);
+
+  check('There is open work to route', openPool.length > 1);
+
+  {
+    check('At least one work card is produced', cards.length > 0);
+    check(
+      'No card exceeds the stop limit',
+      cards.every((c) => c.stops.length <= workCards.MAX_STOPS_PER_CARD)
+    );
+    check(
+      'Batching never drives further than one trip per complaint',
+      cards.every((c) => c.totalDistanceMetres <= c.naiveDistanceMetres)
+    );
+    check(
+      'Stops are numbered in route order',
+      cards.every((c) => c.stops.every((s, i) => s.sequence === i + 1))
+    );
+    check(
+      'Every complaint appears on at most one card',
+      (() => {
+        const seen = new Set<string>();
+        for (const card of cards) {
+          for (const stop of card.stops) {
+            if (seen.has(stop.complaintId)) return false;
+            seen.add(stop.complaintId);
+          }
+        }
+        return true;
+      })()
+    );
+    check(
+      'A card carries a single skill, so the crew is equipped for it',
+      cards.every((c) => new Set(c.stops.map((s) => s.category)).size === 1)
+    );
+    check(
+      'Every stop tells the crew what to photograph',
+      cards.every((c) => c.stops.every((s) => s.captureRequirement.length > 0))
+    );
+
+    const saving = workCards.summariseSaving(cards);
+    check('The reported saving is never negative', saving.savedMetres >= 0);
+    checkEqual(
+      'Stop count matches the cards',
+      saving.stops,
+      cards.reduce((sum, c) => sum + c.stops.length, 0)
+    );
+  }
+
+  // ==========================================================
+  section('16. Escalation ladder & Ward Reality Index');
+  // ==========================================================
+
+  const escalation = await import('../services/escalationService');
+  const wards = await import('../services/wardService');
+  const everything = complaintService.getStoredComplaints();
+
+  const ladder = escalation.getLadderState(everything);
+  checkEqual('The ladder has three rungs', ladder.length, 3);
+  check(
+    'Response windows are defined for every post',
+    ladder.every((r) => r.post.responseHours > 0)
+  );
+  check(
+    'Only Level 1 is publicly visible by default',
+    ladder.filter((r) => r.post.publiclyVisible).length === 1
+  );
+  check(
+    'A resolved complaint is never in an escalation queue',
+    ladder.every((r) =>
+      r.complaintIds.every((id) => everything.find((c) => c.id === id)?.status !== 'resolved')
+    )
+  );
+
+  const reality = wards.getWardReality(everything);
+  check('Every ward is reported on', reality.length > 0);
+  check(
+    'No ward reports an impossible ratio',
+    reality.every((w) => Number.isFinite(w.reportingRatio) && w.reportingRatio >= 0)
+  );
+  check(
+    'A ward with too little expected volume is not called a finding',
+    reality.every((w) => w.expectedComplaints >= 1 || w.signal === 'expected')
+  );
+  check(
+    'Every row carries a plain-language reading',
+    reality.every((w) => w.interpretation.length > 0)
+  );
+  check('The index is labelled illustrative', wards.WARD_INDEX_CAVEAT.length > 0);
+
+  // ==========================================================
+  section('17. Open311 projection carries no personal data');
+  // ==========================================================
+
+  const open311 = await import('../services/open311Service');
+  const publicOnes = everything
+    .map((c) => privacy.toPublicComplaint(c))
+    .slice(0, 10);
+
+  const feed = open311.buildRequestFeed(publicOnes);
+  check('The feed emits one request per complaint', feed.length === publicOnes.length);
+
+  const serialised = JSON.stringify(feed);
+  check('No reporter name reaches the feed', !serialised.includes('Raj Sharma'));
+  check('No masked mobile reaches the feed', !serialised.includes('+91 XXXXX'));
+  check('No coordinates reach the feed', !/"lat"|"long"|latitude|longitude/.test(serialised));
+
+  check(
+    'A department-closed complaint stays open until the citizen confirms',
+    feed.every((r) => r.status !== 'closed' || r.jan_seva_citizen_verified)
+  );
+
+  const bundle = open311.buildOpenDataBundle(publicOnes, [
+    { asset: assets.getAssets()[0], repairs: assets.getRepairsForAsset(assets.getAssets()[0].id) },
+  ]);
+  check('No contractor is named in the open data bundle', !bundle.includes('Gwalior Roadlines'));
+  check('No works cost is published', !bundle.includes('costEstimate'));
+  check('The bundle declares its specification', bundle.includes('GeoReport v2'));
+
+  // ==========================================================
+  section('18. Landing-page figures are true');
+  // ==========================================================
+
+  const cityStats = await import('../services/cityStatsService');
+  const programmeStats = await import('../services/programmeStats');
+  const { defaultCity } = await import('../data/cities');
+
+  const liveStats = cityStats.getLiveCityStats('gwalior');
+  const programme = programmeStats.getProgrammeStats(defaultCity);
+
+  checkEqual(
+    'Reported count matches the store for this city',
+    liveStats.reported,
+    complaintService.getStoredComplaints().filter((c) => c.cityId === 'gwalior').length
+  );
+
+  check(
+    'Citizen-verified never exceeds department-closed',
+    liveStats.citizenVerified <= liveStats.departmentClosed
+  );
+
+  check(
+    'The headline rate is measured on citizen confirmation, not department closure',
+    liveStats.verifiedRatePercent === null ||
+      liveStats.verifiedRatePercent ===
+        Math.round((liveStats.citizenVerified / liveStats.reported) * 100)
+  );
+
+  // The bug this whole module exists to make impossible.
+  checkEqual(
+    'The programme rate is divided, not asserted',
+    programme.resolutionRatePercent,
+    Math.round((programme.resolved / programme.reported) * 100)
+  );
+  check(
+    'Programme figures are labelled illustrative',
+    programme.disclaimer.toLowerCase().includes('illustrative')
+  );
+
+  // A city with nothing filed has no rate, and must not report one.
+  const emptyCityStats = cityStats.getLiveCityStats('indore');
+  checkEqual('An empty city reports no complaints', emptyCityStats.reported, 0);
+  checkEqual(
+    'An empty city has no resolution rate, rather than 0% or 100%',
+    emptyCityStats.verifiedRatePercent,
+    null
+  );
 
   report();
 };

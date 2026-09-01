@@ -1,0 +1,208 @@
+/* ============================================================
+   Ward Reality Index
+   ============================================================ */
+
+.ward-caveat {
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  border-radius: var(--card-radius);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--color-warning-fg);
+}
+
+.ward-silent {
+  padding: 1.125rem;
+  margin-bottom: 1.25rem;
+  background: var(--ward-silent-bg);
+  border: 1px solid var(--ward-silent-border);
+  border-radius: var(--card-radius-lg);
+}
+
+.ward-silent__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.5rem;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  color: var(--ward-silent-fg);
+}
+
+.ward-silent__count {
+  display: grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.375rem;
+  background: var(--ward-silent-fg);
+  border-radius: var(--radius-full, 999px);
+  color: var(--color-text-inverse);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ward-silent__lead {
+  margin: 0 0 0.875rem;
+  font-size: 0.8125rem;
+  line-height: 1.65;
+  color: var(--color-text-secondary);
+}
+
+.ward-silent__empty {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.ward-silent__list {
+  display: grid;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ward-silent__item {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem 0.875rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius);
+}
+
+.ward-silent__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ward-silent__name {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.ward-silent__id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.ward-silent__reading {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.ward-silent__numbers {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+/* Signal chips. `silent` must NOT read as a success state — that
+   inversion is the entire point of this screen. */
+.ward-signal {
+  padding: 0.1875rem 0.5rem;
+  border-radius: var(--radius-full, 999px);
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ward-signal--silent {
+  background: var(--ward-silent-fg);
+  color: var(--color-text-inverse);
+}
+
+.ward-signal--under-reported {
+  background: var(--ward-silent-bg);
+  border: 1px solid var(--ward-silent-border);
+  color: var(--ward-silent-fg);
+}
+
+.ward-signal--expected {
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+}
+
+.ward-signal--over-reported {
+  background: var(--ward-over-bg);
+  color: var(--ward-over-fg);
+}
+
+/* --- Table --- */
+
+.ward-table-wrap {
+  padding: 1.125rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius-lg);
+}
+
+/* Wide data scrolls inside its own container; the page body never
+   scrolls sideways. */
+.ward-table-scroll {
+  overflow-x: auto;
+}
+
+.ward-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.ward-table th,
+.ward-table td {
+  padding: 0.5rem 0.625rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.ward-table thead th {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.ward-table tbody th {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.ward-table__zone {
+  display: block;
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.ward-table__ratio {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.ward-method {
+  margin: 1.25rem 0 0;
+  padding: 0.875rem 1rem;
+  background: var(--color-surface-sunken);
+  border-radius: var(--card-radius);
+  font-size: 0.75rem;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+}

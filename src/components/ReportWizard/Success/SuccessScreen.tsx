@@ -85,8 +85,21 @@ export function SuccessScreen({ complaint, analysis }: SuccessScreenProps) {
           {isJoinedToExisting ? 'Confirmation added' : 'Report submitted'}
         </h2>
         <p className="success-subtitle">
+          {/* ------------------------------------------------------
+              This used to say the report had "raised the priority" of
+              an existing complaint. It had not: `priorityScore` was
+              written once at submission and never touched again, so
+              the screen was telling citizens something untrue about
+              what their report had achieved.
+
+              Two things changed. Priority is now genuinely recomputed
+              from independence-weighted spread, and — more importantly
+              — the citizen now keeps their OWN ticket rather than
+              being folded into a stranger's. The copy says what
+              actually happened.
+              ------------------------------------------------------ */}
           {isJoinedToExisting
-            ? `Your confirmation was added to an existing complaint, raising its priority. ${complaint.duplicate?.supportingCount ?? 2} citizens have now reported this.`
+            ? `Others had already reported this issue, so it is being worked as one job. You keep your own ticket and your own say in whether it is fixed — it cannot be closed on your behalf.`
             : `Thank you for helping make ${city.name} a cleaner and safer city.`}
         </p>
       </div>
@@ -143,6 +156,23 @@ export function SuccessScreen({ complaint, analysis }: SuccessScreenProps) {
         Save this ticket ID. You will need it to check progress, and it is the reference the
         department will use when they contact you.
       </p>
+
+      {/* The one promise worth making on this screen, and the one this
+          product can actually keep. */}
+      <div className="success-guarantee">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <path d="M9 12l2 2 4-4" />
+        </svg>
+        <div>
+          <strong>This cannot be closed without you.</strong>
+          <span>
+            The department can submit a repair, but only you can accept it. Their photo must be
+            taken live at this location and must not have been used anywhere before. We will ask
+            you again in 30 days whether it is still fixed.
+          </span>
+        </div>
+      </div>
 
       <div className="success-actions">
         <button

@@ -1,0 +1,492 @@
+/* ============================================================
+   Civic asset ledger
+   ============================================================
+   A permanent infrastructure record is a different kind of object from
+   a complaint, so it gets its own token family (`--asset-*`) rather
+   than borrowing a status colour. Warranty findings use `--warranty-*`,
+   which is the only place saffron carries meaning in the product.
+   ============================================================ */
+
+.asset-panel {
+  display: grid;
+  gap: 1rem;
+  padding: 1.125rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius-lg);
+}
+
+.asset-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.asset-panel__id {
+  margin: 0 0 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--asset-fg);
+}
+
+.asset-panel__name {
+  margin: 0 0 0.25rem;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  color: var(--color-text);
+}
+
+.asset-panel__meta {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.asset-panel__counts {
+  display: flex;
+  gap: 1.25rem;
+  margin: 0;
+}
+
+.asset-panel__counts div {
+  display: grid;
+  gap: 0.125rem;
+}
+
+.asset-panel__counts dt {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.asset-panel__counts dd {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.asset-panel__counts dd.is-alert {
+  color: var(--warranty-fg);
+}
+
+/* --- The warranty finding --- */
+
+.asset-warranty {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: var(--warranty-surface);
+  border: 1px solid var(--warranty-border);
+  border-left: 4px solid var(--warranty-accent);
+  border-radius: var(--card-radius);
+}
+
+.asset-warranty__icon {
+  flex: none;
+  color: var(--warranty-accent);
+}
+
+.asset-warranty strong {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 0.9375rem;
+  color: var(--warranty-fg);
+}
+
+.asset-warranty p {
+  margin: 0 0 0.375rem;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.asset-warranty__attribution {
+  padding-top: 0.375rem;
+  border-top: 1px dashed var(--warranty-border);
+  font-size: 0.75rem !important;
+  color: var(--color-text-muted) !important;
+}
+
+.asset-panel__cadence {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.asset-panel__section {
+  margin: 0.25rem 0 0;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.asset-panel__empty {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+/* --- Ledger timeline --- */
+
+.asset-ledger {
+  display: grid;
+  gap: 0.875rem;
+  margin: 0;
+  padding: 0 0 0 1rem;
+  list-style: none;
+  border-left: 2px solid var(--asset-border);
+}
+
+.asset-ledger__entry {
+  position: relative;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.asset-ledger__marker {
+  position: absolute;
+  left: -1.4375rem;
+  top: 0.375rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  background: var(--asset-accent);
+  border: 2px solid var(--color-surface);
+  border-radius: var(--radius-full, 999px);
+}
+
+.asset-ledger__body {
+  display: grid;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.asset-ledger__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.asset-ledger__date {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.asset-ledger__age {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.asset-ledger__note {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+.asset-ledger__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.asset-tag {
+  padding: 0.1875rem 0.5rem;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 4px);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.asset-tag--warranty {
+  background: var(--warranty-surface);
+  border-color: var(--warranty-border);
+  color: var(--warranty-fg);
+}
+
+/* Anything internal-only is visibly marked as such, so nobody
+   screenshots a contractor name believing it is a public figure. */
+.asset-tag--internal {
+  background: var(--asset-bg);
+  border-color: var(--asset-border);
+  border-style: dashed;
+  color: var(--asset-fg);
+}
+
+.asset-tag--link {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--color-civic-blue);
+  text-decoration: none;
+}
+
+.asset-ledger__hash {
+  margin: 0;
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.asset-ledger__hash code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.6875rem;
+  color: var(--asset-fg);
+}
+
+.asset-panel__complaints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.asset-panel__complaints a {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  background: var(--color-civic-blue-bg);
+  border-radius: var(--radius-sm, 4px);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--color-civic-blue-dark);
+  text-decoration: none;
+}
+
+.asset-panel__caveat {
+  margin: 0;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--color-border);
+  font-size: 0.6875rem;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+/* ------------------------------------------------------------
+   Ledger page layout
+   ------------------------------------------------------------ */
+
+.asset-exposure {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  padding: 1.125rem;
+  margin-bottom: 1.25rem;
+  background: var(--warranty-surface);
+  border: 1px solid var(--warranty-border);
+  border-radius: var(--card-radius-lg);
+}
+
+.asset-exposure__figure {
+  display: grid;
+  gap: 0.25rem;
+  align-content: start;
+}
+
+.asset-exposure__label {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--warranty-fg);
+}
+
+.asset-exposure__value {
+  font-size: 1.875rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.asset-exposure__note {
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+.asset-exposure__caveat {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--warranty-border);
+  font-size: 0.6875rem;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.asset-ledger-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .asset-ledger-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.asset-index {
+  padding: 0.875rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius-lg);
+}
+
+.asset-index__title {
+  margin: 0 0 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.asset-index__list {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* Long inventories scroll inside the panel, not the page. */
+  max-height: 32rem;
+  overflow-y: auto;
+}
+
+.asset-index__item {
+  display: grid;
+  gap: 0.125rem;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--card-radius);
+  text-align: left;
+  cursor: pointer;
+}
+
+.asset-index__item:hover {
+  background: var(--color-surface-sunken);
+}
+
+.asset-index__item.is-active {
+  background: var(--asset-bg);
+  border-color: var(--asset-border);
+}
+
+.asset-index__id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--asset-fg);
+}
+
+.asset-index__name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.asset-index__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  align-items: center;
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+.asset-index__flag {
+  padding: 0.0625rem 0.375rem;
+  background: var(--warranty-surface);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--warranty-fg);
+  font-weight: 800;
+}
+
+.asset-index__empty {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+/* Empty states for the new pages, matching the portal shells' spacing. */
+.admin-empty,
+.dept-empty {
+  display: grid;
+  gap: 0.625rem;
+  justify-items: center;
+  padding: 2.5rem 1.25rem;
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--card-radius-lg);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.admin-empty p,
+.dept-empty p {
+  margin: 0;
+  font-size: 0.875rem;
+  max-width: 44ch;
+}
+
+/* --- Repeat-failure banner inside the department detail view --- */
+
+.rf-banner {
+  margin-bottom: 1rem;
+}
+
+.rf-banner code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  color: var(--warranty-fg);
+}
+
+.rf-banner__claim {
+  padding-top: 0.375rem;
+}
+
+.rf-banner__claim strong {
+  display: inline;
+  margin: 0;
+  font-size: inherit;
+}
+
+.rf-asset-note {
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--asset-bg);
+  border: 1px solid var(--asset-border);
+  border-radius: var(--card-radius);
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.rf-asset-note code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  color: var(--asset-fg);
+}
+
+.rf-asset-note a {
+  color: var(--color-civic-blue);
+}

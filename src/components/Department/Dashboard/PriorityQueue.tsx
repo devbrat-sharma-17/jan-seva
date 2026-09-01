@@ -45,7 +45,7 @@ export function PriorityQueue({
   }, [pageSize, limit, complaints]);
 
   /* Operational ordering: SLA breach, then approaching, then a requested
-     reinspection, then untriaged, then AI severity, then age. Health is
+     reinspection, then untriaged, then assessed severity, then age. Health is
      computed against the clock rather than read from the persisted
      `sla.status`, which is a snapshot from whenever the record was last
      written and drifts within hours. */

@@ -4,6 +4,8 @@ import { LatestUpdateCard } from './LatestUpdateCard';
 import { ComplaintTimeline } from './ComplaintTimeline';
 import { OfficerContactCard } from './OfficerContactCard';
 import { ResolutionVerificationCard } from './ResolutionVerificationCard';
+import { ProofOfRepairCard } from './ProofOfRepairCard';
+import { DurabilityPrompt } from './DurabilityPrompt';
 import { EvidenceGallery } from './EvidenceGallery';
 import { ReceiptModal } from './ReceiptModal';
 import { IdentityVerification } from './IdentityVerification';
@@ -240,12 +242,16 @@ export function ComplaintDetailView({
                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
               </svg>
               <div>
-                <strong>Linked to an existing issue.</strong> This report is merged with ticket{' '}
+                {/* "Merged" was the wrong word and the wrong model: this
+                    report is not folded into anyone else's. It is worked
+                    as one job and voted on separately. */}
+                <strong>Part of a shared issue.</strong> The same problem was reported by others
+                and is being worked as one job, alongside ticket{' '}
                 {complaint.duplicate.primaryIssueId}
                 {complaint.duplicate.supportingCount
                   ? ` — ${complaint.duplicate.supportingCount} citizens have reported it.`
                   : '.'}{' '}
-                More confirmations raise its priority.
+                Your complaint stays yours: it cannot be closed until you agree it is fixed.
               </div>
             </div>
           )}
@@ -313,6 +319,22 @@ export function ComplaintDetailView({
           <button type="button" className="report-btn report-btn--outline" onClick={handleCopyLink}>
             Copy tracking link
           </button>
+
+          {/* ------------------------------------------------------
+              Proof of repair.
+              Placed ABOVE the verification card on purpose: a citizen
+              deciding whether to accept a fix should see what was
+              checked about the department's photo before they are asked
+              to agree with it.
+              ------------------------------------------------------ */}
+          <ProofOfRepairCard complaint={complaint} verifiedComplaint={verifiedComplaint} />
+
+          {/* Deferred durability check, if one is due today. */}
+          <DurabilityPrompt
+            verifiedComplaint={verifiedComplaint}
+            identityReference={identity?.reference}
+            onChanged={onRefresh}
+          />
 
           {/* 10. Resolution verification — verified citizens only */}
           <ResolutionVerificationCard

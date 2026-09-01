@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import {
   detectCurrentLocation,
-  reverseGeocodeMock,
+  reverseGeocode,
   searchLocalities,
   createDualLocationData,
   getLocationAccuracyLabel,
@@ -126,7 +126,7 @@ export function useGeolocation(cityName: string = 'Gwalior', stateName: string =
     confirmGPSAsIssueLocation,
     confirmManualIssueLocation,
     searchAddress,
-    reverseGeocodeMock,
+    reverseGeocode,
     setGpsLocation,
     setConfirmedLocation,
   };

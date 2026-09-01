@@ -2144,3 +2144,58 @@
   align-self: stretch;
   min-height: var(--tap-target);
 }
+
+/* ------------------------------------------------------------
+   Archived civic record
+   ------------------------------------------------------------
+   Rendered when identity retention has lapsed. Visually quieter than a
+   live complaint — this is a historical record, not something the
+   citizen can still act on — but it is a record, not a dead end.
+   ------------------------------------------------------------ */
+.track-archive {
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 32rem;
+  margin: 0.875rem 0;
+  padding: 0.875rem 1rem;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius);
+}
+
+.track-archive > div {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+@media (max-width: 480px) {
+  .track-archive > div {
+    grid-template-columns: 1fr;
+    gap: 0.125rem;
+  }
+}
+
+.track-archive dt {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.track-archive dd {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.track-archive code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  color: var(--asset-fg);
+}

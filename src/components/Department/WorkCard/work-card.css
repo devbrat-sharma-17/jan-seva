@@ -1,0 +1,274 @@
+/* ============================================================
+   One-Trip Work Card
+   ============================================================
+   The only screen in the product designed to be read outdoors on a
+   ₹8,000 Android in daylight: a dark ground so the display can be
+   driven bright, large numerals, and no target under 44px.
+   ============================================================ */
+
+.wc-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1rem;
+  padding: 1rem 1.125rem;
+  margin-bottom: 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius-lg);
+}
+
+.wc-summary > div {
+  display: grid;
+  gap: 0.125rem;
+  align-content: start;
+}
+
+.wc-summary__value {
+  font-size: 1.625rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.wc-summary__value--good {
+  color: var(--color-green-dark);
+}
+
+.wc-summary__label {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.wc-summary__method {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--color-border);
+  font-size: 0.6875rem;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.wc-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.wc-tab {
+  display: grid;
+  gap: 0.125rem;
+  min-height: var(--tap-target, 44px);
+  padding: 0.375rem 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius);
+  text-align: left;
+  cursor: pointer;
+}
+
+.wc-tab.is-active {
+  background: var(--color-civic-blue-bg);
+  border-color: var(--color-civic-blue);
+}
+
+.wc-tab__skill {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-transform: capitalize;
+  color: var(--color-text);
+}
+
+.wc-tab__stops {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+/* --- The card itself --- */
+
+.wc-card {
+  background: var(--workcard-bg);
+  border-radius: var(--card-radius-lg);
+  color: var(--workcard-fg);
+  overflow: hidden;
+}
+
+.wc-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1.125rem;
+  border-bottom: 1px solid var(--workcard-stop-border);
+}
+
+.wc-card__id {
+  margin: 0 0 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--workcard-accent);
+}
+
+.wc-card__title {
+  margin: 0 0 0.25rem;
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.wc-card__from {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--workcard-muted);
+}
+
+.wc-card__net {
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-full, 999px);
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.wc-card__net.is-offline {
+  background: var(--proof-unverified-bg);
+  color: var(--proof-unverified-fg);
+}
+
+.wc-stops {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wc-stop {
+  display: flex;
+  gap: 0.875rem;
+  padding: 1rem 1.125rem;
+  border-bottom: 1px solid var(--workcard-stop-border);
+}
+
+.wc-stop__seq {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full, 999px);
+  font-size: 0.875rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A breached stop is marked on the rail, not by tinting the whole row:
+   at this contrast a tinted row stops being readable in sunlight. */
+.wc-stop--exceeded .wc-stop__seq {
+  background: var(--red-500);
+}
+
+.wc-stop--approaching .wc-stop__seq {
+  background: var(--amber-500);
+  color: var(--navy-900);
+}
+
+.wc-stop__body {
+  display: grid;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.wc-stop__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.wc-stop__title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.wc-stop__repeat {
+  padding: 0.125rem 0.4375rem;
+  background: var(--warranty-bg);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--navy-900);
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.wc-stop__address,
+.wc-stop__facts,
+.wc-stop__asset {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--workcard-muted);
+}
+
+.wc-stop__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+}
+
+.wc-stop__sla--exceeded { color: var(--red-400); font-weight: 700; }
+.wc-stop__sla--approaching { color: var(--amber-400); font-weight: 700; }
+
+.wc-stop__capture {
+  margin: 0;
+  padding: 0.5rem 0.625rem;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--card-radius);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.wc-stop__capture strong {
+  color: var(--workcard-accent);
+}
+
+.wc-stop__asset code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--workcard-accent);
+}
+
+.wc-stop__link {
+  justify-self: start;
+  min-height: var(--tap-target, 44px);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.875rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--card-radius);
+  color: var(--workcard-fg);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.wc-card__foot {
+  padding: 0.875rem 1.125rem;
+  background: var(--workcard-surface);
+}
+
+.wc-card__foot p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--workcard-muted);
+}

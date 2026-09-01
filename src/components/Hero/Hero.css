@@ -362,3 +362,25 @@
     transform: none;
   }
 }
+
+/* ------------------------------------------------------------
+   Trust-bar provenance note
+   ------------------------------------------------------------
+   The figures above are derived from the complaint store. This line
+   says so, and separates them from the municipality's own illustrative
+   programme totals — the two used to be printed side by side as though
+   they came from the same place.
+   ------------------------------------------------------------ */
+.hero__trust-note {
+  max-width: 46ch;
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.hero__trust-note-aside {
+  display: block;
+  margin-top: 0.25rem;
+  color: rgba(255, 255, 255, 0.55);
+}

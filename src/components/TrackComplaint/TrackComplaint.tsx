@@ -77,6 +77,7 @@ export function TrackComplaint() {
               {!loading && outcome?.kind === 'expired' && (
                 <ExpiredNotice
                   resolvedAt={outcome.resolvedAt}
+                  archived={outcome.archived}
                   onBack={backToSearch}
                   onFindMine={() => {
                     setSearchParams({});

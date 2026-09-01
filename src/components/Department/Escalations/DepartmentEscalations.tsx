@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getCurrentDepartmentUser } from '../../../services/authService';
+import { AuditQueuePanel } from '../Complaints/AuditQueuePanel';
 import { getDepartmentConfig } from '../../../data/departments';
 import { getDepartmentEscalations, subscribeToComplaints } from '../../../services/complaintService';
 
@@ -53,6 +54,12 @@ export function DepartmentEscalations() {
         )}
       </div>
 
+      {/* Field validation. Random re-inspection of confirmed closures by
+          an officer who did not do the work — the only mechanism in this
+          product that tests a closure against reality rather than
+          against a record of itself. */}
+      <AuditQueuePanel user={user} />
+
       {escalations.length === 0 ? (
         <div className="dept-state dept-state--ok">
           <span className="dept-state__icon" aria-hidden="true">
@@ -66,6 +73,7 @@ export function DepartmentEscalations() {
             {deptConfig.name} is inside its SLA targets on every open complaint.
           </p>
         </div>
+
       ) : (
         <ul className="dept-escalations-list">
           {escalations.map((complaint) => {

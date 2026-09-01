@@ -2,6 +2,26 @@
 // JAN-SEVA Type Definitions
 // ============================================================
 
+import type { CaptureIntegrity, CaptureIntegrityGrade } from './proof';
+
+/**
+ * One deferred durability check on a confirmed resolution.
+ *
+ * Two prompts, ever. Notification fatigue is the real risk here, so the
+ * cap is a design constraint rather than a setting: 30 days, 90 days,
+ * one tap each, and never a third.
+ */
+export interface DurabilityCheckpoint {
+  /** Days after confirmation this checkpoint is due. */
+  dayOffset: 30 | 90;
+  dueAt: string;
+  askedAt?: string;
+  /** `holding` means the fix survived; `failed` reopens the complaint. */
+  outcome?: 'holding' | 'failed' | 'no-response';
+  respondedAt?: string;
+  note?: string;
+}
+
 export interface CityConfig {
   id: string;
   /** Three-letter ticket code, e.g. "GWL" -> JS-GWL-2026-001284. */
@@ -22,11 +42,18 @@ export interface CityConfig {
   status?: 'active' | 'coming-soon';
 }
 
+/**
+ * Municipal programme totals. Illustrative, and labelled as such.
+ *
+ * There is deliberately no `resolutionRate` field. Storing a rate
+ * alongside the numerator and denominator lets the three disagree, and
+ * they did: 94% was printed next to 9,830 of 12,480, which is 79%. The
+ * rate is derived by `getProgrammeStats` instead.
+ */
 export interface CityStatistics {
   issuesReported: number;
   issuesResolved: number;
   activeInitiatives: number;
-  resolutionRate: number;
 }
 
 export interface InitiativeConfig {
@@ -201,6 +228,27 @@ export interface Complaint {
     timestamp: string;
   };
 
+  /**
+   * The piece of infrastructure this complaint sits on, once snapped.
+   *
+   * This is what turns a stream of complaints into a maintenance
+   * history. Absent means the report did not fall within any known
+   * asset's snap radius, which is a real and common outcome — an honest
+   * "not on a known asset" beats snapping to whatever was nearest.
+   */
+  assetId?: string;
+  /** How far the report was from the asset it snapped to, in metres. */
+  assetSnapMetres?: number;
+
+  /**
+   * The shared real-world problem this report is one voice in.
+   *
+   * A CivicIssue owns the location, the asset, the SLA and the work.
+   * This complaint remains the citizen's own — their ticket, their
+   * timeline, their vote — and is never archived into someone else's.
+   */
+  civicIssueId?: string;
+
   duplicate?: {
     isLinked: boolean;
     primaryIssueId?: string;
@@ -217,6 +265,35 @@ export interface Complaint {
     /** Set only once the citizen themselves confirms the fix. */
     citizenVerifiedResolved?: boolean;
     citizenVerifiedAt?: string;
+    /**
+     * Provenance of each evidence photo, bound at shutter.
+     * Parallel to `evidencePhotos` by index.
+     */
+    captureIntegrity?: CaptureIntegrity[];
+    /** Worst grade across the evidence — the one the timeline shows. */
+    evidenceGrade?: CaptureIntegrityGrade;
+    /** Ledger entry appended to the asset when this resolution landed. */
+    assetRepairId?: string;
+  };
+
+  /**
+   * Durability of a confirmed resolution.
+   *
+   * A citizen standing next to a fresh patch will confirm it. Whether
+   * the patch is still there in November is the question that actually
+   * matters, and until now nobody asked it. A confirmed resolution
+   * enters a watch window and is re-asked at 30 and 90 days.
+   */
+  verification?: {
+    /** When the watch window opened — the citizen's confirmation. */
+    watchStartedAt?: string;
+    checkpoints?: DurabilityCheckpoint[];
+    /** Selected into the independent re-inspection sample. */
+    auditSampled?: boolean;
+    auditSampledAt?: string;
+    auditOutcome?: 'upheld' | 'failed' | 'pending';
+    auditedBy?: string;
+    auditNote?: string;
   };
 
   feedback?: {
@@ -288,13 +365,36 @@ export interface PublicComplaint {
 
   expiresAt?: string;
   isPubliclyTrackable: boolean;
+
+  /**
+   * True once the identity retention window has passed.
+   *
+   * An archived record is the PERMANENT civic record: what was reported,
+   * where, who fixed it and whether it held. It is no longer linked to
+   * the citizen who reported it and no longer accepts their actions.
+   * See the retention note in privacyService.
+   */
+  isArchived: boolean;
+
+  /** The asset this complaint sits on. Survives archival — assets are not people. */
+  assetId?: string;
+  /** Repeat-failure flag, so a reader can see the history without the identity. */
+  isRepeatFailure?: boolean;
+  /** Capture-integrity grade of the resolution evidence. */
+  evidenceGrade?: CaptureIntegrityGrade;
 }
 
-/** Why a public look-up returned nothing. */
+/**
+ * Why a public look-up returned what it did.
+ *
+ * `expired` is no longer a dead end. It carries the archived civic
+ * record, because the identity expiring is not the same thing as the
+ * repair never having happened.
+ */
 export type LookupOutcome =
   | { kind: 'found'; complaint: PublicComplaint }
   | { kind: 'not-found' }
-  | { kind: 'expired'; resolvedAt: string };
+  | { kind: 'expired'; resolvedAt: string; archived: PublicComplaint };
 
 export interface ComplaintTimelineEvent {
   id: string;

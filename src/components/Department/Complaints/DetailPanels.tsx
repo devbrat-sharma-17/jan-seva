@@ -119,9 +119,9 @@ export function AiAnalysisPanel({ complaint }: { complaint: Complaint }) {
     <section className="dept-card dept-ai-card">
       <div className="dept-card__header">
         <h2 className="dept-card__title">Automated triage</h2>
-        {/* Labelled until a real model is wired in. A confidence figure
-            with no model behind it must not read as a measurement. */}
-        <span className="demo-tag">Demo AI</span>
+        {/* Named for what it is. A confidence figure derived from a
+            keyword margin must not be read as model confidence. */}
+        <span className="demo-tag">Keyword match</span>
       </div>
 
       <dl className="dept-ai-card__facts">

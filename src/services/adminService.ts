@@ -416,10 +416,39 @@ export function getAllDepartmentRankings(sortBy: 'score' | 'sla' | 'resolution' 
     const reasons: string[] = [];
     const recognitions: string[] = [];
 
-    if (components.resolutionRate.hasData) {
-      if (metrics.resolutionRatePercent >= 95) recognitions.push('Excellent resolution rate');
-      else if (metrics.resolutionRatePercent < 80) {
-        reasons.push(`Resolution rate ${metrics.resolutionRatePercent}%, below target`);
+    /* Quality first, deliberately. The reasons a department head reads
+       should lead with whether the work held, not with how much of it
+       was closed — closure volume is the metric that gets gamed. */
+    if (components.citizenVerified.hasData) {
+      if (metrics.citizenVerifiedRatePercent >= 90) {
+        recognitions.push('Nearly every closure confirmed by the citizen');
+      } else if (metrics.citizenVerifiedRatePercent < 60) {
+        reasons.push(
+          `Only ${metrics.citizenVerifiedRatePercent}% of closures confirmed by the reporting citizen`
+        );
+      }
+    }
+
+    if (components.durability.hasData) {
+      if ((metrics.durabilityRatePercent ?? 0) >= 90) recognitions.push('Fixes are holding at re-check');
+      else if ((metrics.durabilityRatePercent ?? 100) < 70) {
+        reasons.push(`${metrics.durabilityFailures} confirmed fix(es) failed a later durability check`);
+      }
+    }
+
+    if (components.repeatFailure.hasData && metrics.repeatFailures > 0) {
+      reasons.push(
+        `${metrics.repeatFailures} asset(s) failed again within 180 days of repair`
+      );
+    }
+
+    if (components.evidenceIntegrity.hasData) {
+      if (metrics.disputedEvidenceCount > 0) {
+        reasons.push(
+          `${metrics.disputedEvidenceCount} resolution(s) closed on evidence that failed a provenance check`
+        );
+      } else if ((metrics.evidenceIntegrityPercent ?? 0) >= 90) {
+        recognitions.push('Resolution evidence verified at capture');
       }
     }
 

@@ -5,6 +5,7 @@
 // nobody can take apart is a number nobody can act on. The recognition
 // badge is deliberately quieter than the six metrics beneath it.
 
+import { ANTI_GAMING_RULES } from '../../../services/performanceService';
 import { useCallback, useEffect, useState } from 'react';
 import { getCurrentDepartmentUser } from '../../../services/authService';
 import { getDepartmentConfig } from '../../../data/departments';
@@ -164,6 +165,38 @@ export function DepartmentPerformance() {
           );
         })}
       </div>
+
+      {/* ----------------------------------------------------------
+          The reasons, published with the number.
+          A score without reasons gets argued with; a score with reasons
+          gets acted on. This is also the defence against the score
+          being read as arbitrary — every point not earned is named.
+          ---------------------------------------------------------- */}
+      {scorecard.reasons.length > 0 && (
+        <section className="dept-card dept-reasons">
+          <h2 className="dept-card__title">Why this score</h2>
+          <ul className="dept-reasons__list">
+            {scorecard.reasons.map((reason, index) => (
+              <li key={index}>{reason}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="dept-card dept-reasons dept-reasons--rules">
+        <h2 className="dept-card__title">How this score resists gaming</h2>
+        <ul className="dept-reasons__list">
+          {ANTI_GAMING_RULES.map((rule, index) => (
+            <li key={index}>{rule}</li>
+          ))}
+        </ul>
+        <p className="dept-card__hint">
+          Every published example of ranking public services on closure speed at scale has
+          produced gaming — English NHS targets, and Swachh Survekshan, whose own verification
+          process produced bribery arrests in Phagwara. This score is built on whether the work
+          held, and closure speed is capped at 5 of 100 points.
+        </p>
+      </section>
 
       {/* Satisfaction and verification move only when a citizen acts.
           Saying so here stops the resolution count being read as

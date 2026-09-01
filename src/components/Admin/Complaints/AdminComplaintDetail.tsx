@@ -324,7 +324,7 @@ export function AdminComplaintDetail() {
           <div className="admin-panel">
             <div className="admin-panel__title-row">
               <span className="admin-panel__title">Automated triage</span>
-              <span className="demo-tag">Demo AI</span>
+              <span className="demo-tag">Keyword match</span>
             </div>
             <div className="admin-info-list">
               <div className="admin-info-item">

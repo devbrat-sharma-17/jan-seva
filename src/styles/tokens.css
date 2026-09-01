@@ -207,6 +207,66 @@
   --sla-exceeded-fg:       var(--color-error-fg);
   --sla-exceeded-accent:   var(--red-600);
 
+  /* ------------------------------------------------------------
+     Capture integrity — Proof of Repair.
+     One triplet per grade in the `CaptureIntegrityGrade` union, so the
+     timeline badge, the capture modal and the department score chip
+     for the same grade are guaranteed to agree. Foregrounds clear
+     4.5:1 on their own background.
+     ------------------------------------------------------------ */
+  --proof-verified-bg:      var(--green-50);
+  --proof-verified-border:  var(--green-200);
+  --proof-verified-fg:      var(--green-700);
+  --proof-verified-accent:  var(--green-500);
+
+  --proof-unverified-bg:     var(--amber-50);
+  --proof-unverified-border: var(--amber-200);
+  --proof-unverified-fg:     var(--amber-700);
+  --proof-unverified-accent: var(--amber-500);
+
+  --proof-disputed-bg:      var(--red-50);
+  --proof-disputed-border:  var(--red-200);
+  --proof-disputed-fg:      var(--red-700);
+  --proof-disputed-accent:  var(--red-500);
+
+  /* ------------------------------------------------------------
+     Civic asset layer.
+     Violet is deliberate and unused elsewhere at this weight: the
+     asset ledger is a different KIND of object from a complaint, and
+     reusing a status colour would make a permanent infrastructure
+     record read as another ticket state.
+     ------------------------------------------------------------ */
+  --asset-bg:              var(--violet-50);
+  --asset-border:          #DDD0F7;
+  --asset-fg:              var(--violet-600);
+  --asset-accent:          var(--violet-500);
+
+  /* Repeat failure inside a contractor's defect liability period —
+     the one finding on the ledger that is worth money. */
+  --warranty-bg:           var(--saffron-400);
+  --warranty-surface:      #FEF2E8;
+  --warranty-border:       #F8D3B4;
+  --warranty-fg:           var(--saffron-600);
+  --warranty-accent:       var(--saffron-500);
+
+  /* Work card — a field tool read on a phone in sunlight, so its
+     ground is darker and its accents are higher-contrast than the
+     desk-bound portal surfaces. */
+  --workcard-bg:           var(--navy-800);
+  --workcard-surface:      var(--navy-700);
+  --workcard-fg:           var(--slate-0);
+  --workcard-muted:        var(--slate-400);
+  --workcard-accent:       var(--cyan-400);
+  --workcard-stop-border:  rgba(255, 255, 255, 0.14);
+
+  /* Ward Reality Index. `silent` is an attention state, not a good one,
+     so it must not resolve to the success family. */
+  --ward-silent-bg:        var(--cyan-50);
+  --ward-silent-border:    var(--cyan-200);
+  --ward-silent-fg:        var(--cyan-700);
+  --ward-over-bg:          var(--slate-100);
+  --ward-over-fg:          var(--slate-600);
+
   /* --- Third-party brand colours (fixed by the vendor, not ours) --- */
   --color-whatsapp:        #25D366;
 

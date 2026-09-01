@@ -123,7 +123,7 @@ export function DepartmentDashboard() {
       <PriorityQueue
         complaints={complaints}
         title="Priority queue"
-        subtitle="Ranked by SLA risk, AI severity and report volume."
+        subtitle="Ranked by SLA risk, assessed severity and independent report spread."
         showViewAll
       />
 

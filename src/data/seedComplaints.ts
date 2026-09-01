@@ -9,6 +9,7 @@
 
 import type { Complaint } from '../types';
 import { deriveIdentityReference } from '../services/identityService';
+import { buildHistoricalComplaints } from './seasonalHistory';
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -48,7 +49,12 @@ const MEENA = {
 };
 
 export function buildSeedComplaints(): Complaint[] {
+  /* Eighteen months of archived history sits behind the live queue.
+     Without it the asset ledger, repeat-failure detection and the
+     pre-monsoon query have nothing to read — which is exactly the
+     state the 48-hour retention rule used to leave the product in. */
   return [
+    ...buildHistoricalComplaints(),
     // ---------------------------------------------------------------
     // 1. Active, SLA approaching, linked to a primary issue.
     // ---------------------------------------------------------------
@@ -124,7 +130,7 @@ export function buildSeedComplaints(): Complaint[] {
         {
           id: 'evt-1284-2',
           title: 'Routed to Public Works Department',
-          description: 'Automated classification assigned this issue to PWD Gwalior Division 2.',
+          description: 'Matched to PWD Gwalior Division 2 from the description by keyword.',
           timestamp: ago(2 * DAY + 6 * HOUR - 2 * 60 * 1000),
           status: 'assigned',
           actor: 'JAN-SEVA Routing Engine',

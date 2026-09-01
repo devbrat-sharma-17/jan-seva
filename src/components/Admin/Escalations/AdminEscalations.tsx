@@ -13,6 +13,7 @@ import '../admin-shared.css';
 import '../Complaints/AdminComplaints.css';
 import { AdminIcon } from '../AdminIcon';
 import { NotificationPanel } from '../Notifications/NotificationPanel';
+import { EscalationLadder } from './EscalationLadder';
 
 export function AdminEscalations() {
   const [activeTab, setActiveTab] = useState<
@@ -93,6 +94,11 @@ export function AdminEscalations() {
       {/* Operational alerts. Deduplicated and read-tracked, so the same
           breach is not re-announced on every visit. */}
       <NotificationPanel />
+      {/* The ladder as named posts with their own queues and clocks,
+          above the flat list of breached tickets. An escalation nobody
+          owns is a label; an escalation sitting in a post's queue past
+          that post's response window is a state with a cost. */}
+      <EscalationLadder complaints={allComplaints} />
       {/* KPI Overview */}
       <div className="kpi-grid">
         {' '}

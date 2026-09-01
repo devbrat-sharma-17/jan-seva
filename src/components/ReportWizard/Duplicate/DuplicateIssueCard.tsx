@@ -72,7 +72,14 @@ export function DuplicateIssueCard({ match, onJoin, onReportNew }: DuplicateIssu
         </button>
 
         <p className="dup-join-explainer">
-          Joining adds your photos &amp; verification to boost the priority of this repair work order.
+          {/* The old copy promised a priority boost that never happened —
+              `priorityScore` was written once and never recomputed. It is
+              recomputed now, from independence-weighted spread, so this
+              says what the citizen actually gets: their own ticket and
+              their own vote on the outcome. */}
+          You get your own ticket and your own say. The work is done once, but it cannot be
+          closed until you agree it is fixed — you are not represented by anyone else&rsquo;s
+          complaint.
         </p>
 
         <button

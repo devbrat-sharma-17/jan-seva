@@ -89,6 +89,46 @@ export interface DepartmentMetrics {
   citizenSatisfactionAverage: number;
   totalRatingsCount: number;
   backlogCount: number;
+
+  // ----------------------------------------------------------
+  // Outcome quality
+  // ----------------------------------------------------------
+  // Everything above measures how much was closed and how fast. Nothing
+  // above measures whether the work HELD. A department that closes
+  // everything in four hours with fake photos scores 100 on it.
+  //
+  // These are the inputs that make that impossible.
+
+  /** Resolutions the citizen actually confirmed, over resolutions claimed. */
+  citizenVerifiedRatePercent: number;
+  /** Citizen-confirmed closures that later failed a durability check. */
+  durabilityFailures: number;
+  /** Durability checkpoints answered "still fixed". */
+  durabilityHolding: number;
+  /**
+   * Percentage of answered durability checks that held. Null when none
+   * have been answered — an unmeasured durability rate is reported as
+   * unmeasured, never as 100%.
+   */
+  durabilityRatePercent: number | null;
+  /** New complaints on an asset this department repaired recently. */
+  repeatFailures: number;
+  /** Repeat failures over resolutions. Null with nothing resolved. */
+  repeatFailureRatePercent: number | null;
+  /** Resolutions carrying at least one evidence photo. */
+  resolutionsWithEvidence: number;
+  /** Mean capture-integrity score, 0-100. Null when nothing was graded. */
+  evidenceIntegrityPercent: number | null;
+  /** Resolutions whose evidence was graded `disputed`. */
+  disputedEvidenceCount: number;
+  /** Independent re-inspections completed, and how many upheld the closure. */
+  auditsCompleted: number;
+  auditsUpheld: number;
+  /**
+   * Complaints per active officer. Normalises the backlog so a
+   * department cannot win the ranking by handling less work.
+   */
+  workloadPerOfficer: number;
 }
 
 /** One scored dimension. `hasData` false means it was not measurable. */
@@ -113,13 +153,22 @@ export interface PerformanceScoreBreakdown {
   /** Points on the 100-point scale that had data behind them. */
   dataCoverage: number;
   components: {
-    resolutionRate: PerformanceComponent;
+    citizenVerified: PerformanceComponent;
+    durability: PerformanceComponent;
+    repeatFailure: PerformanceComponent;
+    evidenceIntegrity: PerformanceComponent;
     slaCompliance: PerformanceComponent;
+    workloadBacklog: PerformanceComponent;
     resolutionSpeed: PerformanceComponent;
     citizenSatisfaction: PerformanceComponent;
-    backlogControl: PerformanceComponent;
-    escalationRate: PerformanceComponent;
   };
+  /**
+   * Why the score is what it is, in plain sentences.
+   *
+   * A number without reasons gets argued with; a number with reasons
+   * gets acted on. Published alongside the score wherever it appears.
+   */
+  reasons: string[];
 }
 
 export interface PriorityExplanation {

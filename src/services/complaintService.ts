@@ -26,6 +26,27 @@ import {
   computeExpiresAt,
   toPublicComplaint,
 } from './privacyService';
+import { snapToAsset, assetForComplaint, recordRepair } from './assetService';
+import { recordEvidenceHash, worstGrade } from './proofService';
+import type { CaptureIntegrity, CaptureIntegrityGrade } from '../types/proof';
+import {
+  addStake,
+  ensureIssueFor,
+  getIssueForComplaint,
+  priorityWithSpread,
+  computeSpread,
+  markProvisionallyClosed,
+  recordConfirmation,
+  recordDispute,
+  summariseConsent,
+} from './issueService';
+import {
+  openWatchWindow,
+  answerCheckpoint,
+  isAuditSampled,
+  nextPrompt,
+  getAuditQueue,
+} from './verificationService';
 
 const DRAFT_STORAGE_KEY = 'jan_seva_report_draft_v1';
 const COMPLAINTS_STORAGE_KEY = 'jan_seva_complaints_v3';
@@ -261,7 +282,7 @@ export async function submitReport(
     {
       id: `evt-${Date.now()}-2`,
       title: `Routed to ${analysis.departmentName}`,
-      description: `Automated classification assigned this issue to ${analysis.departmentName} with a ${targetHours}-hour turnaround target.`,
+      description: `Matched to ${analysis.departmentName} from the description by keyword, with a ${targetHours}-hour turnaround target. You confirmed this category before submitting.`,
       timestamp: nowIso,
       status: 'assigned',
       actor: 'JAN-SEVA Routing Engine',
@@ -331,13 +352,26 @@ export async function submitReport(
     },
   };
 
-  saveComplaintToStore(complaint);
+  // Anchor the report to a piece of infrastructure. A null snap is a
+  // real and common outcome — the report simply did not fall inside any
+  // known asset's radius — and is recorded as such rather than forced
+  // onto whatever happened to be nearest.
+  const snap = snapToAsset(
+    { latitude: complaint.location.latitude, longitude: complaint.location.longitude },
+    analysis.category
+  );
+
+  const anchored: Complaint = snap
+    ? { ...complaint, assetId: snap.asset.id, assetSnapMetres: snap.distanceMetres }
+    : complaint;
+
+  saveComplaintToStore(anchored);
   clearDraftStorage();
-  return complaint;
+  return anchored;
 }
 
 /**
- * Adds this report as a confirmation on an existing complaint.
+ * Files this citizen's own report against a shared civic issue.
  * Additive by design: the primary keeps its timeline, officer and SLA, and
  * gains an event plus the new photos as further evidence.
  */
@@ -346,8 +380,6 @@ export async function joinExistingComplaint(
   analysis: AIAnalysis,
   cityId: string = defaultCity.id
 ): Promise<Complaint> {
-  await new Promise((resolve) => setTimeout(resolve, 700));
-
   const match = analysis.duplicateMatch;
   if (!match) throw new Error('No matching complaint to join.');
 
@@ -357,33 +389,89 @@ export async function joinExistingComplaint(
     return submitReport(draft, analysis, cityId);
   }
 
-  const nowIso = new Date().toISOString();
-  const reporterName = draft.name.trim() || 'A citizen';
-  const supportingCount = (existing.duplicate?.supportingCount ?? match.supportingCount ?? 1) + 1;
+  // ----------------------------------------------------------
+  // This citizen files their OWN complaint. It is not merged into
+  // anyone else's, and it is not archived.
+  //
+  // The previous implementation appended photos to the first reporter's
+  // ticket and incremented `supportingCount`. That made the first
+  // reporter's ticket the issue and gave only that person a
+  // verification vote — so nineteen other citizens could have their
+  // complaint closed by a stranger. NYC Council Int 0744-2024 was
+  // drafted because agencies were doing exactly this.
+  // ----------------------------------------------------------
+  const ownReport = await submitReport(draft, analysis, cityId);
 
-  const confirmed = appendEvent(existing, {
+  // The shared problem. Created on the first join, because a complaint
+  // nobody else has reported does not need an issue record — it is one.
+  const issue = ensureIssueFor(existing);
+  addStake(issue.id, ownReport);
+  const updatedIssue = getIssueForComplaint(ownReport.id) ?? issue;
+
+  const nowIso = new Date().toISOString();
+  const spread = computeSpread(updatedIssue);
+
+  // ----------------------------------------------------------
+  // Priority is now genuinely recomputed, which it never was before.
+  //
+  // The success screen used to tell the citizen their report had
+  // "raised the priority" of the existing complaint. It had not:
+  // `priorityScore` was written once at submission and never touched
+  // again. It is recomputed here from independence-weighted spread,
+  // capped, so twenty reports from one building cannot buy a queue
+  // position that twenty reports from twenty streets would earn.
+  // ----------------------------------------------------------
+  const basePriority = existing.aiAnalysis?.priorityScore ?? 70;
+  const nextPriority = priorityWithSpread(basePriority, updatedIssue);
+
+  const withEvent = appendEvent(existing, {
     id: `evt-confirm-${Date.now()}`,
-    title: 'Citizen confirmation added',
-    description: `${reporterName} confirmed this issue is still present and submitted additional photo evidence. ${supportingCount} citizens have now reported it.`,
+    title: 'Independent report added',
+    description: `Another citizen reported the same issue and filed their own complaint (${ownReport.id}). ${spread.label}.${
+      nextPriority > basePriority
+        ? ` Priority raised from ${basePriority} to ${nextPriority}.`
+        : ' Priority unchanged — the additional report came from the same location cluster.'
+    }`,
     timestamp: nowIso,
     status: existing.status,
     actor: 'Citizen Confirmation',
+    visibility: 'public',
   });
 
-  const merged: Complaint = {
-    ...confirmed,
-    photos: [...existing.photos, ...draft.photos.map((p) => p.url)].slice(0, 8),
+  const linkedPrimary: Complaint = {
+    ...withEvent,
+    civicIssueId: updatedIssue.id,
+    aiAnalysis: existing.aiAnalysis
+      ? { ...existing.aiAnalysis, priorityScore: nextPriority }
+      : undefined,
     duplicate: {
       isLinked: true,
       primaryIssueId: existing.id,
       primaryTitle: existing.issue.title,
-      supportingCount,
+      supportingCount: updatedIssue.stakes.length,
+      civicIssueId: updatedIssue.id,
     },
   };
 
-  saveComplaintToStore(merged);
+  saveComplaintToStore(linkedPrimary);
+
+  // Link the joiner's own record back to the shared issue, so their
+  // tracking page can show the shared work AND their own standing.
+  const linkedOwn: Complaint = {
+    ...(readStore().find((c) => c.id === ownReport.id) ?? ownReport),
+    civicIssueId: updatedIssue.id,
+    duplicate: {
+      isLinked: true,
+      primaryIssueId: existing.id,
+      primaryTitle: existing.issue.title,
+      supportingCount: updatedIssue.stakes.length,
+      civicIssueId: updatedIssue.id,
+    },
+  };
+  saveComplaintToStore(linkedOwn);
+
   clearDraftStorage();
-  return merged;
+  return readStore().find((c) => c.id === ownReport.id) ?? linkedOwn;
 }
 
 // ------------------------------------------------------------
@@ -459,21 +547,60 @@ export async function submitFeedback(
     actor: 'Citizen Verification',
   });
 
+  // This citizen's vote on a shared issue, and only theirs. Nineteen
+  // other reporters keep their own.
+  const issue = getIssueForComplaint(existing.id);
+  let consentNote = '';
+  if (issue) {
+    const next = recordConfirmation(issue.id, existing.id);
+    if (next) {
+      const consent = summariseConsent(next);
+      consentNote = consent.unanimous
+        ? ` All ${consent.total} citizens who reported this issue have now confirmed it.`
+        : ` ${consent.confirmed} of ${consent.total} reporters have confirmed; the issue stays open until the rest do.`;
+    }
+  }
+
   const updated: Complaint = {
     ...verified,
     status: 'resolved',
     resolution: {
       ...existing.resolution,
       citizenVerifiedResolved: true,
+      citizenVerifiedAt: nowIso,
       // Retention runs from the original resolution, not from the
       // confirmation — otherwise confirming would silently extend the window.
       resolvedAt: existing.resolution?.resolvedAt || nowIso,
     },
+    // ------------------------------------------------------------
+    // The watch window opens here.
+    //
+    // A citizen standing next to a fresh patch will confirm it. This
+    // schedules the question that actually matters — is it still there
+    // in thirty days, and in ninety — and it is the only mechanism in
+    // the product that can tell a real repair from a cosmetic one.
+    // ------------------------------------------------------------
+    verification: {
+      ...existing.verification,
+      ...openWatchWindow(nowIso),
+      auditSampled: isAuditSampled(existing.id),
+      auditOutcome: isAuditSampled(existing.id) ? 'pending' : undefined,
+    },
     feedback: { rating, comment, submittedAt: nowIso },
   };
 
-  saveComplaintToStore(updated);
-  return updated;
+  const withConsent: Complaint = consentNote
+    ? {
+        ...updated,
+        latestUpdate: {
+          ...updated.latestUpdate,
+          description: `${updated.latestUpdate.description}${consentNote}`,
+        },
+      }
+    : updated;
+
+  saveComplaintToStore(withConsent);
+  return withConsent;
 }
 
 /**
@@ -504,19 +631,117 @@ export async function requestReinspection(
     actor: 'Citizen Verification',
   });
 
+  // A dissent on a shared issue. One reporter saying "still broken from
+  // where I stand" reopens the work — but a reason is required, and
+  // reopens are capped per reporter so a single voice cannot loop the
+  // issue indefinitely against nineteen others who say it is fixed.
+  const issue = getIssueForComplaint(existing.id);
+  let capped = false;
+  if (issue) {
+    const outcome = recordDispute(
+      issue.id,
+      existing.id,
+      comment?.trim() || 'Citizen reported the issue is still unresolved.'
+    );
+    capped = outcome.capped;
+  }
+
   const updated: Complaint = {
     ...reopened,
-    status: 'in-progress',
-    // Clearing `resolvedAt` is what stops the 48-hour retention clock. A
-    // complaint the citizen says is unresolved must not quietly expire.
+    status: capped ? existing.status : 'in-progress',
+    // Clearing `resolvedAt` is what stops the identity retention clock.
+    // A complaint the citizen says is unresolved must not quietly
+    // expire out from under them.
     resolution: {
       ...existing.resolution,
       resolvedAt: undefined,
       citizenVerifiedResolved: false,
     },
-    sla: { ...existing.sla, dueAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString(), status: 'normal' },
-    feedback: { ...existing.feedback, comment, submittedAt: nowIso, reinspectionRequested: true },
+    // A reopen also cancels the durability watch: there is nothing to
+    // re-check the durability of until the work is done again.
+    verification: undefined,
+    sla: capped
+      ? existing.sla
+      : { ...existing.sla, dueAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString(), status: 'normal' },
+    feedback: {
+      ...existing.feedback,
+      comment,
+      submittedAt: nowIso,
+      reinspectionRequested: true,
+      reinspectionRequestedAt: nowIso,
+    },
   };
+
+  saveComplaintToStore(updated);
+  return updated;
+}
+
+// ------------------------------------------------------------
+// Deferred verification
+// ------------------------------------------------------------
+
+/** The durability question owed to this citizen right now, if any. */
+export function getDurabilityPrompt(complaint: Complaint) {
+  return nextPrompt(complaint);
+}
+
+/**
+ * Records a citizen's answer to a 30- or 90-day durability check.
+ *
+ * `failed` reopens the complaint with a fresh 24-hour target, exactly as
+ * a reinspection request does — a fix that lasted three weeks did not
+ * last, and the record should say so rather than staying closed because
+ * someone once ticked a box.
+ */
+export async function answerDurabilityCheck(
+  complaintId: string,
+  identityReference: string,
+  dayOffset: 30 | 90,
+  outcome: 'holding' | 'failed',
+  note?: string
+): Promise<Complaint | null> {
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  const cleanId = normaliseId(complaintId);
+  const existing = readStore().find((c) => c.id.toUpperCase() === cleanId);
+  if (!existing || existing.reporter.identityReference !== identityReference) return null;
+  if (!existing.verification?.checkpoints) return null;
+
+  const nowIso = new Date().toISOString();
+  const verification = answerCheckpoint(existing.verification, dayOffset, outcome, note);
+
+  const withEvent = appendEvent(existing, {
+    id: `evt-durability-${Date.now()}`,
+    title: outcome === 'holding' ? `Still fixed at ${dayOffset} days` : `Failed again at ${dayOffset} days`,
+    description:
+      outcome === 'holding'
+        ? `The citizen confirmed the repair was still holding ${dayOffset} days after it was completed.`
+        : `The citizen reported the repair failed again within ${dayOffset} days.${note ? ` "${note}"` : ''}`,
+    timestamp: nowIso,
+    status: outcome === 'holding' ? 'resolved' : 'in-progress',
+    actor: 'Citizen Durability Check',
+    actorType: 'citizen',
+    visibility: 'public',
+  });
+
+  const updated: Complaint =
+    outcome === 'holding'
+      ? { ...withEvent, verification }
+      : {
+          ...withEvent,
+          status: 'in-progress',
+          verification,
+          resolution: {
+            ...existing.resolution,
+            resolvedAt: undefined,
+            citizenVerifiedResolved: false,
+          },
+          sla: {
+            ...existing.sla,
+            dueAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+            status: 'normal',
+          },
+        };
 
   saveComplaintToStore(updated);
   return updated;
@@ -633,6 +858,9 @@ import { getNetworkSnapshot } from './networkService';
 import { enqueue, type SyncOperationType } from './syncService';
 import { computeSlaHealth } from './slaService';
 import { calculatePerformanceScore } from './performanceService';
+import { computeDurabilityStats } from './verificationService';
+import { findRepeatFailures } from './assetService';
+import { gradePoints } from './proofService';
 
 /** Match complaint to a department configuration */
 export function matchesDepartment(complaint: Complaint, deptId: string): boolean {
@@ -1150,12 +1378,24 @@ export async function addDepartmentProgressUpdate(
   });
 }
 
-/** Submit a resolution with a note and photo evidence. */
+/**
+ * Submit a resolution with a note and graded photo evidence.
+ *
+ * `integrity` carries the provenance bound to each photo at shutter. It
+ * is optional at the type level only so older callers keep compiling;
+ * every path in the department portal supplies it, and a resolution
+ * arriving without it is graded `unverified` rather than assumed clean.
+ *
+ * A resolution whose evidence is graded `disputed` is REFUSED here, not
+ * merely flagged. That is the difference between making evidence fraud
+ * punishable after the fact and making it non-submittable.
+ */
 export async function submitDepartmentResolution(
   complaintId: string,
   resolutionNote: string,
   evidencePhotos: string[],
-  expectedVersion?: number
+  expectedVersion?: number,
+  integrity?: CaptureIntegrity[]
 ): Promise<OperationResult> {
   if (!resolutionNote.trim()) {
     return { ok: false, reason: 'invalid', message: 'Describe what was done before submitting.' };
@@ -1164,11 +1404,65 @@ export async function submitDepartmentResolution(
     return { ok: false, reason: 'invalid', message: 'Attach at least one photo of the completed work.' };
   }
 
+  const grades = (integrity ?? []).map((i) => i.grade);
+  const evidenceGrade: CaptureIntegrityGrade =
+    grades.length > 0 ? worstGrade(grades) : 'unverified';
+
+  if (evidenceGrade === 'disputed') {
+    const failed = (integrity ?? [])
+      .flatMap((i) => i.checks)
+      .filter((c) => c.severity === 'blocking' && c.passed === false);
+
+    return {
+      ok: false,
+      reason: 'invalid',
+      message:
+        failed.length > 0
+          ? `This resolution cannot be submitted: ${failed[0].detail}`
+          : 'This resolution cannot be submitted: the evidence failed a provenance check.',
+    };
+  }
+
   return applyComplaintMutation({
     complaintId,
     expectedVersion,
     mutate: (existing, actor) => {
       const nowIso = new Date().toISOString();
+
+      // ------------------------------------------------------
+      // The repair goes on the asset's permanent ledger here.
+      //
+      // Recorded when the DEPARTMENT says the work is done, not when
+      // the citizen later confirms it. Whether it held is a separate
+      // question, answered by deferred verification and by the next
+      // repeat failure — and both of those need this entry to exist.
+      // ------------------------------------------------------
+      const asset = assetForComplaint(existing);
+      let repairId: string | undefined;
+
+      if (asset) {
+        repairId = recordRepair({
+          assetId: asset.id,
+          complaintId: existing.id,
+          category: existing.issue.category,
+          completedAt: nowIso,
+          note: resolutionNote,
+          crew: existing.department.assignedTeam ?? existing.assignedOfficer?.team,
+          evidenceHash: integrity?.[0]?.perceptualHash,
+          captureGrade: evidenceGrade,
+        }).id;
+      }
+
+      // Index every accepted photo, so the same image cannot close a
+      // second complaint anywhere in the city.
+      for (const capture of integrity ?? []) {
+        recordEvidenceHash(capture.perceptualHash, existing.id, asset?.id);
+      }
+
+      // A shared issue is closed PROVISIONALLY. Every citizen who
+      // reported it keeps their own vote.
+      const sharedIssue = getIssueForComplaint(existing.id);
+      if (sharedIssue) markProvisionallyClosed(sharedIssue.id);
 
       const withEvent = appendEvent(existing, {
         id: `evt-resolution-${Date.now()}`,
@@ -1195,6 +1489,9 @@ export async function submitDepartmentResolution(
           // The department closing a job is not the citizen agreeing it
           // is fixed. Only the citizen sets this, from /track.
           citizenVerifiedResolved: false,
+          captureIntegrity: integrity,
+          evidenceGrade,
+          assetRepairId: repairId,
         },
         latestUpdate: {
           title: 'Resolved — awaiting your confirmation',
@@ -1205,8 +1502,12 @@ export async function submitDepartmentResolution(
     },
     audit: () => ({
       action: 'resolution_submitted',
-      description: `Resolution submitted with ${evidencePhotos.length} evidence photo(s)`,
-      metadata: { photos: String(evidencePhotos.length) },
+      description: `Resolution submitted with ${evidencePhotos.length} evidence photo(s), capture grade: ${evidenceGrade}`,
+      metadata: {
+        photos: String(evidencePhotos.length),
+        evidenceGrade,
+        hashes: (integrity ?? []).map((i) => i.perceptualHash).join(','),
+      },
     }),
     sync: () => ({
       type: 'SUBMIT_RESOLUTION',
@@ -1256,6 +1557,90 @@ export async function acceptDepartmentReinspection(
     },
     audit: () => ({ action: 'reinspection_accepted', description: 'Citizen reinspection request accepted' }),
     sync: () => ({ type: 'ACCEPT_REINSPECTION', summary: 'Accept reinspection' }),
+  });
+}
+
+/**
+ * Independent re-inspection of a sampled closure.
+ *
+ * The officer who did the work cannot sign off their own audit. That
+ * one rule is what makes this a control rather than a formality, and it
+ * is enforced here rather than left to procedure — refusing at the
+ * mutation layer means no screen can accidentally allow it.
+ *
+ * This sampling is also the field-validation mechanism the platform
+ * would need before it could honestly build anything predictive. A
+ * Washington DC rat-infestation model validated well on held-out 311
+ * data and then failed against actual field inspections; the lesson was
+ * that only field assessment tests validity.
+ */
+export async function recordAuditReinspection(
+  complaintId: string,
+  outcome: 'upheld' | 'failed',
+  note: string,
+  expectedVersion?: number
+): Promise<OperationResult> {
+  if (!note.trim()) {
+    return { ok: false, reason: 'invalid', message: 'Record what you found on the re-inspection.' };
+  }
+
+  return applyComplaintMutation({
+    complaintId,
+    expectedVersion,
+    mutate: (existing, actor) => {
+      // Self-audit is refused outright.
+      const closedBy = (existing.resolution?.resolvedBy ?? '').trim().toLowerCase();
+      if (closedBy && closedBy === actor.name.trim().toLowerCase()) return null;
+
+      const nowIso = new Date().toISOString();
+
+      const withEvent = appendEvent(existing, {
+        id: `evt-audit-${Date.now()}`,
+        title: outcome === 'upheld' ? 'Independent re-inspection: upheld' : 'Independent re-inspection: failed',
+        description: note,
+        timestamp: nowIso,
+        status: outcome === 'upheld' ? 'resolved' : 'in-progress',
+        actor: actor.name,
+        actorType: 'officer',
+        visibility: 'public',
+      });
+
+      const verification = {
+        ...existing.verification,
+        auditSampled: true,
+        auditSampledAt: existing.verification?.auditSampledAt ?? nowIso,
+        auditOutcome: outcome,
+        auditedBy: actor.name,
+        auditNote: note,
+      };
+
+      if (outcome === 'upheld') return { ...withEvent, verification, updatedAt: nowIso };
+
+      // A failed audit reopens the job. A closure that does not survive
+      // an inspection was not a closure.
+      return {
+        ...withEvent,
+        status: 'in-progress',
+        updatedAt: nowIso,
+        verification,
+        resolution: {
+          ...existing.resolution,
+          resolvedAt: undefined,
+          citizenVerifiedResolved: false,
+        },
+        sla: {
+          ...existing.sla,
+          dueAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+          status: 'normal',
+        },
+      };
+    },
+    audit: () => ({
+      action: 'sla_review',
+      description: `Independent re-inspection recorded as ${outcome}`,
+      metadata: { outcome, note },
+    }),
+    sync: () => ({ type: 'ACCEPT_REINSPECTION', summary: `Audit re-inspection (${outcome})` }),
   });
 }
 
@@ -1363,6 +1748,41 @@ export function getDepartmentMetrics(deptId: string): DepartmentMetrics {
       ? Math.round(totalResolutionHoursSum / resolvedWithTimestampCount)
       : 0;
 
+  // ----------------------------------------------------------
+  // Outcome quality
+  // ----------------------------------------------------------
+  // These are the inputs that stop the score from being a measure of
+  // how fast a department can close things. Each one is derived, and
+  // each one reports "not measurable yet" rather than a default.
+
+  const durability = computeDurabilityStats(deptComplaints);
+  const repeatFailures = findRepeatFailures(deptComplaints).length;
+
+  let resolutionsWithEvidence = 0;
+  let integritySum = 0;
+  let disputedEvidenceCount = 0;
+
+  for (const c of deptComplaints) {
+    const evidence = c.resolution?.evidencePhotos ?? [];
+    if (evidence.length === 0) continue;
+
+    resolutionsWithEvidence += 1;
+
+    // A resolution recorded before capture grading existed is graded
+    // `unverified` rather than assumed clean — it genuinely was not
+    // checked, and saying so is the whole point of the grade.
+    const grade = c.resolution?.evidenceGrade ?? 'unverified';
+    integritySum += gradePoints(grade);
+    if (grade === 'disputed') disputedEvidenceCount += 1;
+  }
+
+  // Active field and nodal staff carrying work. Heads are excluded:
+  // a department head is not a spare pair of hands for the backlog.
+  const officerCount = Math.max(
+    1,
+    (DEPARTMENTS[deptId as DepartmentId]?.mockStaff ?? []).filter((s) => s.role !== 'head').length
+  );
+
   return {
     totalReceived,
     active,
@@ -1385,6 +1805,25 @@ export function getDepartmentMetrics(deptId: string): DepartmentMetrics {
     citizenSatisfactionAverage,
     totalRatingsCount: ratingsCount,
     backlogCount: active,
+
+    citizenVerifiedRatePercent: resolved > 0 ? Math.round((citizenVerified / resolved) * 100) : 0,
+    durabilityFailures: durability.failed,
+    durabilityHolding: durability.holding,
+    durabilityRatePercent: durability.durabilityRate,
+    repeatFailures,
+    // Measured against resolutions, not against everything received: a
+    // department cannot have a repeat-failure rate on work it has not
+    // done yet.
+    repeatFailureRatePercent: resolved > 0 ? Math.round((repeatFailures / resolved) * 100) : null,
+    resolutionsWithEvidence,
+    evidenceIntegrityPercent:
+      resolutionsWithEvidence > 0
+        ? Math.round((integritySum / resolutionsWithEvidence) * 100)
+        : null,
+    disputedEvidenceCount,
+    auditsCompleted: durability.auditsCompleted,
+    auditsUpheld: durability.auditsUpheld,
+    workloadPerOfficer: Number((active / officerCount).toFixed(2)),
   };
 }
 
@@ -1443,6 +1882,25 @@ export function getDepartmentNeedsAttention(deptId: string): {
   }
 
   return { breached, atRisk, unassigned, reinspection };
+}
+
+/**
+ * Closures this department owes an independent re-inspection.
+ *
+ * Excludes anything the requesting officer closed themselves, so the
+ * queue an officer sees is only work they are allowed to audit.
+ */
+export function getDepartmentAuditQueue(deptId: string, officerName?: string): Complaint[] {
+  const queue = getAuditQueue(getComplaintsByDepartment(deptId));
+  if (!officerName) return queue;
+
+  const self = officerName.trim().toLowerCase();
+  return queue.filter((c) => (c.resolution?.resolvedBy ?? '').trim().toLowerCase() !== self);
+}
+
+/** Complaints whose asset has failed again since it was last repaired. */
+export function getDepartmentRepeatFailures(deptId: string) {
+  return findRepeatFailures(getComplaintsByDepartment(deptId));
 }
 
 /** Escalated or SLA-breached complaints. */

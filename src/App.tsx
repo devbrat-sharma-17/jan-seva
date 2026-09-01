@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Header } from './components/Header/Header';
 import { Hero } from './components/Hero/Hero';
@@ -7,12 +7,10 @@ import { IssueCategories } from './components/IssueCategories/IssueCategories';
 import { HowItWorks } from './components/HowItWorks/HowItWorks';
 import { Footer } from './components/Footer/Footer';
 import { MobileActionBar } from './components/MobileActionBar/MobileActionBar';
-import { ReportWizard } from './components/ReportWizard/ReportWizard';
-import { TrackComplaint } from './components/TrackComplaint/TrackComplaint';
 import { PlaceholderPage } from './components/Placeholder/PlaceholderPage';
 
 /* ------------------------------------------------------------
-   Portal screens load on demand.
+   Code splitting.
    ------------------------------------------------------------
    A citizen filing a pothole report was downloading the entire Command
    Centre — every chart, map and analytics screen — before the first
@@ -20,10 +18,49 @@ import { PlaceholderPage } from './components/Placeholder/PlaceholderPage';
    portals are behind a sign-in that citizens never pass, so their code
    has no business in the initial bundle.
 
-   The citizen routes (/, /report, /track) stay statically imported:
-   they ARE the first paint, and deferring them would only add a
-   round trip.
+   The report wizard and the tracking page are now split too. The
+   earlier reasoning — that they are the first paint and deferring them
+   would only cost a round trip — was half right: the LANDING PAGE is
+   the first paint. `/report` and `/track` are separate navigations, and
+   a citizen who never taps either was downloading both.
+
+   The round trip is real, though, so it is paid before it is felt:
+   `prefetchCitizenRoutes` below warms both chunks once the browser is
+   idle. By the time a thumb reaches the CTA the code is already there.
    ------------------------------------------------------------ */
+
+const importReportWizard = () => import('./components/ReportWizard/ReportWizard');
+const importTrackComplaint = () => import('./components/TrackComplaint/TrackComplaint');
+
+const ReportWizard = lazy(() =>
+  importReportWizard().then((m) => ({ default: m.ReportWizard }))
+);
+const TrackComplaint = lazy(() =>
+  importTrackComplaint().then((m) => ({ default: m.TrackComplaint }))
+);
+
+/**
+ * Warms the two chunks a citizen is most likely to need next.
+ *
+ * Deliberately on idle rather than on mount: the landing page's own
+ * paint, hero image and fonts come first. On a device that never goes
+ * idle, `setTimeout` still fires — a slow prefetch beats none, and both
+ * failures are silent because a failed prefetch costs nothing (the
+ * lazy import will simply fetch it again on navigation).
+ */
+function prefetchCitizenRoutes(): void {
+  const warm = () => {
+    void importReportWizard().catch(() => {});
+    void importTrackComplaint().catch(() => {});
+  };
+
+  const ric = (window as unknown as {
+    requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+  }).requestIdleCallback;
+
+  if (typeof ric === 'function') ric(warm, { timeout: 3000 });
+  else window.setTimeout(warm, 1500);
+}
 
 // Department Operations
 const DepartmentLogin = lazy(() =>
@@ -52,6 +89,9 @@ const DepartmentEscalations = lazy(() =>
 );
 const DepartmentPerformance = lazy(() =>
   import('./components/Department/Performance/DepartmentPerformance').then((m) => ({ default: m.DepartmentPerformance }))
+);
+const WorkCardView = lazy(() =>
+  import('./components/Department/WorkCard/WorkCardView').then((m) => ({ default: m.WorkCardView }))
 );
 
 // Admin Command Centre
@@ -94,14 +134,46 @@ const InitiativeManager = lazy(() =>
 const AdminReports = lazy(() =>
   import('./components/Admin/Reports/AdminReports').then((m) => ({ default: m.AdminReports }))
 );
+const AdminAssetLedger = lazy(() =>
+  import('./components/Admin/Assets/AdminAssetLedger').then((m) => ({ default: m.AdminAssetLedger }))
+);
+const AdminWardReality = lazy(() =>
+  import('./components/Admin/Wards/AdminWardReality').then((m) => ({ default: m.AdminWardReality }))
+);
+const AdminOpenData = lazy(() =>
+  import('./components/Admin/OpenData/AdminOpenData').then((m) => ({ default: m.AdminOpenData }))
+);
 
-// Route guards
-import { ProtectedAdminRoute, ProtectedDepartmentRoute } from './components/auth/ProtectedRoute';
-import { UnauthorizedPage } from './components/auth/UnauthorizedPage';
+/* ------------------------------------------------------------
+   Route guards are split too.
+   ------------------------------------------------------------
+   These were statically imported, and they are the reason the entry
+   chunk was still pulling the whole auth graph: ProtectedRoute needs
+   the session service, UnauthorizedPage needs authService, and
+   authService reaches the department config and the demo credential
+   directory. A citizen who never signs in was downloading all of it to
+   read the landing page.
+
+   Guards are route *elements*, so deferring them costs nothing: they
+   render only when a /department or /admin path is matched, at which
+   point the portal chunk is being fetched anyway.
+   ------------------------------------------------------------ */
+const ProtectedDepartmentRoute = lazy(() =>
+  import('./components/auth/ProtectedRoute').then((m) => ({ default: m.ProtectedDepartmentRoute }))
+);
+const ProtectedAdminRoute = lazy(() =>
+  import('./components/auth/ProtectedRoute').then((m) => ({ default: m.ProtectedAdminRoute }))
+);
+const UnauthorizedPage = lazy(() =>
+  import('./components/auth/UnauthorizedPage').then((m) => ({ default: m.UnauthorizedPage }))
+);
 
 import './App.css';
 
 function LandingPage() {
+  // Warm the report and tracking chunks while the citizen reads the page.
+  useEffect(prefetchCitizenRoutes, []);
+
   return (
     <div className="app">
       <a href="#main-content" className="skip-link">Skip to content</a>
@@ -212,6 +284,7 @@ export default function App() {
           <Route path="complaints" element={<DepartmentComplaints />} />
           <Route path="complaints/:complaintId" element={<ComplaintDetailView />} />
           <Route path="my-work" element={<MyWorkView />} />
+          <Route path="work-card" element={<WorkCardView />} />
           <Route path="map" element={<DepartmentMap />} />
           <Route path="escalations" element={<DepartmentEscalations />} />
           <Route path="performance" element={<DepartmentPerformance />} />
@@ -233,6 +306,9 @@ export default function App() {
           <Route path="performance" element={<AdminPerformance />} />
           <Route path="initiatives" element={<InitiativeManager />} />
           <Route path="reports" element={<AdminReports />} />
+          <Route path="assets" element={<AdminAssetLedger />} />
+          <Route path="wards" element={<AdminWardReality />} />
+          <Route path="open-data" element={<AdminOpenData />} />
         </Route>
       </Route>
 

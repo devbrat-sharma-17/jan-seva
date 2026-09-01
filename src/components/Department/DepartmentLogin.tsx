@@ -140,7 +140,7 @@ export function DepartmentLogin() {
           </p>
 
           <ul className="deptlogin__aside-list">
-            <li>Triage incoming reports by AI severity and SLA risk</li>
+            <li>Triage incoming reports by assessed severity and SLA risk</li>
             <li>Assign crews, log site progress and file resolution evidence</li>
             <li>Track escalations and your department&rsquo;s performance score</li>
           </ul>

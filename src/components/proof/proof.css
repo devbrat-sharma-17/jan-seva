@@ -1,0 +1,356 @@
+/* ============================================================
+   Proof of Repair — capture integrity surfaces
+   ============================================================
+   Every colour here resolves to a `--proof-*` semantic token, so the
+   three grades cannot disagree between the badge, the capture modal and
+   the citizen's timeline.
+   ============================================================ */
+
+.integrity-badge {
+  display: inline-grid;
+  gap: 0.25rem;
+  padding: 0.3125rem 0.625rem;
+  border-radius: var(--radius-full, 999px);
+  border: 1px solid transparent;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.integrity-badge--sm {
+  font-size: 0.6875rem;
+  padding: 0.1875rem 0.5rem;
+}
+
+.integrity-badge--md {
+  font-size: 0.75rem;
+}
+
+.integrity-badge__row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.integrity-badge__blurb {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.45;
+  opacity: 0.9;
+}
+
+.integrity-badge--verified {
+  background: var(--proof-verified-bg);
+  border-color: var(--proof-verified-border);
+  color: var(--proof-verified-fg);
+}
+
+.integrity-badge--unverified {
+  background: var(--proof-unverified-bg);
+  border-color: var(--proof-unverified-border);
+  color: var(--proof-unverified-fg);
+}
+
+.integrity-badge--disputed {
+  background: var(--proof-disputed-bg);
+  border-color: var(--proof-disputed-border);
+  color: var(--proof-disputed-fg);
+}
+
+/* --- Checklist --- */
+
+.integrity-checklist {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius);
+}
+
+.integrity-checklist__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.integrity-checklist__summary {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+}
+
+.integrity-checklist__list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.integrity-check {
+  display: flex;
+  gap: 0.625rem;
+  align-items: flex-start;
+}
+
+.integrity-check__mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.0625rem;
+  border-radius: var(--radius-full, 999px);
+  font-size: 0.6875rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.integrity-check--pass .integrity-check__mark {
+  background: var(--proof-verified-bg);
+  color: var(--proof-verified-fg);
+}
+
+.integrity-check--fail .integrity-check__mark {
+  background: var(--proof-disputed-bg);
+  color: var(--proof-disputed-fg);
+}
+
+/* An unavailable check is visually distinct from a passed one. It must
+   never be mistaken for a tick — that mistake is the whole reason the
+   `passed: null` state exists. */
+.integrity-check--unknown .integrity-check__mark {
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+}
+
+.integrity-check__body {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.integrity-check__label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.integrity-check__tag {
+  padding: 0.0625rem 0.375rem;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.integrity-check__tag--block {
+  background: var(--proof-disputed-bg);
+  color: var(--proof-disputed-fg);
+}
+
+.integrity-check__detail {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.integrity-checklist__caveat {
+  margin: 0;
+  padding-top: 0.625rem;
+  border-top: 1px dashed var(--color-border);
+  font-size: 0.6875rem;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+/* ------------------------------------------------------------
+   Evidence list inside the resolution modal
+   ------------------------------------------------------------ */
+
+.proof-evidence-list {
+  display: grid;
+  gap: 0.625rem;
+  margin-top: 0.5rem;
+}
+
+.proof-evidence {
+  position: relative;
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.625rem;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius);
+}
+
+.proof-evidence > img {
+  width: 4.5rem;
+  height: 4.5rem;
+  object-fit: cover;
+  border-radius: calc(var(--card-radius) - 0.375rem);
+}
+
+.proof-evidence__meta {
+  display: grid;
+  gap: 0.375rem;
+  justify-items: start;
+  min-width: 0;
+  padding-right: 1.5rem;
+}
+
+.proof-evidence__summary {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.proof-evidence__toggle {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--color-civic-blue);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.proof-evidence__remove {
+  position: absolute;
+  top: 0.375rem;
+  right: 0.375rem;
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full, 999px);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.proof-evidence__checks {
+  grid-column: 1 / -1;
+}
+
+/* --- Capture actions --- */
+
+.proof-capture-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.625rem;
+}
+
+.proof-capture-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--tap-target, 44px);
+  padding: 0 0.875rem;
+  background: var(--color-civic-blue);
+  border: 1px solid var(--color-civic-blue);
+  border-radius: var(--card-radius);
+  color: var(--color-text-inverse);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.proof-capture-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* The storage path is visibly secondary and visibly labelled. It is
+   offered so the refusal can be seen, not so it can be used. */
+.proof-capture-btn--ghost {
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+  border-style: dashed;
+  color: var(--color-text-secondary);
+}
+
+.proof-capture-btn__tag {
+  padding: 0.0625rem 0.375rem;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--proof-unverified-bg);
+  color: var(--proof-unverified-fg);
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ------------------------------------------------------------
+   Citizen-facing proof card
+   ------------------------------------------------------------ */
+
+.proof-card {
+  display: grid;
+  gap: 0.625rem;
+  padding: 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius-lg);
+}
+
+.proof-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.625rem;
+}
+
+.proof-card__title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.proof-card__blurb,
+.proof-card__none,
+.proof-card__locked {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.proof-card__locked {
+  color: var(--color-text-muted);
+}
+
+.proof-card__toggle {
+  justify-self: start;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--color-civic-blue);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.proof-card__checks {
+  display: grid;
+  gap: 0.625rem;
+}

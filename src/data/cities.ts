@@ -49,11 +49,20 @@ export const cities: CityConfig[] = [
         image: '/assets/initiatives/road-repair.jpg',
       },
     ],
+    /**
+     * Municipal programme totals. ILLUSTRATIVE, and labelled as such
+     * wherever they render.
+     *
+     * `resolutionRate` is no longer stored. It used to say 94 while the
+     * same object said 9,830 of 12,480 resolved — which is 79% — so the
+     * page contradicted itself in two adjacent numbers. It is now
+     * DERIVED by getProgrammeStats(), which makes that drift impossible
+     * rather than merely fixed once.
+     */
     statistics: {
       issuesReported: 12480,
       issuesResolved: 9830,
       activeInitiatives: 42,
-      resolutionRate: 94,
     },
     status: 'active',
   },
@@ -76,7 +85,6 @@ export const cities: CityConfig[] = [
       issuesReported: 0,
       issuesResolved: 0,
       activeInitiatives: 0,
-      resolutionRate: 100,
     },
     status: 'coming-soon',
   },
@@ -99,7 +107,6 @@ export const cities: CityConfig[] = [
       issuesReported: 0,
       issuesResolved: 0,
       activeInitiatives: 0,
-      resolutionRate: 100,
     },
     status: 'coming-soon',
   },

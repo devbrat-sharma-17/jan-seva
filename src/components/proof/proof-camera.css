@@ -1,0 +1,163 @@
+/* ============================================================
+   Evidence camera
+   ============================================================
+   Built for a phone held outdoors: a near-black ground so the preview
+   carries the contrast, a shutter target well above the 44px minimum,
+   and no control small enough to need precision from a gloved thumb.
+   ============================================================ */
+
+.proof-camera {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: #05070C;
+  color: var(--slate-0);
+}
+
+.proof-camera__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  padding-top: max(0.875rem, env(safe-area-inset-top));
+}
+
+.proof-camera__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--proof-verified-accent);
+}
+
+.proof-camera__close {
+  display: grid;
+  place-items: center;
+  width: var(--tap-target, 44px);
+  height: var(--tap-target, 44px);
+  background: rgba(255, 255, 255, 0.08);
+  border: 0;
+  border-radius: var(--radius-full, 999px);
+  color: var(--slate-0);
+  cursor: pointer;
+}
+
+.proof-camera__viewport {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: #000;
+}
+
+.proof-camera__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.proof-camera__reticle {
+  position: absolute;
+  inset: 12% 8%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 1rem;
+  pointer-events: none;
+}
+
+.proof-camera__hint {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  margin: 0;
+  padding: 0.625rem 0.75rem;
+  background: rgba(5, 7, 12, 0.72);
+  border-radius: var(--card-radius);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.proof-camera__flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  animation: proof-flash 220ms ease-out forwards;
+}
+
+@keyframes proof-flash {
+  from { opacity: 0.9; }
+  to { opacity: 0; }
+}
+
+.proof-camera__error {
+  max-width: 30ch;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.proof-camera__error p {
+  margin: 0 0 0.625rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.proof-camera__error-note {
+  font-size: 0.8125rem !important;
+  color: var(--slate-400);
+}
+
+.proof-camera__controls {
+  display: grid;
+  justify-items: center;
+  gap: 0.875rem;
+  padding: 1rem;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.proof-camera__binding {
+  max-width: 40ch;
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--slate-400);
+}
+
+.proof-camera__shutter {
+  display: grid;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  background: none;
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--radius-full, 999px);
+  cursor: pointer;
+}
+
+.proof-camera__shutter:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.proof-camera__shutter-inner {
+  width: 3.5rem;
+  height: 3.5rem;
+  background: var(--slate-0);
+  border-radius: var(--radius-full, 999px);
+  transition: transform 120ms var(--ease-cinematic);
+}
+
+.proof-camera__shutter:active .proof-camera__shutter-inner {
+  transform: scale(0.88);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proof-camera__flash { animation: none; opacity: 0; }
+  .proof-camera__shutter-inner { transition: none; }
+}

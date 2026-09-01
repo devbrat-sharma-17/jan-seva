@@ -28,6 +28,8 @@ import { SkeletonCard } from '../../portal/Skeletons';
 import { AssignmentModal } from './AssignmentModal';
 import { ProgressUpdateModal } from './ProgressUpdateModal';
 import { ResolutionModal } from './ResolutionModal';
+import { RepeatFailureBanner } from './RepeatFailureBanner';
+import type { CaptureIntegrity } from '../../../types/proof';
 import {
   SlaPanel,
   PriorityReasonPanel,
@@ -175,10 +177,14 @@ export function ComplaintDetailView() {
     );
   };
 
-  const handleResolutionSubmit = async (note: string, evidencePhotos: string[]) => {
+  const handleResolutionSubmit = async (
+    note: string,
+    evidencePhotos: string[],
+    integrity: CaptureIntegrity[]
+  ) => {
     await mutation.run(
       'resolve',
-      () => submitDepartmentResolution(complaint.id, note, evidencePhotos, version),
+      () => submitDepartmentResolution(complaint.id, note, evidencePhotos, version, integrity),
       { successMessage: 'Resolution submitted. Awaiting citizen verification.' }
     );
   };
@@ -253,6 +259,11 @@ export function ComplaintDetailView() {
           </button>
         </div>
       )}
+
+      {/* Before anything else on the page: has this failed before? An
+          officer dispatching a crew needs that answer first, not after
+          scrolling past the timeline. */}
+      <RepeatFailureBanner complaint={complaint} />
 
       <div className="dept-detail__grid">
         {/* ================= MAIN COLUMN ================= */}

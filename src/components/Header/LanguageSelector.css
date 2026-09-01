@@ -40,3 +40,74 @@
   color: var(--color-text-muted);
   flex-shrink: 0;
 }
+
+/* ------------------------------------------------------------
+   Language menu
+   ------------------------------------------------------------ */
+.language-selector-root {
+  position: relative;
+}
+
+.language-selector__chevron {
+  transition: transform 160ms var(--ease-cinematic);
+}
+
+.language-selector__chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.language-selector__menu {
+  position: absolute;
+  top: calc(100% + 0.375rem);
+  right: 0;
+  z-index: 60;
+  min-width: 10rem;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow-lg, 0 12px 32px rgba(16, 24, 40, 0.14));
+}
+
+.language-selector__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  /* Full tap target: a language switch on a shared handset is used with
+     a thumb, not a cursor. */
+  min-height: var(--tap-target, 44px);
+  padding: 0.5rem 0.625rem;
+  background: none;
+  border: 0;
+  border-radius: calc(var(--card-radius) - 0.25rem);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.language-selector__option:hover,
+.language-selector__option:focus-visible {
+  background: var(--color-surface-sunken);
+}
+
+.language-selector__option.is-active {
+  background: var(--color-civic-blue-bg);
+  color: var(--color-civic-blue-dark);
+  font-weight: 700;
+}
+
+.language-selector__option-native {
+  font-size: 0.9375rem;
+}
+
+.language-selector__option-code {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}

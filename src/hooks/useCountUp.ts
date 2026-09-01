@@ -23,6 +23,17 @@ interface UseCinematicStatsOptions {
   duration?: number;
   /** Stagger delay in ms between items. Default: 0. */
   staggerMs?: number;
+  /**
+   * Hold the animation until the figures are real. Default: true.
+   *
+   * The animation runs ONCE. Where the targets arrive asynchronously —
+   * the Hero's trust bar reads the complaint store on a deferred import
+   * — firing before they land would count up to zero and then never run
+   * again, permanently displaying a wrong number. Passing `false` until
+   * the data is ready arms the observer only when there is something
+   * true to animate towards.
+   */
+  enabled?: boolean;
 }
 
 /**
@@ -47,6 +58,7 @@ export function useCinematicStats<T extends HTMLElement = HTMLElement>(
     rootMargin = '0px',
     duration: globalDuration = 1800,
     staggerMs = 0,
+    enabled = true,
   } = options;
 
   const containerRef = useRef<T>(null);
@@ -136,7 +148,7 @@ export function useCinematicStats<T extends HTMLElement = HTMLElement>(
 
   useEffect(() => {
     const el = containerRef.current;
-    if (!el || hasAnimatedRef.current) return;
+    if (!el || hasAnimatedRef.current || !enabled) return;
 
     // Check if reduced motion is preferred
     const isReduced =
@@ -166,7 +178,10 @@ export function useCinematicStats<T extends HTMLElement = HTMLElement>(
       observer.disconnect();
       animationFramesRef.current.forEach(cancelAnimationFrame);
     };
-  }, [threshold, rootMargin, animateStats]);
+    // `enabled` is a dependency so that flipping it re-runs this and arms
+    // the observer. If the bar is already on screen by then,
+    // IntersectionObserver fires on `observe`, so nothing is missed.
+  }, [threshold, rootMargin, animateStats, enabled]);
 
   return {
     containerRef,

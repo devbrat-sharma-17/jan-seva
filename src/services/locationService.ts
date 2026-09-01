@@ -58,7 +58,8 @@ export function getLocationAccuracyLabel(accuracyMeters?: number): {
 }
 
 /**
- * Attempts real browser GPS geolocation with graceful fallback.
+ * Attempts real browser GPS geolocation with graceful fallback, 
+ * using OpenStreetMap Nominatim API for reverse geocoding.
  */
 export async function detectCurrentLocation(
   cityName: string = 'Gwalior',
@@ -69,72 +70,7 @@ export async function detectCurrentLocation(
     const fallbackLng = 78.2053;
     const detectedAt = new Date().toISOString();
 
-    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
-      const timeoutId = setTimeout(() => {
-        resolve({
-          gps: {
-            latitude: fallbackLat,
-            longitude: fallbackLng,
-            accuracy: 12,
-            detectedAt,
-            address: `Near City Centre, ${cityName}`,
-            locality: 'City Centre',
-            city: cityName,
-            state: stateName,
-          },
-          address: `Near City Centre, ${cityName}`,
-          locality: 'City Centre',
-          city: cityName,
-          state: stateName,
-          pincode: '474011',
-        });
-      }, 3500);
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          clearTimeout(timeoutId);
-          const { latitude, longitude, accuracy } = position.coords;
-          resolve({
-            gps: {
-              latitude,
-              longitude,
-              accuracy: accuracy || 10,
-              detectedAt,
-              address: `Near City Centre, ${cityName}`,
-              locality: 'City Centre',
-              city: cityName,
-              state: stateName,
-            },
-            address: `Near City Centre, ${cityName}`,
-            locality: 'City Centre',
-            city: cityName,
-            state: stateName,
-            pincode: '474011',
-          });
-        },
-        (_error) => {
-          clearTimeout(timeoutId);
-          resolve({
-            gps: {
-              latitude: fallbackLat,
-              longitude: fallbackLng,
-              accuracy: 15,
-              detectedAt,
-              address: `Near City Centre, ${cityName}`,
-              locality: 'City Centre',
-              city: cityName,
-              state: stateName,
-            },
-            address: `Near City Centre, ${cityName}`,
-            locality: 'City Centre',
-            city: cityName,
-            state: stateName,
-            pincode: '474011',
-          });
-        },
-        { enableHighAccuracy: true, timeout: 3500, maximumAge: 10000 }
-      );
-    } else {
+    const resolveWithFallback = () => {
       resolve({
         gps: {
           latitude: fallbackLat,
@@ -152,56 +88,131 @@ export async function detectCurrentLocation(
         state: stateName,
         pincode: '474011',
       });
+    };
+
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      const timeoutId = setTimeout(() => resolveWithFallback(), 5000);
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          clearTimeout(timeoutId);
+          const { latitude, longitude, accuracy } = position.coords;
+          
+          try {
+            // Use Nominatim for reverse geocoding
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
+            const data = await res.json();
+            
+            const locality = data.address?.suburb || data.address?.neighbourhood || data.address?.road || 'Unknown Locality';
+            const city = data.address?.city || data.address?.county || cityName;
+            const state = data.address?.state || stateName;
+            const pincode = data.address?.postcode || 'Unknown';
+            const address = data.display_name || `${locality}, ${city}`;
+
+            resolve({
+              gps: {
+                latitude,
+                longitude,
+                accuracy: accuracy || 10,
+                detectedAt,
+                address,
+                locality,
+                city,
+                state,
+              },
+              address,
+              locality,
+              city,
+              state,
+              pincode,
+            });
+          } catch (e) {
+            // Fallback if API fails but we have GPS coordinates
+            resolve({
+              gps: {
+                latitude,
+                longitude,
+                accuracy: accuracy || 10,
+                detectedAt,
+                address: `Detected Location, ${cityName}`,
+                locality: 'Detected Locality',
+                city: cityName,
+                state: stateName,
+              },
+              address: `Detected Location, ${cityName}`,
+              locality: 'Detected Locality',
+              city: cityName,
+              state: stateName,
+              pincode: 'Unknown',
+            });
+          }
+        },
+        (_error) => {
+          clearTimeout(timeoutId);
+          resolveWithFallback();
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 }
+      );
+    } else {
+      resolveWithFallback();
     }
   });
 }
 
 /**
- * Matches coordinates to nearest known Gwalior locality.
+ * Matches coordinates to real address using OpenStreetMap API.
  */
-export async function reverseGeocodeMock(
+export async function reverseGeocode(
   lat: number,
   lng: number,
   cityName: string = 'Gwalior',
   stateName: string = 'Madhya Pradesh'
 ): Promise<ConfirmedLocation> {
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+    const data = await res.json();
+    
+    const locality = data.address?.suburb || data.address?.neighbourhood || data.address?.road || 'Unknown Locality';
+    const city = data.address?.city || data.address?.county || cityName;
+    const state = data.address?.state || stateName;
+    const pincode = data.address?.postcode || '474001';
+    const address = data.display_name || `${locality}, ${city}`;
 
-  // Find closest locality
-  let closest = GWALIOR_LOCALITIES[0];
-  let minDistance = Infinity;
-
-  for (const loc of GWALIOR_LOCALITIES) {
-    const dist = Math.sqrt(Math.pow(loc.lat - lat, 2) + Math.pow(loc.lng - lng, 2));
-    if (dist < minDistance) {
-      minDistance = dist;
-      closest = loc;
-    }
+    return {
+      latitude: lat,
+      longitude: lng,
+      address,
+      locality,
+      city,
+      state,
+      pincode,
+      source: 'manual',
+      confirmedAt: new Date().toISOString(),
+    };
+  } catch (e) {
+    return {
+      latitude: lat,
+      longitude: lng,
+      address: `Selected Location, ${cityName}`,
+      locality: 'Selected Locality',
+      city: cityName,
+      state: stateName,
+      pincode: '474001',
+      source: 'manual',
+      confirmedAt: new Date().toISOString(),
+    };
   }
-
-  return {
-    latitude: lat,
-    longitude: lng,
-    address: closest.address,
-    locality: closest.locality,
-    city: cityName,
-    state: stateName,
-    pincode: '474001',
-    source: 'manual',
-    confirmedAt: new Date().toISOString(),
-  };
 }
 
 /**
- * Searches localities by name or landmark in Gwalior.
+ * Searches localities using OpenStreetMap Nominatim Search API.
  */
 export async function searchLocalities(
   query: string,
   cityName: string = 'Gwalior',
   stateName: string = 'Madhya Pradesh'
 ): Promise<ConfirmedLocation[]> {
-  await new Promise((resolve) => setTimeout(resolve, 150));
-  const q = query.toLowerCase().trim();
+  const q = query.trim();
 
   if (!q) {
     return GWALIOR_LOCALITIES.slice(0, 6).map((item) => ({
@@ -216,38 +227,67 @@ export async function searchLocalities(
     }));
   }
 
-  const matches = GWALIOR_LOCALITIES.filter(
-    (item) =>
-      item.locality.toLowerCase().includes(q) ||
-      item.address.toLowerCase().includes(q) ||
-      item.landmark.toLowerCase().includes(q)
-  );
+  try {
+    // Append city to make search more relevant
+    const searchQuery = encodeURIComponent(`${q}, ${cityName}`);
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${searchQuery}&addressdetails=1&limit=5`);
+    const data = await res.json();
 
-  if (matches.length === 0) {
-    return [
-      {
-        latitude: 26.2183,
-        longitude: 78.1828,
-        address: `${query}, ${cityName}`,
-        locality: query,
-        city: cityName,
-        state: stateName,
+    if (!data || data.length === 0) {
+      // Fallback to offline matches if API returns nothing
+      const matches = GWALIOR_LOCALITIES.filter(
+        (item) =>
+          item.locality.toLowerCase().includes(q.toLowerCase()) ||
+          item.address.toLowerCase().includes(q.toLowerCase()) ||
+          item.landmark.toLowerCase().includes(q.toLowerCase())
+      );
+      
+      if (matches.length > 0) {
+        return matches.map((item) => ({
+          latitude: item.lat,
+          longitude: item.lng,
+          address: item.address,
+          locality: item.locality,
+          city: cityName,
+          state: stateName,
+          source: 'manual',
+          confirmedAt: new Date().toISOString(),
+        }));
+      }
+
+      return [
+        {
+          latitude: 26.2183,
+          longitude: 78.1828,
+          address: `${query}, ${cityName}`,
+          locality: query,
+          city: cityName,
+          state: stateName,
+          source: 'manual',
+          confirmedAt: new Date().toISOString(),
+        },
+      ];
+    }
+
+    return data.map((item: any) => {
+      const locality = item.address?.suburb || item.address?.neighbourhood || item.address?.road || q;
+      const city = item.address?.city || item.address?.county || cityName;
+      const state = item.address?.state || stateName;
+      
+      return {
+        latitude: parseFloat(item.lat),
+        longitude: parseFloat(item.lon),
+        address: item.display_name,
+        locality,
+        city,
+        state,
         source: 'manual',
         confirmedAt: new Date().toISOString(),
-      },
-    ];
+      };
+    });
+  } catch (e) {
+    return [];
   }
-
-  return matches.map((item) => ({
-    latitude: item.lat,
-    longitude: item.lng,
-    address: item.address,
-    locality: item.locality,
-    city: cityName,
-    state: stateName,
-    source: 'manual',
-    confirmedAt: new Date().toISOString(),
-  }));
 }
 
 /**
