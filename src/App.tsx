@@ -171,6 +171,7 @@ const UnauthorizedPage = lazy(() =>
   import('./components/auth/UnauthorizedPage').then((m) => ({ default: m.UnauthorizedPage }))
 );
 
+import { Analytics } from '@vercel/analytics/react';
 import './App.css';
 
 function LandingPage() {
@@ -265,6 +266,7 @@ function RouteFallback() {
 
 export default function App() {
   return (
+    <>
     <Suspense fallback={<RouteFallback />}>
     <Routes>
       <Route path="/" element={<LandingPage />} />
@@ -339,5 +341,7 @@ export default function App() {
       />
     </Routes>
     </Suspense>
+    <Analytics />
+    </>
   );
 }
