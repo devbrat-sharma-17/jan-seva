@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { Header } from './components/Header/Header';
 import { Hero } from './components/Hero/Hero';
 import { PortalAccess } from './components/PortalAccess/PortalAccess';
@@ -265,9 +266,10 @@ function RouteFallback() {
 
 export default function App() {
   return (
-    <Suspense fallback={<RouteFallback />}>
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
+    <>
+      <Suspense fallback={<RouteFallback />}>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
       <Route path="/report" element={<ReportWizard />} />
       <Route path="/report-issue" element={<ReportWizard />} />
       <Route path="/track" element={<TrackComplaint />} />
@@ -339,5 +341,7 @@ export default function App() {
       />
     </Routes>
     </Suspense>
+    <Analytics />
+    </>
   );
 }

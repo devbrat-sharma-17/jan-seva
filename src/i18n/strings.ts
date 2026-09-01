@@ -154,9 +154,29 @@ export const STRINGS: Record<Locale, Record<string, string>> = {
     'report.desc.suggestions': 'Quick Suggestions',
     'report.voice.start': 'Speak instead',
     'report.voice.listening': 'Listening — speak now',
+    'report.voice.requesting': 'Waiting for microphone permission',
     'report.voice.stop': 'Stop',
-    'report.voice.unsupported': 'Voice input is not available in this browser.',
-    'report.voice.note': 'You can speak in Hindi or English. Either is understood.',
+    'report.voice.unsupported': "Voice input isn't supported in this browser.",
+    // Dictation recognises the language the page is in, and only that
+    // one. Promising that "Hindi or English, either is understood" was a
+    // claim the browser's recogniser does not make.
+    'report.voice.note': 'Dictation follows the page language — currently English. Switch to हिन्दी to speak in Hindi.',
+    'report.voice.truncated': 'The description is now at its 500-character limit, so the rest was not added.',
+
+    // Voice failures. One message per cause: a recogniser that cannot
+    // reach its service is NOT the same as a phone with no connection,
+    // and telling a citizen on working mobile data that they need
+    // internet sends them to fix something that is not broken.
+    'report.voice.error.unsupported': "Voice input isn't supported in this browser. You can still type your complaint.",
+    'report.voice.error.insecure': 'Voice input needs a secure (https) connection. You can still type your complaint.',
+    'report.voice.error.permission': 'Microphone permission was denied. Allow microphone access or type your complaint.',
+    'report.voice.error.service': 'Voice recognition is temporarily unavailable. Please try again or type your complaint.',
+    'report.voice.error.network': "Voice recognition couldn't connect. Please check your connection and try again.",
+    'report.voice.error.offline': 'You are offline, so voice input cannot run. You can still type your complaint.',
+    'report.voice.error.noSpeech': 'No speech was detected. Please try speaking again.',
+    'report.voice.error.audioCapture': "Microphone couldn't be accessed. Check your microphone permission and try again.",
+    'report.voice.error.language': 'This browser cannot recognise the selected language. You can still type your complaint.',
+    'report.voice.error.unknown': "Voice input couldn't start. You can still type your complaint.",
 
     // Step 3: Identity
     'report.identity.title': "Let's verify you",
@@ -373,9 +393,23 @@ export const STRINGS: Record<Locale, Record<string, string>> = {
     'report.desc.suggestions': 'सुझाव',
     'report.voice.start': 'बोलकर बताएं',
     'report.voice.listening': 'सुन रहे हैं — अब बोलिए',
+    'report.voice.requesting': 'माइक्रोफ़ोन की अनुमति का इंतज़ार है',
     'report.voice.stop': 'रोकें',
     'report.voice.unsupported': 'इस ब्राउज़र में आवाज़ से लिखने की सुविधा नहीं है।',
-    'report.voice.note': 'हिंदी या अंग्रेज़ी में बोल सकते हैं — दोनों समझी जाती हैं।',
+    'report.voice.note': 'आवाज़ पहचान पेज की भाषा में होती है — अभी हिंदी। अंग्रेज़ी में बोलने के लिए भाषा बदलें।',
+    'report.voice.truncated': 'विवरण 500 अक्षरों की सीमा तक पहुँच गया है, इसलिए बाकी हिस्सा नहीं जोड़ा गया।',
+
+    // आवाज़ से जुड़ी गड़बड़ियाँ — हर कारण के लिए अलग संदेश।
+    'report.voice.error.unsupported': 'इस ब्राउज़र में आवाज़ से लिखने की सुविधा नहीं है। आप टाइप करके शिकायत दर्ज कर सकते हैं।',
+    'report.voice.error.insecure': 'आवाज़ इनपुट के लिए सुरक्षित (https) कनेक्शन चाहिए। आप टाइप करके शिकायत दर्ज कर सकते हैं।',
+    'report.voice.error.permission': 'माइक्रोफ़ोन की अनुमति नहीं मिली। अनुमति दें या टाइप करके शिकायत दर्ज करें।',
+    'report.voice.error.service': 'आवाज़ पहचान सेवा फ़िलहाल उपलब्ध नहीं है। दोबारा कोशिश करें या टाइप करके बताएं।',
+    'report.voice.error.network': 'आवाज़ पहचान सेवा से संपर्क नहीं हो सका। कनेक्शन जाँचकर दोबारा कोशिश करें।',
+    'report.voice.error.offline': 'आप ऑफ़लाइन हैं, इसलिए आवाज़ इनपुट काम नहीं करेगा। आप टाइप करके शिकायत दर्ज कर सकते हैं।',
+    'report.voice.error.noSpeech': 'कोई आवाज़ सुनाई नहीं दी। कृपया दोबारा बोलकर देखें।',
+    'report.voice.error.audioCapture': 'माइक्रोफ़ोन तक पहुँच नहीं हो सकी। माइक्रोफ़ोन की अनुमति जाँचकर दोबारा कोशिश करें।',
+    'report.voice.error.language': 'यह ब्राउज़र चुनी गई भाषा नहीं पहचान पा रहा। आप टाइप करके शिकायत दर्ज कर सकते हैं।',
+    'report.voice.error.unknown': 'आवाज़ इनपुट शुरू नहीं हो सका। आप टाइप करके शिकायत दर्ज कर सकते हैं।',
 
     // Step 3: Identity
     'report.identity.title': 'पहचान सत्यापित करें',

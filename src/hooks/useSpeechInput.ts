@@ -2,59 +2,56 @@
 // useSpeechInput — dictate a complaint instead of typing it
 // ============================================================
 //
-// Built on the browser's own SpeechRecognition, which needs no key, no
-// backend and no bundle. With the locale set to Hindi it dictates in
-// Hindi, and the existing classifier's keyword list is already
-// Hindi/Hinglish-aware, so a dictated Hindi complaint routes correctly
-// without a translation step.
+// React binding for `voiceInputService`. Everything browser-specific —
+// the vendor prefix, the error vocabulary, the duplicate-result rules —
+// lives in the service; this hook owns only the state machine the button
+// renders from, and the guarantee that it always comes back to idle.
 //
-//   THIS IS ACCESSIBILITY, NOT INNOVATION.
-//   CPGRAMS NextGen already has voice-to-text and multilingual filing;
-//   DARPG launched the Samadhan Didi voice chatbot in May 2026; Bhashini
-//   has run native-language complaint registration in eleven languages.
-//   The honest framing is that typing a paragraph on a phone keyboard is
-//   the single biggest barrier to filing, and this removes it.
+// The states, and what each one means to the citizen:
 //
-// The production path is Bhashini's ASR — India's own language DPI —
-// which covers far more languages and far more accents than a browser
-// engine does. This is the zero-backend stand-in for it.
+//   idle                  nothing is listening. The mic is closed.
+//   requesting-permission started, waiting for the browser's prompt.
+//   listening             the microphone is open.
+//   processing            stop was asked for; final results still landing.
+//   success               a phrase was captured; settles back to idle.
+//   error                 see `errorCode`. Tapping the button retries.
+//
+// `error` is a resting state the citizen can act on, not a dead end:
+// every recoverable code leaves the button live, so retrying is a tap
+// rather than a page reload.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { speechLocaleTag } from '../services/i18nService';
+import {
+  isSupported as isVoiceSupported,
+  startVoiceSession,
+  type VoiceErrorCode,
+  type VoiceSession,
+} from '../services/voiceInputService';
 
-/** Minimal shape of the vendor-prefixed API. */
-interface SpeechRecognitionLike {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  start(): void;
-  stop(): void;
-  abort(): void;
-  onresult: ((event: { resultIndex: number; results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null;
-  onerror: ((event: { error: string }) => void) | null;
-  onend: (() => void) | null;
-}
-
-type RecognitionCtor = new () => SpeechRecognitionLike;
-
-function getRecognitionCtor(): RecognitionCtor | null {
-  if (typeof window === 'undefined') return null;
-  const w = window as unknown as {
-    SpeechRecognition?: RecognitionCtor;
-    webkitSpeechRecognition?: RecognitionCtor;
-  };
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
-}
+export type VoiceStatus =
+  | 'idle'
+  | 'requesting-permission'
+  | 'listening'
+  | 'processing'
+  | 'success'
+  | 'error';
 
 export interface UseSpeechInputResult {
   supported: boolean;
+  status: VoiceStatus;
+  /** True while the microphone is open OR the prompt is up. */
   listening: boolean;
   /** Words recognised but not yet finalised, for live feedback. */
   interim: string;
-  error: string | null;
+  /** Null unless `status === 'error'`. The caller maps it to copy. */
+  errorCode: VoiceErrorCode | null;
   start: () => void;
   stop: () => void;
 }
+
+/** How long a `success` flash rests before settling back to idle. */
+const SUCCESS_SETTLE_MS = 1200;
 
 /**
  * @param onTranscript Called with each FINALISED phrase. The caller
@@ -64,90 +61,113 @@ export interface UseSpeechInputResult {
  *                     supplement rather than an all-or-nothing mode.
  */
 export function useSpeechInput(onTranscript: (text: string) => void): UseSpeechInputResult {
-  const [listening, setListening] = useState(false);
+  const [status, setStatus] = useState<VoiceStatus>('idle');
   const [interim, setInterim] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const [errorCode, setErrorCode] = useState<VoiceErrorCode | null>(null);
+
+  const sessionRef = useRef<VoiceSession | null>(null);
   const onTranscriptRef = useRef(onTranscript);
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Whether this session produced anything, so `onEnd` knows whether it
+  // ended in success or merely ended.
+  const capturedRef = useRef(false);
+  // Set once an error is reported, so `onEnd` does not overwrite the
+  // error state with a bare idle and lose the message.
+  const erroredRef = useRef(false);
 
   useEffect(() => {
     onTranscriptRef.current = onTranscript;
   }, [onTranscript]);
 
-  const supported = getRecognitionCtor() !== null;
+  const supported = isVoiceSupported();
+
+  const clearSettleTimer = useCallback(() => {
+    if (settleTimerRef.current !== null) {
+      clearTimeout(settleTimerRef.current);
+      settleTimerRef.current = null;
+    }
+  }, []);
 
   const stop = useCallback(() => {
-    recognitionRef.current?.stop();
-    recognitionRef.current = null;
-    setListening(false);
-    setInterim('');
+    const session = sessionRef.current;
+    if (!session) return;
+    // Not idle yet: results already spoken are still on their way, and
+    // claiming idle before `onEnd` is how a phrase gets dropped.
+    setStatus('processing');
+    session.stop();
   }, []);
 
   const start = useCallback(() => {
-    const Ctor = getRecognitionCtor();
-    if (!Ctor) {
-      setError('Voice input is not available in this browser.');
-      return;
-    }
+    // A second tap while a session is live is a stop, never a second
+    // recogniser — two open sessions is what makes Chrome throw and the
+    // button stick.
+    if (sessionRef.current) return;
 
-    setError(null);
-    const recognition = new Ctor();
-    recognition.lang = speechLocaleTag();
-    recognition.continuous = true;
-    recognition.interimResults = true;
+    clearSettleTimer();
+    capturedRef.current = false;
+    erroredRef.current = false;
+    setErrorCode(null);
+    setInterim('');
+    // The browser may be about to prompt. Saying "listening" before the
+    // microphone is open would be a claim we cannot make yet.
+    setStatus('requesting-permission');
 
-    recognition.onresult = (event) => {
-      let finalText = '';
-      let pending = '';
+    const session = startVoiceSession({
+      lang: speechLocaleTag(),
+      handlers: {
+        onListening: () => setStatus('listening'),
+        onInterim: (text) => setInterim(text),
+        onFinal: (text) => {
+          capturedRef.current = true;
+          onTranscriptRef.current(text);
+        },
+        onError: (code) => {
+          erroredRef.current = true;
+          setErrorCode(code);
+          setStatus('error');
+        },
+        onEnd: () => {
+          sessionRef.current = null;
+          setInterim('');
+          if (erroredRef.current) return; // Keep the error on screen.
+          if (!capturedRef.current) {
+            setStatus('idle');
+            return;
+          }
+          setStatus('success');
+          settleTimerRef.current = setTimeout(() => {
+            settleTimerRef.current = null;
+            setStatus('idle');
+          }, SUCCESS_SETTLE_MS);
+        },
+      },
+    });
 
-      for (let i = event.resultIndex; i < event.results.length; i += 1) {
-        const result = event.results[i];
-        const transcript = result[0]?.transcript ?? '';
-        if (result.isFinal) finalText += transcript;
-        else pending += transcript;
-      }
-
-      setInterim(pending);
-      if (finalText.trim()) onTranscriptRef.current(finalText.trim());
-    };
-
-    recognition.onerror = (event) => {
-      // `no-speech` fires constantly on a quiet street and is not worth
-      // reporting; a permission denial is, because the citizen has to
-      // do something about it.
-      if (event.error === 'no-speech' || event.error === 'aborted') return;
-      
-      let errorMessage = 'Voice input stopped unexpectedly. You can still type your complaint.';
-      if (event.error === 'not-allowed') {
-        errorMessage = 'Microphone access was refused. You can still type your complaint.';
-      } else if (event.error === 'network') {
-        errorMessage = 'Voice input requires an internet connection. You can still type your complaint.';
-      } else if (event.error === 'audio-capture') {
-        errorMessage = 'No microphone was found or it is being used by another app.';
-      }
-
-      setError(errorMessage);
-      setListening(false);
-    };
-
-    recognition.onend = () => {
-      setListening(false);
-      setInterim('');
-    };
-
-    recognitionRef.current = recognition;
-    try {
-      recognition.start();
-      setListening(true);
-    } catch {
-      setError('Voice input could not be started.');
-    }
-  }, []);
+    // Null means the session never started and `onError`/`onEnd` have
+    // already run synchronously — the state is settled, nothing to hold.
+    sessionRef.current = session;
+  }, [clearSettleTimer]);
 
   // A recogniser left running after the step unmounts keeps the
   // microphone indicator on, which reads as the app listening in the
   // background. It is not, and it must not look like it is.
-  useEffect(() => () => recognitionRef.current?.abort(), []);
+  useEffect(
+    () => () => {
+      if (settleTimerRef.current !== null) clearTimeout(settleTimerRef.current);
+      sessionRef.current?.abort();
+      sessionRef.current = null;
+    },
+    []
+  );
 
-  return { supported, listening, interim, error, start, stop };
+  return {
+    supported,
+    status,
+    listening: status === 'listening' || status === 'requesting-permission',
+    interim,
+    errorCode: status === 'error' ? errorCode : null,
+    start,
+    stop,
+  };
 }

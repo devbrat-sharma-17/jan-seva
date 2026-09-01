@@ -1046,6 +1046,12 @@ const run = async () => {
   const { runScreeningSuite } = await import('./screeningSuite');
   await runScreeningSuite();
 
+  // Voice input: the error vocabulary, the transcript rules and the
+  // guarantee that a session always ends. Same reasoning as above — it
+  // is a suite with its own fake recogniser and does not belong inline.
+  const { runVoiceSuite } = await import('./voiceSuite');
+  await runVoiceSuite();
+
   report();
 };
 
