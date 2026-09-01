@@ -136,4 +136,12 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   note_added: 'Note added',
   complaint_viewed: 'Record opened',
   report_generated: 'Report generated',
+  screening_case_opened: 'Flagged for review',
+  screening_case_claimed: 'Review started',
+  screening_unavailable: 'Screening unavailable',
+  submission_blocked_pre_submit: 'Submission blocked before filing',
+  moderation_decision: 'Moderation decision',
+  citizen_warning_recorded: 'Citizen warning recorded',
+  abuse_restriction_applied: 'Restriction applied',
+  abuse_restriction_cleared: 'Restriction lifted',
 };

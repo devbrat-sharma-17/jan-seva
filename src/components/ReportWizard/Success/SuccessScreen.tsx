@@ -3,6 +3,7 @@ import type { Complaint } from '../../../types';
 import type { AIAnalysis } from '../../../types/report';
 import { useCityConfig } from '../../../hooks/useCityConfig';
 import { useToast } from '../../ui/Toast';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { StatusPill } from '../../TrackComplaint/StatusPill';
 import { formatStamp } from '../../../services/timeService';
 import './SuccessScreen.css';
@@ -15,12 +16,9 @@ interface SuccessScreenProps {
 export function SuccessScreen({ complaint, analysis }: SuccessScreenProps) {
   const navigate = useNavigate();
   const city = useCityConfig();
+  const { t } = useTranslation();
   const { showToast } = useToast();
 
-  // Reaching this screen without a stored complaint means the write failed.
-  // The old fallback invented the ticket number "JS-GWL-2026-001284", which
-  // sent the citizen to a tracking page for a complaint that does not exist
-  // — and, worse, is a real seeded ticket belonging to someone else.
   if (!complaint) {
     return (
       <div className="success-screen">
@@ -38,14 +36,14 @@ export function SuccessScreen({ complaint, analysis }: SuccessScreenProps) {
             className="report-btn report-btn--primary"
             onClick={() => navigate(0)}
           >
-            TRY AGAIN
+            {t('action.tryAgain')}
           </button>
           <button
             type="button"
             className="report-btn report-btn--secondary"
             onClick={() => navigate('/')}
           >
-            BACK TO HOME
+            {t('success.home')}
           </button>
         </div>
       </div>
@@ -57,9 +55,9 @@ export function SuccessScreen({ complaint, analysis }: SuccessScreenProps) {
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(complaint.id);
-      showToast('Ticket ID copied.', 'success');
+      showToast(t('success.copied'), 'success');
     } catch {
-      showToast(`Your ticket ID is ${complaint.id}`, 'warning');
+      showToast(`${t('success.ticketLabel')} ${complaint.id}`, 'warning');
     }
   };
 
@@ -82,33 +80,18 @@ export function SuccessScreen({ complaint, analysis }: SuccessScreenProps) {
 
       <div className="success-heading">
         <h2 className="success-title">
-          {isJoinedToExisting ? 'Confirmation added' : 'Report submitted'}
+          {isJoinedToExisting ? t('success.titleJoined') : t('success.title')}
         </h2>
         <p className="success-subtitle">
-          {/* ------------------------------------------------------
-              This used to say the report had "raised the priority" of
-              an existing complaint. It had not: `priorityScore` was
-              written once at submission and never touched again, so
-              the screen was telling citizens something untrue about
-              what their report had achieved.
-
-              Two things changed. Priority is now genuinely recomputed
-              from independence-weighted spread, and — more importantly
-              — the citizen now keeps their OWN ticket rather than
-              being folded into a stranger's. The copy says what
-              actually happened.
-              ------------------------------------------------------ */}
           {isJoinedToExisting
-            ? `Others had already reported this issue, so it is being worked as one job. You keep your own ticket and your own say in whether it is fixed — it cannot be closed on your behalf.`
-            : `Thank you for helping make ${city.name} a cleaner and safer city.`}
+            ? t('success.subtitleJoined')
+            : t('success.subtitle').replace('{city}', city.name)}
         </p>
       </div>
 
       <div className="success-ticket-card">
         <div className="success-ticket-header">
-          <span className="success-ticket-label">Complaint ticket</span>
-          {/* Reflects the complaint's real status — a joined report inherits
-              the primary's, which is rarely "pending". */}
+          <span className="success-ticket-label">{t('success.ticketLabel')}</span>
           <StatusPill status={complaint.status} />
         </div>
 
@@ -118,20 +101,20 @@ export function SuccessScreen({ complaint, analysis }: SuccessScreenProps) {
             type="button"
             className="success-copy-btn"
             onClick={copyToClipboard}
-            aria-label="Copy complaint ID"
+            aria-label={t('success.copyBtn')}
           >
-            Copy ID
+            {t('success.copyBtn')}
           </button>
         </div>
 
         <div className="success-info-list">
           <div className="success-info-item">
-            <span>Filed on</span>
+            <span>{t('success.filedOn')}</span>
             <span className="success-info-val">{formatStamp(complaint.createdAt)}</span>
           </div>
 
           <div className="success-info-item">
-            <span>Location</span>
+            <span>{t('success.location')}</span>
             <span className="success-info-val">
               {complaint.location?.address ||
                 `${complaint.location?.locality || 'City Centre'}, ${city.name}`}
@@ -139,38 +122,32 @@ export function SuccessScreen({ complaint, analysis }: SuccessScreenProps) {
           </div>
 
           <div className="success-info-item">
-            <span>Classified issue</span>
+            <span>{t('success.classifiedIssue')}</span>
             <span className="success-info-val">
               {analysis?.categoryTitle || complaint.issue?.title}
             </span>
           </div>
 
           <div className="success-info-item">
-            <span>Routed department</span>
+            <span>{t('success.department')}</span>
             <span className="success-info-val">{complaint.department?.name}</span>
           </div>
         </div>
       </div>
 
       <p className="success-note">
-        Save this ticket ID. You will need it to check progress, and it is the reference the
-        department will use when they contact you.
+        {t('success.saveNote')}
       </p>
 
-      {/* The one promise worth making on this screen, and the one this
-          product can actually keep. */}
+      {/* Trust & Guarantee Banner */}
       <div className="success-guarantee">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           <path d="M9 12l2 2 4-4" />
         </svg>
         <div>
-          <strong>This cannot be closed without you.</strong>
-          <span>
-            The department can submit a repair, but only you can accept it. Their photo must be
-            taken live at this location and must not have been used anywhere before. We will ask
-            you again in 30 days whether it is still fixed.
-          </span>
+          <strong>{t('success.guaranteeTitle')}</strong>
+          <span>{t('success.guaranteeDesc')}</span>
         </div>
       </div>
 
@@ -181,7 +158,7 @@ export function SuccessScreen({ complaint, analysis }: SuccessScreenProps) {
           onClick={() => navigate(`/track?id=${complaint.id}`)}
           id="btn-success-track"
         >
-          TRACK COMPLAINT
+          {t('success.track')}
         </button>
 
         <button
@@ -190,7 +167,7 @@ export function SuccessScreen({ complaint, analysis }: SuccessScreenProps) {
           onClick={() => navigate('/')}
           id="btn-success-home"
         >
-          BACK TO HOME
+          {t('success.home')}
         </button>
       </div>
     </div>

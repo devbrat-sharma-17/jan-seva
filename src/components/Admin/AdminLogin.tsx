@@ -10,6 +10,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { loginAdmin, startAdminDemoSession } from '../../services/authService';
 import { getThrottleState } from '../../services/loginThrottle';
 import { DEMO_PASSWORD_HINT, getDemoAdminAccount } from '../../data/demoDirectory';
+import { demoAccountsAllowed } from '../../config/appMode';
 import { BrandHomeLink } from '../ui/BrandHomeLink';
 import { BrandMark } from '../ui/BrandMark';
 import { AdminIcon } from './AdminIcon';
@@ -27,6 +28,7 @@ export function AdminLogin() {
   const [showDemoAccounts, setShowDemoAccounts] = useState(false);
 
   const identifierRef = useRef<HTMLInputElement>(null);
+  const showDemoZone = demoAccountsAllowed();
   const demoAccount = getDemoAdminAccount();
 
   // Where the guard bounced them from, so a sign-in returns them to it.
@@ -183,7 +185,13 @@ export function AdminLogin() {
             </button>
           </form>
 
-          {/* ---- Demo affordances, fenced off from the real form ---- */}
+          {/* ----------------------------------------------------------
+              Demo affordances, fenced off from the real form — and absent
+              entirely in production. A "skip sign-in" control on a live
+              city command centre is not a shortcut, it is an open door,
+              so it is not rendered rather than merely disabled.
+              ---------------------------------------------------------- */}
+          {showDemoZone && (
           <section className="admin-login__demo-zone">
             <p className="admin-login__demo-head">
               <span className="admin-login__demo-chip">Demo mode</span>
@@ -236,6 +244,7 @@ export function AdminLogin() {
               </dl>
             )}
           </section>
+          )}
 
           <footer className="admin-login__foot">
             <Link to="/department/login">Department staff sign-in</Link>

@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import type { ReportPhoto } from '../../../types/report';
 import { LiveCameraModal } from './LiveCameraModal';
 import { compressImage, ImageError, formatBytes } from '../../../services/imageService';
+import { useTranslation } from '../../../hooks/useTranslation';
 import './PhotoStep.css';
 
 interface PhotoStepProps {
@@ -17,6 +18,7 @@ export function PhotoStep({
   onRemovePhoto,
   onReplacePhoto,
 }: PhotoStepProps) {
+  const { t } = useTranslation();
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
@@ -29,8 +31,6 @@ export function PhotoStep({
 
   /**
    * Compresses each selected file before it enters the draft.
-   * A raw phone photo is several MB; stored verbatim it overruns the
-   * local storage budget and the whole report is lost on submit.
    */
   const processFiles = async (fileList: FileList | null, isReplacing = false) => {
     if (!fileList || fileList.length === 0) return;
@@ -48,8 +48,6 @@ export function PhotoStep({
 
     setIsCompressing(true);
     try {
-      // Sequential, not parallel: three simultaneous canvas encodes will
-      // stall the main thread on a low-end phone.
       for (const file of filesToProcess) {
         try {
           const compressed = await compressImage(file);
@@ -81,7 +79,6 @@ export function PhotoStep({
 
   const handleCameraChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     void processFiles(e.target.files);
-    // Reset so re-picking the same file still fires `change`.
     if (e.target) e.target.value = '';
   };
 
@@ -96,7 +93,6 @@ export function PhotoStep({
   };
 
   const triggerCamera = () => {
-    // Open live viewfinder modal
     setIsLiveCameraOpen(true);
   };
 
@@ -114,7 +110,6 @@ export function PhotoStep({
   };
 
   const activePhoto = photos[selectedPhotoIndex] || photos[0];
-
 
   return (
     <div className="photo-step">
@@ -147,10 +142,8 @@ export function PhotoStep({
       />
 
       <div className="step-heading">
-        <h2 className="step-heading__title">Show us the problem</h2>
-        <p className="step-heading__subtitle">
-          Take up to 3 photos of the issue. Clear photos help us understand the problem better.
-        </p>
+        <h2 className="step-heading__title">{t('report.photo.title')}</h2>
+        <p className="step-heading__subtitle">{t('report.photo.subtitle')}</p>
       </div>
 
       {photoError && (
@@ -167,7 +160,7 @@ export function PhotoStep({
       {isCompressing && (
         <div className="photo-compressing" role="status">
           <span className="photo-compressing__spinner" aria-hidden="true" />
-          <span>Optimising photo&hellip;</span>
+          <span>{t('report.photo.optimising')}</span>
         </div>
       )}
 
@@ -193,7 +186,7 @@ export function PhotoStep({
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                 <circle cx="12" cy="13" r="4" />
               </svg>
-              <span>TAKE PHOTO</span>
+              <span>{t('report.photo.takePhoto')}</span>
             </button>
 
             <button
@@ -208,7 +201,7 @@ export function PhotoStep({
                 <circle cx="8.5" cy="8.5" r="1.5" />
                 <polyline points="21 15 16 10 5 21" />
               </svg>
-              <span>Choose from Gallery</span>
+              <span>{t('report.photo.chooseGallery')}</span>
             </button>
           </div>
         </div>
@@ -224,7 +217,9 @@ export function PhotoStep({
                 className="photo-main-preview__img"
               />
               <div className="photo-main-preview__badge">
-                Photo {selectedPhotoIndex + 1} of {photos.length}
+                {t('report.photo.photoCount')
+                  .replace('{current}', String(selectedPhotoIndex + 1))
+                  .replace('{total}', String(photos.length))}
                 {typeof activePhoto.size === 'number' && (
                   <span className="photo-size-hint"> &middot; {formatBytes(activePhoto.size)}</span>
                 )}
@@ -234,8 +229,8 @@ export function PhotoStep({
                   type="button"
                   className="photo-btn-icon"
                   onClick={() => triggerReplace(activePhoto.id)}
-                  title="Replace this photo"
-                  aria-label="Replace photo"
+                  title={t('report.photo.replace')}
+                  aria-label={t('report.photo.replace')}
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
@@ -248,8 +243,8 @@ export function PhotoStep({
                     onRemovePhoto(activePhoto.id);
                     if (selectedPhotoIndex > 0) setSelectedPhotoIndex(selectedPhotoIndex - 1);
                   }}
-                  title="Delete this photo"
-                  aria-label="Delete photo"
+                  title={t('report.photo.delete')}
+                  aria-label={t('report.photo.delete')}
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="3 6 5 6 21 6" />
@@ -289,7 +284,7 @@ export function PhotoStep({
                       setSelectedPhotoIndex(selectedPhotoIndex - 1);
                     }
                   }}
-                  aria-label="Remove photo"
+                  aria-label={t('report.photo.delete')}
                 >
                   &times;
                 </button>
@@ -308,7 +303,7 @@ export function PhotoStep({
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
-                <span>+ Add Photo</span>
+                <span>{t('report.photo.addAnother')}</span>
               </button>
             )}
           </div>
@@ -323,7 +318,7 @@ export function PhotoStep({
           <line x1="12" y1="8" x2="12.01" y2="8" />
         </svg>
         <span>
-          <strong>Tip:</strong> Capture the issue clearly and include some surroundings so the repair team can easily find it.
+          <strong>{t('report.photo.title')}:</strong> {t('report.photo.tip')}
         </span>
       </div>
 

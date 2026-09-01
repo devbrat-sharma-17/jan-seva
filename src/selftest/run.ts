@@ -1037,6 +1037,15 @@ const run = async () => {
     null
   );
 
+  // ==========================================================
+  // Civic screening, risk scoring and moderation.
+  // Kept in its own module: it is a large suite with its own
+  // fixtures, and inlining it here would bury the round-trip
+  // tests above.
+  // ==========================================================
+  const { runScreeningSuite } = await import('./screeningSuite');
+  await runScreeningSuite();
+
   report();
 };
 

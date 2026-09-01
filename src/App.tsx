@@ -140,6 +140,9 @@ const AdminAssetLedger = lazy(() =>
 const AdminWardReality = lazy(() =>
   import('./components/Admin/Wards/AdminWardReality').then((m) => ({ default: m.AdminWardReality }))
 );
+const AdminModeration = lazy(() =>
+  import('./components/Admin/Moderation/AdminModeration').then((m) => ({ default: m.AdminModeration }))
+);
 const AdminOpenData = lazy(() =>
   import('./components/Admin/OpenData/AdminOpenData').then((m) => ({ default: m.AdminOpenData }))
 );
@@ -308,6 +311,7 @@ export default function App() {
           <Route path="reports" element={<AdminReports />} />
           <Route path="assets" element={<AdminAssetLedger />} />
           <Route path="wards" element={<AdminWardReality />} />
+          <Route path="moderation" element={<AdminModeration />} />
           <Route path="open-data" element={<AdminOpenData />} />
         </Route>
       </Route>

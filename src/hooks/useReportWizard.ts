@@ -13,6 +13,7 @@ import {
 } from '../services/complaintService';
 import { StorageQuotaError } from '../services/storage';
 import { analyzeReportMock } from '../services/aiService';
+import { screenSubmission, recordFlaggedSubmission } from '../services/screeningPipeline';
 import type { Complaint } from '../types';
 
 const INITIAL_DRAFT: ReportDraft = {
@@ -251,6 +252,30 @@ export function useReportWizard(cityId: string = 'gwalior', initialCategory?: st
     setIsProcessing(true);
 
     try {
+      /* --------------------------------------------------------
+         Civic screening.
+
+         Sits here and nowhere else: after the citizen has pressed
+         submit, before a complaint exists. It adds no step and no
+         field — a refusal surfaces through the same error path a
+         failed write already uses, so the flow itself is unchanged.
+
+         Only a BLOCK stops anything, and blocking is off by default
+         (see featureFlags). Everything else continues down the
+         existing path exactly as before.
+         -------------------------------------------------------- */
+      const screening = await screenSubmission(draft);
+
+      if (screening.decision.action === 'BLOCK') {
+        // No complaint record is created (spec §47). The citizen is
+        // told what to photograph, not accused of anything.
+        const message = screening.citizenMessage ?? screening.decision.citizenMessage;
+        setSubmitError(message);
+        setStepError(message);
+        setCurrentStep(5);
+        return;
+      }
+
       const analysis = await analyzeReportMock(draft);
       setAiAnalysis(analysis);
 
@@ -261,6 +286,11 @@ export function useReportWizard(cityId: string = 'gwalior', initialCategory?: st
       }
 
       const complaint = await submitReport(draft, analysis, cityId);
+
+      // After the write, never before: a case pointing at a complaint
+      // that failed to save would sit in the queue with nothing to open.
+      recordFlaggedSubmission(complaint.id, screening);
+
       setSubmittedComplaint(complaint);
       setCurrentStep('success');
     } catch (err) {

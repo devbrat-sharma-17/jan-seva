@@ -1,16 +1,13 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import './MobileActionBar.css';
 
 /**
  * Persistent bottom action bar for phones.
- *
- * The hero CTAs scroll away within one screen; on a phone the primary
- * action then costs a scroll back to the top. This keeps "Report" one
- * thumb-tap away for the whole page, and stays out of the way until the
- * user has actually scrolled past the hero.
  */
 export function MobileActionBar() {
   const [visible, setVisible] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const hero = document.getElementById('hero');
@@ -43,7 +40,7 @@ export function MobileActionBar() {
           <circle cx="11" cy="11" r="8" />
           <path d="M21 21l-4.35-4.35" />
         </svg>
-        <span>Track</span>
+        <span>{t('track.search')}</span>
       </a>
 
       <a href="/report" className="action-bar__primary">
@@ -51,7 +48,7 @@ export function MobileActionBar() {
           <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
           <circle cx="12" cy="13" r="4" />
         </svg>
-        <span>Report an Issue</span>
+        <span>{t('nav.report')}</span>
       </a>
     </div>
   );

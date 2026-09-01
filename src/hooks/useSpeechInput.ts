@@ -68,6 +68,11 @@ export function useSpeechInput(onTranscript: (text: string) => void): UseSpeechI
   const [interim, setInterim] = useState('');
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const onTranscriptRef = useRef(onTranscript);
+
+  useEffect(() => {
+    onTranscriptRef.current = onTranscript;
+  }, [onTranscript]);
 
   const supported = getRecognitionCtor() !== null;
 
@@ -103,7 +108,7 @@ export function useSpeechInput(onTranscript: (text: string) => void): UseSpeechI
       }
 
       setInterim(pending);
-      if (finalText.trim()) onTranscript(finalText.trim());
+      if (finalText.trim()) onTranscriptRef.current(finalText.trim());
     };
 
     recognition.onerror = (event) => {
@@ -111,11 +116,17 @@ export function useSpeechInput(onTranscript: (text: string) => void): UseSpeechI
       // reporting; a permission denial is, because the citizen has to
       // do something about it.
       if (event.error === 'no-speech' || event.error === 'aborted') return;
-      setError(
-        event.error === 'not-allowed'
-          ? 'Microphone access was refused. You can still type your complaint.'
-          : 'Voice input stopped unexpectedly. You can still type your complaint.'
-      );
+      
+      let errorMessage = 'Voice input stopped unexpectedly. You can still type your complaint.';
+      if (event.error === 'not-allowed') {
+        errorMessage = 'Microphone access was refused. You can still type your complaint.';
+      } else if (event.error === 'network') {
+        errorMessage = 'Voice input requires an internet connection. You can still type your complaint.';
+      } else if (event.error === 'audio-capture') {
+        errorMessage = 'No microphone was found or it is being used by another app.';
+      }
+
+      setError(errorMessage);
       setListening(false);
     };
 
@@ -131,7 +142,7 @@ export function useSpeechInput(onTranscript: (text: string) => void): UseSpeechI
     } catch {
       setError('Voice input could not be started.');
     }
-  }, [onTranscript]);
+  }, []);
 
   // A recogniser left running after the step unmounts keeps the
   // microphone indicator on, which reads as the app listening in the

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import type { IdentityMethod } from '../../../types/report';
-
 import { sendOtp, verifyOtp } from '../../../services/authService';
+import { useTranslation } from '../../../hooks/useTranslation';
 import './IdentityStep.css';
 
 interface IdentityStepProps {
@@ -33,6 +33,7 @@ export function IdentityStep({
   onVerified,
   onNameChange,
 }: IdentityStepProps) {
+  const { t } = useTranslation();
   const [otpSent, setOtpSent] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [sendingOtp, setSendingOtp] = useState(false);
@@ -83,7 +84,6 @@ export function IdentityStep({
       if (res.success) {
         setOtpSent(true);
         setSentTo(res.targetMasked);
-        // Pre-focus first OTP digit after a brief tick
         setTimeout(() => digitRefs[0].current?.focus(), 100);
       }
     } catch {
@@ -93,7 +93,6 @@ export function IdentityStep({
     }
   };
 
-  // Handle single digit input and auto-advance
   const handleOtpDigitChange = (index: number, val: string) => {
     const clean = val.replace(/\D/g, '').slice(-1);
     const otpArray = (otp || '').padEnd(6, ' ').split('');
@@ -145,10 +144,8 @@ export function IdentityStep({
   return (
     <div className="identity-step">
       <div className="step-heading">
-        <h2 className="step-heading__title">Let's verify you</h2>
-        <p className="step-heading__subtitle">
-          We need a verified identity so you can track your complaint.
-        </p>
+        <h2 className="step-heading__title">{t('report.identity.title')}</h2>
+        <p className="step-heading__subtitle">{t('report.identity.subtitle')}</p>
       </div>
 
       {errorMessage && (
@@ -172,7 +169,7 @@ export function IdentityStep({
               </svg>
             </div>
             <div className="identity-verified-info">
-              <span className="identity-verified-title">✓ Identity Verified</span>
+              <span className="identity-verified-title">{t('report.identity.verifiedTitle')}</span>
               <span className="identity-verified-name">{name || 'Citizen'}</span>
               <span className="identity-verified-target">
                 {identityMethod === 'aadhaar' ? `Aadhaar: XXXX XXXX ${aadhaarNumber.slice(-4) || '3841'}` : `Mobile: +91 ${mobileNumber}`}
@@ -184,14 +181,14 @@ export function IdentityStep({
           {identityMethod === 'mobile' && (
             <div className="input-field-group" style={{ marginTop: '8px' }}>
               <label className="input-field-label" htmlFor="citizen-name-input">
-                Your Full Name
+                {t('report.identity.nameLabel')}
               </label>
               <div className="input-field-box">
                 <input
                   type="text"
                   id="citizen-name-input"
                   className="input-text-elem"
-                  placeholder="Enter your full name"
+                  placeholder={t('report.identity.namePlaceholder')}
                   value={name}
                   onChange={(e) => onNameChange(e.target.value)}
                 />
@@ -205,7 +202,7 @@ export function IdentityStep({
             onClick={handleResetVerification}
             style={{ minHeight: '40px', fontSize: '0.875rem' }}
           >
-            Change Verification Method
+            {t('report.identity.changeMethod')}
           </button>
         </div>
       ) : (
@@ -230,7 +227,7 @@ export function IdentityStep({
                 <line x1="7" y1="8" x2="17" y2="8" />
                 <line x1="7" y1="12" x2="13" y2="12" />
               </svg>
-              <span>Aadhaar</span>
+              <span>{t('report.identity.tabAadhaar')}</span>
             </button>
 
             <button
@@ -249,7 +246,7 @@ export function IdentityStep({
                 <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
                 <line x1="12" y1="18" x2="12.01" y2="18" />
               </svg>
-              <span>Mobile Number</span>
+              <span>{t('report.identity.tabMobile')}</span>
             </button>
           </div>
 
@@ -257,7 +254,7 @@ export function IdentityStep({
           {identityMethod === 'aadhaar' ? (
             <div className="input-field-group">
               <label className="input-field-label" htmlFor="aadhaar-number-input">
-                Aadhaar Number
+                {t('report.identity.aadhaarLabel')}
               </label>
               <div className="input-field-box">
                 <input
@@ -275,7 +272,7 @@ export function IdentityStep({
             /* Mobile Input Field */
             <div className="input-field-group">
               <label className="input-field-label" htmlFor="mobile-number-input">
-                Mobile Number
+                {t('report.identity.mobileLabel')}
               </label>
               <div className="input-field-box">
                 <span className="input-field-prefix">+91</span>
@@ -292,7 +289,7 @@ export function IdentityStep({
             </div>
           )}
 
-          {/* Send OTP Button (if not sent yet) */}
+          {/* Send OTP Button */}
           {!otpSent ? (
             <button
               type="button"
@@ -301,16 +298,17 @@ export function IdentityStep({
               disabled={sendingOtp}
               id="btn-send-otp"
             >
-              {sendingOtp ? 'Sending code...' : 'SEND OTP'}
+              {sendingOtp ? t('report.identity.sendingOtp') : t('report.identity.sendOtp')}
             </button>
           ) : (
             /* OTP Screen */
             <div className="otp-container">
               <div className="otp-header">
-                <h4 className="otp-title">Enter OTP</h4>
+                <h4 className="otp-title">{t('report.identity.enterOtp')}</h4>
                 <p className="otp-subtitle">
-                  We sent a 6-digit verification code to your registered{' '}
-                  {identityMethod === 'aadhaar' ? 'Aadhaar mobile' : 'number'}.
+                  {identityMethod === 'aadhaar'
+                    ? t('report.identity.otpSubtitleAadhaar')
+                    : t('report.identity.otpSubtitleMobile')}
                 </p>
               </div>
 
@@ -338,10 +336,12 @@ export function IdentityStep({
                   className="otp-resend-btn"
                   onClick={handleSendOtp}
                 >
-                  Resend OTP
+                  {t('report.identity.resendOtp')}
                 </button>
                 {sentTo && (
-                  <span className="otp-sent-hint">Code sent to {sentTo}</span>
+                  <span className="otp-sent-hint">
+                    {t('report.identity.codeSentTo').replace('{target}', sentTo)}
+                  </span>
                 )}
               </div>
 
@@ -352,7 +352,7 @@ export function IdentityStep({
                 disabled={verifyingOtp}
                 id="btn-verify-otp"
               >
-                {verifyingOtp ? 'Verifying...' : 'VERIFY & CONTINUE'}
+                {verifyingOtp ? t('report.identity.verifying') : t('report.identity.verifyBtn')}
               </button>
             </div>
           )}
@@ -364,7 +364,7 @@ export function IdentityStep({
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
         </svg>
-        <span>Your identity is encrypted and used solely to verify and track your civic complaints.</span>
+        <span>{t('report.identity.privacy')}</span>
       </div>
     </div>
   );

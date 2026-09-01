@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useReportWizard } from '../../hooks/useReportWizard';
 import { useToast } from '../ui/Toast';
 import { useCityConfig } from '../../hooks/useCityConfig';
+import { useTranslation } from '../../hooks/useTranslation';
 import { ReportHeader } from './ReportHeader';
 import { ProgressIndicator } from './ProgressIndicator';
 import { DraftResumeModal } from './DraftResumeModal';
@@ -20,6 +21,7 @@ export function ReportWizard() {
   const [searchParams] = useSearchParams();
   const initialCategory = searchParams.get('category') || undefined;
   const city = useCityConfig();
+  const { t } = useTranslation();
 
   const {
     currentStep,
@@ -157,19 +159,18 @@ export function ReportWizard() {
             onClick={submitComplaintReport}
             id="btn-submit-report"
           >
-            <span>SUBMIT COMPLAINT</span>
+            <span>{t('report.bottom.submit')}</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>
           </button>
-          <p className="report-bottom-bar__support">Your report will be sent to JAN-SEVA.</p>
+          <p className="report-bottom-bar__support">{t('report.bottom.supportNote')}</p>
         </div>
       );
     }
 
-    let btnLabel = 'CONTINUE →';
-    if (currentStep === 1) btnLabel = 'Continue →';
-    if (currentStep === 4) btnLabel = 'CONFIRM LOCATION & CONTINUE →';
+    let btnLabel = t('report.bottom.continue');
+    if (currentStep === 4) btnLabel = t('report.bottom.confirmLocation');
 
     const isStep1Disabled = currentStep === 1 && draft.photos.length === 0;
     const isStep4Disabled = currentStep === 4 && (!draft.location || !draft.location.confirmed);
@@ -187,7 +188,6 @@ export function ReportWizard() {
         </button>
       </div>
     );
-
   };
 
   return (

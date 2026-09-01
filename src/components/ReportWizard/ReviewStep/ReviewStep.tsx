@@ -1,4 +1,5 @@
 import type { ReportDraft } from '../../../types/report';
+import { useTranslation } from '../../../hooks/useTranslation';
 import './ReviewStep.css';
 
 interface ReviewStepProps {
@@ -7,6 +8,8 @@ interface ReviewStepProps {
 }
 
 export function ReviewStep({ draft, onEditStep }: ReviewStepProps) {
+  const { t } = useTranslation();
+
   const getMaskedTarget = () => {
     if (draft.identityMethod === 'aadhaar') {
       const last4 = draft.aadhaarNumber.replace(/\s+/g, '').slice(-4) || '3841';
@@ -19,10 +22,8 @@ export function ReviewStep({ draft, onEditStep }: ReviewStepProps) {
   return (
     <div className="review-step">
       <div className="step-heading">
-        <h2 className="step-heading__title">Review your report</h2>
-        <p className="step-heading__subtitle">
-          Make sure everything looks right before submitting.
-        </p>
+        <h2 className="step-heading__title">{t('report.review.title')}</h2>
+        <p className="step-heading__subtitle">{t('report.review.subtitle')}</p>
       </div>
 
       <div className="review-cards-list">
@@ -34,15 +35,15 @@ export function ReviewStep({ draft, onEditStep }: ReviewStepProps) {
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                 <circle cx="12" cy="13" r="4" />
               </svg>
-              Photos ({draft.photos.length})
+              {t('report.review.photos')} ({draft.photos.length})
             </span>
             <button
               type="button"
               className="review-edit-btn"
               onClick={() => onEditStep(1)}
-              aria-label="Edit photos"
+              aria-label={t('action.edit')}
             >
-              Edit →
+              {t('action.edit')} →
             </button>
           </div>
 
@@ -62,20 +63,20 @@ export function ReviewStep({ draft, onEditStep }: ReviewStepProps) {
                 <line x1="16" y1="13" x2="8" y2="13" />
                 <line x1="16" y1="17" x2="8" y2="17" />
               </svg>
-              Description
+              {t('report.review.description')}
             </span>
             <button
               type="button"
               className="review-edit-btn"
               onClick={() => onEditStep(2)}
-              aria-label="Edit description"
+              aria-label={t('action.edit')}
             >
-              Edit →
+              {t('action.edit')} →
             </button>
           </div>
 
           <p className="review-text-content">
-            {draft.description || 'No description provided.'}
+            {draft.description || t('report.review.noDesc')}
           </p>
         </div>
 
@@ -87,15 +88,15 @@ export function ReviewStep({ draft, onEditStep }: ReviewStepProps) {
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
-              Citizen Identity
+              {t('report.review.identity')}
             </span>
             <button
               type="button"
               className="review-edit-btn"
               onClick={() => onEditStep(3)}
-              aria-label="Edit identity"
+              aria-label={t('action.edit')}
             >
-              Edit →
+              {t('action.edit')} →
             </button>
           </div>
 
@@ -103,7 +104,7 @@ export function ReviewStep({ draft, onEditStep }: ReviewStepProps) {
             {draft.name || 'Citizen'}
           </p>
           <div className="review-sub-info">
-            <span>✓ Verified via {getMaskedTarget()}</span>
+            <span>{t('report.review.verifiedVia').replace('{target}', getMaskedTarget())}</span>
           </div>
         </div>
 
@@ -115,15 +116,15 @@ export function ReviewStep({ draft, onEditStep }: ReviewStepProps) {
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                 <circle cx="12" cy="10" r="3" />
               </svg>
-              Location
+              {t('report.review.location')}
             </span>
             <button
               type="button"
               className="review-edit-btn"
               onClick={() => onEditStep(4)}
-              aria-label="Edit location"
+              aria-label={t('action.edit')}
             >
-              Edit →
+              {t('action.edit')} →
             </button>
           </div>
 
@@ -133,7 +134,7 @@ export function ReviewStep({ draft, onEditStep }: ReviewStepProps) {
           <div className="review-sub-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>{draft.location?.confirmed?.locality || draft.location?.locality}, {draft.location?.confirmed?.city || draft.location?.city}, {draft.location?.confirmed?.state || draft.location?.state}</span>
             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--blue-600)', background: 'var(--blue-50)', padding: '2px 8px', borderRadius: '12px' }}>
-              {draft.location?.confirmed?.source === 'manual' ? 'Manually Selected' : 'GPS Detected'}
+              {draft.location?.confirmed?.source === 'manual' ? t('report.loc.sourceManual') : t('report.loc.sourceGps')}
             </span>
           </div>
         </div>
@@ -146,7 +147,7 @@ export function ReviewStep({ draft, onEditStep }: ReviewStepProps) {
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
         </svg>
         <span>
-          <strong>JAN-SEVA Routing:</strong> Our system will automatically classify this issue, calculate priority, and route it to the responsible municipal department.
+          {t('report.review.routingPromise')}
         </span>
       </div>
     </div>

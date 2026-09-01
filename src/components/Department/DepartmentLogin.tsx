@@ -11,6 +11,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { loginDepartment, startDepartmentDemoSession } from '../../services/authService';
 import { getThrottleState } from '../../services/loginThrottle';
 import { DEMO_PASSWORD_HINT } from '../../data/demoDirectory';
+import { demoAccountsAllowed } from '../../config/appMode';
 import { DEPARTMENTS, getAllDepartments } from '../../data/departments';
 import type { DepartmentId, DepartmentRole } from '../../types/department';
 import { BrandMark } from '../ui/BrandMark';
@@ -275,7 +276,10 @@ export function DepartmentLogin() {
                   className="dept-input"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder={activeStaff.id}
+                  // A demo staff ID makes a helpful placeholder in the
+                  // prototype, and prints a demo credential on a real
+                  // sign-in form in production.
+                  placeholder={demoAccountsAllowed() ? activeStaff.id : 'Department ID'}
                   autoComplete="username"
                   spellCheck={false}
                   disabled={locked}
@@ -323,7 +327,12 @@ export function DepartmentLogin() {
             </form>
           </section>
 
-          {/* ---- Demo affordances, fenced off from the form above ---- */}
+          {/* ----------------------------------------------------------
+              Demo affordances, fenced off from the form above — and not
+              rendered at all in production. See AdminLogin for why this
+              is removal rather than a disabled state.
+              ---------------------------------------------------------- */}
+          {demoAccountsAllowed() && (
           <section className="deptlogin__demo-zone">
             <p className="deptlogin__demo-head">
               <span className="deptlogin__demo-chip">Demo mode</span>
@@ -363,6 +372,7 @@ export function DepartmentLogin() {
               </dl>
             )}
           </section>
+          )}
 
           <footer className="deptlogin__foot">
             Reporting as a resident?{' '}

@@ -36,7 +36,19 @@ export type AuditAction =
   | 'sla_review'
   | 'note_added'
   | 'complaint_viewed'
-  | 'report_generated';
+  | 'report_generated'
+  // Screening & moderation (spec §36). Deliberately in the SAME trail as
+  // everything else: "who reviewed this citizen's report and why" is an
+  // oversight question of exactly the kind this record exists to answer,
+  // and a separate moderation log would be the one nobody audits.
+  | 'screening_case_opened'
+  | 'screening_case_claimed'
+  | 'screening_unavailable'
+  | 'submission_blocked_pre_submit'
+  | 'moderation_decision'
+  | 'citizen_warning_recorded'
+  | 'abuse_restriction_applied'
+  | 'abuse_restriction_cleared';
 
 export interface AuditEvent {
   id: string;
@@ -47,7 +59,9 @@ export interface AuditEvent {
   /** Scope this event belongs to. Absent for city-wide admin actions. */
   departmentId?: DepartmentId;
   action: AuditAction;
-  targetType: 'complaint' | 'department' | 'system';
+  // 'citizen' targets carry an opaque identity reference, never a name,
+  // a number or an Aadhaar value.
+  targetType: 'complaint' | 'department' | 'system' | 'citizen';
   targetId: string;
   description: string;
   metadata?: Record<string, string>;

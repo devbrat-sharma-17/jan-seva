@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ReportStep } from '../../types/report';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface ReportHeaderProps {
   currentStep: ReportStep;
@@ -10,6 +11,7 @@ interface ReportHeaderProps {
 
 export function ReportHeader({ currentStep, hasPhotos, onBack }: ReportHeaderProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Hide header buttons on processing or success
@@ -45,21 +47,21 @@ export function ReportHeader({ currentStep, hasPhotos, onBack }: ReportHeaderPro
 
   return (
     <>
-      <header className="report-header" aria-label="Report header">
+      <header className="report-header" aria-label={t('report.header.title')}>
         <button
           type="button"
           onClick={handleBackClick}
           className="report-header__back"
-          aria-label="Go back"
+          aria-label={t('action.back')}
           id="report-back-btn"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
-          <span>Back</span>
+          <span>{t('action.back')}</span>
         </button>
 
-        <h1 className="report-header__title">Report an Issue</h1>
+        <h1 className="report-header__title">{t('report.header.title')}</h1>
 
         {typeof currentStep === 'number' ? (
           <span className="report-header__step" aria-label={`Step ${currentStep} of 5`}>
@@ -75,10 +77,10 @@ export function ReportHeader({ currentStep, hasPhotos, onBack }: ReportHeaderPro
         <div className="report-dialog-overlay" role="dialog" aria-modal="true">
           <div className="report-dialog">
             <h3 style={{ margin: '0 0 8px 0', fontSize: '1.25rem', fontWeight: 800, color: 'var(--slate-900)' }}>
-              Leave report?
+              {t('report.dialog.leaveTitle')}
             </h3>
             <p style={{ margin: '0 0 20px 0', fontSize: '0.9375rem', color: 'var(--slate-600)', lineHeight: 1.5 }}>
-              Your photos and report draft will be saved temporarily on this device.
+              {t('report.dialog.leaveDesc')}
             </p>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
@@ -87,7 +89,7 @@ export function ReportHeader({ currentStep, hasPhotos, onBack }: ReportHeaderPro
                 onClick={() => setShowExitConfirm(false)}
                 style={{ flex: 1 }}
               >
-                Keep Editing
+                {t('action.keepEditing')}
               </button>
               <button
                 type="button"
@@ -95,7 +97,7 @@ export function ReportHeader({ currentStep, hasPhotos, onBack }: ReportHeaderPro
                 onClick={confirmExit}
                 style={{ flex: 1, backgroundColor: 'var(--slate-800)' }}
               >
-                Leave
+                {t('action.leave')}
               </button>
             </div>
           </div>

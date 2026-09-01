@@ -6,12 +6,21 @@ import { LanguageSelector } from './LanguageSelector';
 import { MobileMenu } from './MobileMenu';
 import { mainNavLinks } from '../../data/navigation';
 import { useCityConfig } from '../../hooks/useCityConfig';
+import { useTranslation } from '../../hooks/useTranslation';
 import './Header.css';
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const city = useCityConfig();
+  const { t } = useTranslation();
+
+  const navKeyMap: Record<string, string> = {
+    '/': 'nav.home',
+    '/#how-it-works': 'nav.howItWorks',
+    '/track': 'nav.track',
+    '/initiatives': 'nav.initiatives',
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -70,9 +79,7 @@ export function Header() {
           </Link>
 
 
-          {/* Center: Navigation (desktop only).
-              Lower-priority links are hidden by CSS at narrower widths
-              rather than allowed to overflow into the controls. */}
+          {/* Center: Navigation (desktop only) */}
           <nav className="header__nav" aria-label="Main navigation">
             {mainNavLinks.map((link) => (
               <a
@@ -80,7 +87,7 @@ export function Header() {
                 href={link.href}
                 className={`header__nav-link header__nav-link--p${link.priority ?? 1}`}
               >
-                {link.label}
+                {navKeyMap[link.href] ? t(navKeyMap[link.href]) : link.label}
               </a>
             ))}
           </nav>
@@ -96,10 +103,10 @@ export function Header() {
             {/* Desktop portal buttons */}
             <div className="header__portal-btns">
               <a href="/admin/login" className="header__portal-btn">
-                Admin
+                {t('nav.admin')}
               </a>
               <a href="/department/login" className="header__portal-btn header__portal-btn--primary">
-                Department
+                {t('nav.department')}
               </a>
             </div>
 

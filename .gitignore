@@ -23,3 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 dist-selftest/
+dist-selftest-prod/
+
+# Environment. `.env.example` and `.env.production` are committed and hold
+# no secrets; everything below may, and must not be.
+.env
+.env.local
+.env.*.local

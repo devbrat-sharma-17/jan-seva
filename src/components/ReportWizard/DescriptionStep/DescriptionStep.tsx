@@ -3,13 +3,12 @@ import { useSpeechInput } from '../../../hooks/useSpeechInput';
 import { useTranslation } from '../../../hooks/useTranslation';
 import './DescriptionStep.css';
 
-
 interface DescriptionStepProps {
   description: string;
   onChange: (desc: string) => void;
 }
 
-const QUICK_HINTS = [
+const QUICK_HINTS_EN = [
   'Deep pothole on road',
   'Garbage overflow',
   'Water leakage from pipeline',
@@ -18,11 +17,19 @@ const QUICK_HINTS = [
   'Damaged footpath',
 ];
 
+const QUICK_HINTS_HI = [
+  'सड़क पर गहरा गड्ढा',
+  'कचरा फैला हुआ है',
+  'पाइपलाइन से पानी का रिसाव',
+  'स्ट्रीट लाइट खराब है',
+  'खुला मैनहोल / नाली',
+  'टूटा हुआ फुटपाथ',
+];
+
 export function DescriptionStep({ description, onChange }: DescriptionStepProps) {
   const { t, locale } = useTranslation();
 
-  /* Dictated phrases are APPENDED, never substituted. A citizen who has
-     typed two lines and then dictates a third must not lose the two. */
+  /* Dictated phrases are APPENDED, never substituted. */
   const appendTranscript = useCallback(
     (text: string) => {
       onChange(description.trim() ? `${description.trim()} ${text}` : text);
@@ -31,6 +38,8 @@ export function DescriptionStep({ description, onChange }: DescriptionStepProps)
   );
 
   const speech = useSpeechInput(appendTranscript);
+
+  const quickHints = locale === 'hi' ? QUICK_HINTS_HI : QUICK_HINTS_EN;
 
   const handleChipClick = (hint: string) => {
     if (!description.trim()) {
@@ -43,10 +52,8 @@ export function DescriptionStep({ description, onChange }: DescriptionStepProps)
   return (
     <div className="desc-step">
       <div className="step-heading">
-        <h2 className="step-heading__title">Tell us what happened</h2>
-        <p className="step-heading__subtitle">
-          Describe the problem briefly.
-        </p>
+        <h2 className="step-heading__title">{t('report.desc.title')}</h2>
+        <p className="step-heading__subtitle">{t('report.desc.subtitle')}</p>
       </div>
 
       <div className="desc-textarea-wrapper">
@@ -54,15 +61,15 @@ export function DescriptionStep({ description, onChange }: DescriptionStepProps)
           className="desc-textarea"
           value={description}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Example: Large pothole near City Centre is causing traffic problems and hazard for two-wheelers."
+          placeholder={t('report.desc.placeholder')}
           maxLength={500}
           rows={6}
           id="issue-description-input"
-          aria-label="Issue description"
+          aria-label={t('report.description.label')}
         />
 
         <div className="desc-counter-bar">
-          <span>{description.length} / 500 characters</span>
+          <span>{t('report.desc.counter').replace('{count}', String(description.length))}</span>
 
           {speech.supported ? (
             <button
@@ -99,22 +106,17 @@ export function DescriptionStep({ description, onChange }: DescriptionStepProps)
           </p>
         )}
 
-        {/* Said plainly rather than pitched. Speaking in Hindi works
-            because the classifier's keyword list is Hindi/Hinglish
-            aware, not because a translation layer exists. */}
         {speech.supported && (
           <p className="desc-voice-note">
-            {locale === 'hi'
-              ? 'हिंदी में बोल सकते हैं — शिकायत उसी भाषा में दर्ज होगी।'
-              : 'You can speak in Hindi or English. Either is understood.'}
+            {t('report.voice.note')}
           </p>
         )}
       </div>
 
       <div className="desc-suggestions-section">
-        <span className="desc-suggestions-label">Quick Suggestions</span>
+        <span className="desc-suggestions-label">{t('report.desc.suggestions')}</span>
         <div className="desc-chips-row">
-          {QUICK_HINTS.map((hint) => (
+          {quickHints.map((hint) => (
             <button
               key={hint}
               type="button"

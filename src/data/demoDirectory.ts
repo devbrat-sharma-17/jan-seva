@@ -24,9 +24,16 @@
 // at which point this file is deleted outright.
 
 import type { DepartmentId, DepartmentRole } from '../types/department';
+import { demoAccountsAllowed } from '../config/appMode';
 
-/** Marks every screen that leans on this directory. */
-export const DEMO_MODE = true;
+/**
+ * Marks every screen that leans on this directory.
+ *
+ * False in production, where this directory is inert: no account
+ * resolves, no credential verifies, and the sign-in screens hide their
+ * demo zone entirely.
+ */
+export const DEMO_MODE = demoAccountsAllowed();
 
 /**
  * Non-reversible digest over `ACCOUNT-ID:password`.
@@ -155,8 +162,17 @@ const DEPARTMENT_ACCOUNTS: DemoDepartmentAccount[] = DEPARTMENT_PREFIXES.flatMap
 
 const ALL_ACCOUNTS: DemoAccount[] = [...ADMIN_ACCOUNTS, ...DEPARTMENT_ACCOUNTS];
 
-/** Resolves a typed identifier (ID, alias or email) to an account. */
+/**
+ * Resolves a typed identifier (ID, alias or email) to an account.
+ *
+ * Returns null unconditionally in production. A demo identifier typed
+ * into the real sign-in form is refused with the same message as any
+ * other unknown account, so the form cannot be used to discover that
+ * these identifiers exist at all.
+ */
 export function findDemoAccount(identifier: string): DemoAccount | null {
+  if (!demoAccountsAllowed()) return null;
+
   const needle = identifier.trim().toLowerCase();
   if (!needle) return null;
 
@@ -177,6 +193,12 @@ export function findDemoAccount(identifier: string): DemoAccount | null {
  * user typed it into.
  */
 export function verifyCredential(account: DemoAccount, password: string): boolean {
+  // Belt and braces. `findDemoAccount` already returns nothing in
+  // production, so no caller can reach here with an account — but a
+  // credential check that could ever pass on a hardcoded digest in
+  // production is not something to leave resting on one guard.
+  if (!demoAccountsAllowed()) return false;
+
   const expected = CREDENTIAL_DIGESTS[account.accountId];
   if (!expected) return false;
   return demoDigest(`${account.accountId}:${password}`) === expected;
@@ -184,6 +206,7 @@ export function verifyCredential(account: DemoAccount, password: string): boolea
 
 /** Department accounts, for the sign-in screen's demo account list. */
 export function listDemoDepartmentAccounts(departmentId: DepartmentId): DemoDepartmentAccount[] {
+  if (!demoAccountsAllowed()) return [];
   return DEPARTMENT_ACCOUNTS.filter((a) => a.departmentId === departmentId);
 }
 

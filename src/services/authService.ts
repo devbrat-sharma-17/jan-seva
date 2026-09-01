@@ -1,175 +1,20 @@
 // ============================================================
-// Auth Service — Mock OTP verification
+// Auth Service — portal sign-in
 // ============================================================
-// The only place the demo OTP exists. Components must never compare against
-// a literal code themselves — swapping this file for a real SMS/UIDAI
-// integration should not require touching any UI.
+//
+// Citizen OTP verification used to live here. It now lives in
+// `otpService`, which chooses between the demo challenge and the real
+// server endpoints based on APP_MODE. The two functions below are kept
+// as re-exports so the screens that import them — the report wizard's
+// identity step and the tracking page's verification card — did not have
+// to change: that citizen flow is frozen (spec §1).
 
-import type { IdentityMethod } from '../types';
-import {
-  deriveIdentityReference,
-  maskIdentity,
-  isValidMobile,
-  isValidAadhaar,
-} from './identityService';
-
-/** Frontend simulation only. Never rendered as instructional UI copy. */
-const DEMO_OTP = '123456';
-
-/** How long a sent code stays acceptable. */
-const OTP_TTL_MS = 5 * 60 * 1000;
-
-const MAX_ATTEMPTS = 5;
-
-export interface AuthUser {
-  id: string;
-  name: string;
-  role: 'admin' | 'department' | 'citizen';
-  department?: string;
-}
-
-export interface SendOtpResult {
-  success: boolean;
-  message: string;
-  /** Masked destination, safe to display: "+91 XXXXX 43210". */
-  targetMasked: string;
-  /** Seconds before a resend is permitted. */
-  resendAfterSeconds: number;
-}
-
-export interface VerifyOtpResult {
-  success: boolean;
-  message: string;
-  /** Present only on success — the opaque key complaints are matched on. */
-  identityReference?: string;
-  identityLabel?: string;
-  /** Aadhaar eKYC returns a name; mobile verification does not. */
-  verifiedName?: string;
-}
-
-interface PendingChallenge {
-  reference: string;
-  method: IdentityMethod;
-  issuedAt: number;
-  attempts: number;
-}
-
-// In-memory only: a pending challenge must not outlive the page, and must
-// never be written to storage.
-const pendingChallenges = new Map<string, PendingChallenge>();
-
-function challengeKey(method: IdentityMethod, rawValue: string): string {
-  return `${method}:${deriveIdentityReference(method, rawValue)}`;
-}
-
-/** Validates the identifier, then issues a simulated verification code. */
-export async function sendOtp(
-  rawValue: string,
-  method: IdentityMethod
-): Promise<SendOtpResult> {
-  await new Promise((resolve) => setTimeout(resolve, 700));
-
-  const valid = method === 'mobile' ? isValidMobile(rawValue) : isValidAadhaar(rawValue);
-  if (!valid) {
-    return {
-      success: false,
-      message:
-        method === 'mobile'
-          ? 'Enter a valid 10-digit mobile number.'
-          : 'Enter a valid 12-digit Aadhaar number.',
-      targetMasked: '',
-      resendAfterSeconds: 0,
-    };
-  }
-
-  const key = challengeKey(method, rawValue);
-  pendingChallenges.set(key, {
-    reference: deriveIdentityReference(method, rawValue),
-    method,
-    issuedAt: Date.now(),
-    attempts: 0,
-  });
-
-  const targetMasked = maskIdentity(method, rawValue);
-
-  return {
-    success: true,
-    message: `Verification code sent to ${targetMasked}`,
-    targetMasked,
-    resendAfterSeconds: 30,
-  };
-}
-
-/**
- * Verifies a code against the outstanding challenge. On success the caller
- * receives an identity reference — never the raw identifier back.
- */
-export async function verifyOtp(
-  rawValue: string,
-  otp: string,
-  method: IdentityMethod
-): Promise<VerifyOtpResult> {
-  await new Promise((resolve) => setTimeout(resolve, 800));
-
-  const cleanOtp = otp.replace(/\D/g, '');
-  if (cleanOtp.length !== 6) {
-    return { success: false, message: 'Enter the 6-digit code.' };
-  }
-
-  const key = challengeKey(method, rawValue);
-  const challenge = pendingChallenges.get(key);
-
-  if (!challenge) {
-    return { success: false, message: 'That code has expired. Please request a new one.' };
-  }
-
-  if (Date.now() - challenge.issuedAt > OTP_TTL_MS) {
-    pendingChallenges.delete(key);
-    return { success: false, message: 'That code has expired. Please request a new one.' };
-  }
-
-  if (challenge.attempts >= MAX_ATTEMPTS) {
-    pendingChallenges.delete(key);
-    return { success: false, message: 'Too many incorrect attempts. Please request a new code.' };
-  }
-
-  if (cleanOtp !== DEMO_OTP) {
-    challenge.attempts += 1;
-    const left = MAX_ATTEMPTS - challenge.attempts;
-    return {
-      success: false,
-      message: left > 0 ? `Incorrect code. ${left} attempt${left === 1 ? '' : 's'} remaining.` : 'Incorrect code.',
-    };
-  }
-
-  pendingChallenges.delete(key);
-
-  return method === 'aadhaar'
-    ? verifyAadhaarMock(rawValue)
-    : verifyMobileMock(rawValue);
-}
-
-/** Simulated Aadhaar eKYC: returns the registered name alongside the reference. */
-export function verifyAadhaarMock(rawValue: string): VerifyOtpResult {
-  return {
-    success: true,
-    message: 'Identity verified with Aadhaar.',
-    identityReference: deriveIdentityReference('aadhaar', rawValue),
-    identityLabel: maskIdentity('aadhaar', rawValue),
-    verifiedName: 'Raj Sharma',
-  };
-}
-
-/** Simulated mobile verification: no name is returned by this channel. */
-export function verifyMobileMock(rawValue: string): VerifyOtpResult {
-  return {
-    success: true,
-    message: 'Mobile number verified.',
-    identityReference: deriveIdentityReference('mobile', rawValue),
-    identityLabel: maskIdentity('mobile', rawValue),
-  };
-}
-
+export {
+  sendMobileOtp as sendOtp,
+  verifyMobileOtp as verifyOtp,
+  type SendOtpResult,
+  type VerifyOtpResult,
+} from './otpService';
 
 // ============================================================
 // Portal Authentication — Admin & Department
@@ -192,6 +37,7 @@ export function verifyMobileMock(rawValue: string): VerifyOtpResult {
 // dropped. They are never written to storage, never held in a session,
 // never logged and never put in a URL.
 
+import { demoAccountsAllowed } from '../config/appMode';
 import type { DepartmentId, DepartmentRole, DepartmentUser } from '../types/department';
 import type { AdminUser, AdminPermissions } from '../types/admin';
 import { DEPARTMENTS } from '../data/departments';
@@ -248,6 +94,13 @@ export interface PortalCredentials {
  * One message for "no such account" and for "wrong password". Telling a
  * caller which of the two they got confirms whether an account exists.
  */
+/** Role labels for a session-composed user, when no staff record exists. */
+const DEPARTMENT_ROLE_TITLES: Record<DepartmentRole, string> = {
+  head: 'Department Head',
+  nodal: 'Nodal Officer',
+  field: 'Field Officer',
+};
+
 const INVALID_CREDENTIALS_MESSAGE =
   'That ID or password was not recognised. Check both and try again.';
 
@@ -353,6 +206,10 @@ export function startDepartmentDemoSession(
   departmentId: DepartmentId,
   role: DepartmentRole
 ): PortalSession {
+  if (!demoAccountsAllowed()) {
+    throw new Error('Demo sign-in is not available in this environment.');
+  }
+
   const dept = DEPARTMENTS[departmentId] ?? DEPARTMENTS.roads;
   const staff = dept.mockStaff.find((s) => s.role === role) ?? dept.mockStaff[0];
 
@@ -379,10 +236,24 @@ export function getCurrentDepartmentUser(): DepartmentUser | null {
   const dept = DEPARTMENTS[session.departmentId];
   if (!dept) return null;
 
-  const staff =
-    dept.mockStaff.find((s) => s.id === session.accountId) ??
-    dept.mockStaff.find((s) => s.role === session.departmentRole) ??
-    dept.mockStaff[0];
+  // `mockStaff` is demo personnel. Attaching one of those names and
+  // email addresses to a real officer's session would present a
+  // fabricated identity as genuine, so production composes the user from
+  // the session alone until staff records come from the server.
+  const staff = demoAccountsAllowed()
+    ? dept.mockStaff.find((s) => s.id === session.accountId) ??
+      dept.mockStaff.find((s) => s.role === session.departmentRole) ??
+      dept.mockStaff[0]
+    : {
+        id: session.accountId,
+        name: session.accountId,
+        email: '',
+        role: session.departmentRole ?? 'nodal',
+        roleTitle: DEPARTMENT_ROLE_TITLES[session.departmentRole ?? 'nodal'],
+        designation: DEPARTMENT_ROLE_TITLES[session.departmentRole ?? 'nodal'],
+        division: '',
+        team: '',
+      };
 
   return {
     id: session.userId,
@@ -466,6 +337,10 @@ export async function loginAdmin(credentials: PortalCredentials): Promise<AuthRe
 
 /** DEMO ONLY. See `startDepartmentDemoSession`. */
 export function startAdminDemoSession(): PortalSession {
+  if (!demoAccountsAllowed()) {
+    throw new Error('Demo sign-in is not available in this environment.');
+  }
+
   const account = getDemoAdminAccount();
   return createSession({
     userId: 'admin-001',
@@ -480,12 +355,17 @@ export function getCurrentAdminUser(): AdminUser | null {
   const session = getSession();
   if (!session || session.role !== 'admin') return null;
 
-  const account = getDemoAdminAccount();
+  // In production the demo directory is inert, so the profile is composed
+  // from the session's own identifiers. A real deployment fetches the
+  // administrator's name and permissions from the server alongside the
+  // session; until it does, showing the account ID is honest and showing
+  // "Dr. Rakesh Agrawal" to a real administrator would not be.
+  const account = demoAccountsAllowed() ? getDemoAdminAccount() : null;
 
   return {
     id: session.userId,
-    name: account.displayName,
-    email: account.email,
+    name: account?.displayName ?? session.accountId,
+    email: account?.email ?? '',
     role: 'city_admin',
     roleTitle: 'City Administrator',
     city: 'Gwalior',

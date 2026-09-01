@@ -33,6 +33,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/admin/departments', icon: 'departments', label: 'Departments', short: 'Depts' },
   { path: '/admin/map', icon: 'map', label: 'Civic map', short: 'Map' },
   { path: '/admin/escalations', icon: 'escalations', label: 'Escalations', short: 'Alerts' },
+  { path: '/admin/moderation', icon: 'note', label: 'Report review', short: 'Review' },
   { path: '/admin/feedback', icon: 'feedback', label: 'Citizen feedback', short: 'Feedback' },
   { path: '/admin/performance', icon: 'performance', label: 'Performance', short: 'Score' },
   { path: '/admin/assets', icon: 'map', label: 'Asset ledger', short: 'Assets' },

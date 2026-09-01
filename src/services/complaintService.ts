@@ -18,6 +18,7 @@ import type { ReportDraft, AIAnalysis } from '../types/report';
 import { readJSON, writeJSON, removeKey, subscribeToKey } from './storage';
 import { slaTargetFor } from './slaService';
 import { buildSeedComplaints } from '../data/seedComplaints';
+import { demoSeedDataAllowed } from '../config/appMode';
 import { getCityCode, defaultCity } from '../data/cities';
 import { deriveIdentityReference, maskMobile, maskAadhaar } from './identityService';
 import {
@@ -63,7 +64,10 @@ function readStore(): Complaint[] {
   const stored = readJSON<Complaint[] | null>(COMPLAINTS_STORAGE_KEY, null);
 
   if (!Array.isArray(stored)) {
-    const seed = buildSeedComplaints();
+    // Production starts empty. Seeding synthetic Gwalior complaints into
+    // a real beta would put invented civic issues in front of real
+    // departments and fold them into every published figure.
+    const seed = demoSeedDataAllowed() ? buildSeedComplaints() : [];
     try {
       writeJSON(COMPLAINTS_STORAGE_KEY, seed);
     } catch {

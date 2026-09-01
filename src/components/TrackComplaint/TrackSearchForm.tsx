@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { isValidTicketFormat } from '../../services/complaintService';
 import { useCityConfig } from '../../hooks/useCityConfig';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface TrackSearchFormProps {
   onSearch: (complaintId: string) => void;
@@ -9,14 +10,6 @@ interface TrackSearchFormProps {
   isVerified: boolean;
 }
 
-/**
- * The default state of `/track`.
- *
- * Note what is *not* here: no list of recent complaints, no sample tickets,
- * no "complaints near you". An unverified visitor sees only an empty field.
- * Anything else would hand out other citizens' complaints to anyone who
- * opens the page.
- */
 export function TrackSearchForm({
   onSearch,
   onFindMyComplaints,
@@ -26,6 +19,7 @@ export function TrackSearchForm({
   const [complaintId, setComplaintId] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const city = useCityConfig();
+  const { t } = useTranslation();
 
   const placeholder = `JS-${city.code}-${new Date().getFullYear()}-000000`;
 
@@ -36,12 +30,12 @@ export function TrackSearchForm({
     const clean = complaintId.trim().toUpperCase().replace(/\s+/g, '');
 
     if (!clean) {
-      setErrorMessage('Enter your Complaint ID to continue.');
+      setErrorMessage(t('track.enterIdPrompt'));
       return;
     }
 
     if (!isValidTicketFormat(clean)) {
-      setErrorMessage('Enter a valid JAN-SEVA Complaint ID.');
+      setErrorMessage(t('track.invalidIdPrompt'));
       return;
     }
 
@@ -52,10 +46,8 @@ export function TrackSearchForm({
     <div className="track-stack">
       <form className="track-search-card" onSubmit={handleSubmit} noValidate>
         <div>
-          <h2 className="track-card-title">Track your complaint</h2>
-          <p className="track-card-subtitle">
-            Enter your Complaint ID to see its current status.
-          </p>
+          <h2 className="track-card-title">{t('track.title')}</h2>
+          <p className="track-card-subtitle">{t('track.subtitle')}</p>
         </div>
 
         {errorMessage && (
@@ -81,7 +73,7 @@ export function TrackSearchForm({
 
         <div className="track-input-group">
           <label className="input-field-label" htmlFor="input-complaint-id">
-            Complaint ID
+            {t('track.idLabel')}
           </label>
           <div className="track-input-box">
             <svg
@@ -115,12 +107,12 @@ export function TrackSearchForm({
             />
           </div>
           <p id="ticket-id-hint" className="input-field-hint">
-            Find this on your acknowledgement slip or confirmation message.
+            {t('track.hint')}
           </p>
         </div>
 
         <button type="submit" className="report-btn report-btn--primary" id="btn-track-submit">
-          <span>TRACK COMPLAINT</span>
+          <span>{t('track.btn')}</span>
           <svg
             width="18"
             height="18"
@@ -140,8 +132,8 @@ export function TrackSearchForm({
       <div className="track-alt">
         <span className="track-alt__label">
           {isVerified && verifiedName
-            ? `Signed in as ${verifiedName}`
-            : 'Forgot your Complaint ID?'}
+            ? `${t('track.signedInAs')} ${verifiedName}`
+            : t('track.forgotId')}
         </span>
         <button
           type="button"
@@ -163,7 +155,7 @@ export function TrackSearchForm({
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
           </svg>
-          <span>FIND MY COMPLAINTS</span>
+          <span>{t('track.findMine')}</span>
         </button>
       </div>
     </div>

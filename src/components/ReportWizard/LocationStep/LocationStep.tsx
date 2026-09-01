@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import type { LocationData, ConfirmedLocation } from '../../../types/report';
 import { useGeolocation } from '../../../hooks/useGeolocation';
 import { useCityConfig } from '../../../hooks/useCityConfig';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { LocationPicker } from './LocationPicker';
 import './LocationStep.css';
 
@@ -12,6 +13,7 @@ interface LocationStepProps {
 
 export function LocationStep({ location, onLocationChange }: LocationStepProps) {
   const city = useCityConfig();
+  const { t } = useTranslation();
   const {
     loading,
     gpsLocation,
@@ -87,15 +89,12 @@ export function LocationStep({ location, onLocationChange }: LocationStepProps) 
   const activeConfirmed = confirmedLocation || location?.confirmed || null;
   const activeGps = gpsLocation || location?.gps || null;
 
-
   return (
     <div className="location-step">
       {/* Title & Core Philosophy */}
       <div className="step-heading">
-        <h2 className="step-heading__title">Where is the issue?</h2>
-        <p className="step-heading__subtitle">
-          We’ll detect your current location and let you confirm where the issue actually is.
-        </p>
+        <h2 className="step-heading__title">{t('report.loc.title')}</h2>
+        <p className="step-heading__subtitle">{t('report.loc.subtitle')}</p>
       </div>
 
       {/* State 1: Detecting GPS State */}
@@ -108,8 +107,8 @@ export function LocationStep({ location, onLocationChange }: LocationStepProps) 
             </svg>
           </div>
           <div>
-            <h3 className="loc-detecting-text">Detecting your location...</h3>
-            <p className="loc-detecting-sub">Fetching GPS coordinates for {city.name}</p>
+            <h3 className="loc-detecting-text">{t('report.loc.detecting')}</h3>
+            <p className="loc-detecting-sub">{t('report.loc.fetchingGps').replace('{city}', city.name)}</p>
           </div>
         </div>
       )}
@@ -123,10 +122,8 @@ export function LocationStep({ location, onLocationChange }: LocationStepProps) 
               <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
             </svg>
           </div>
-          <h3 className="loc-denied-title">LOCATION ACCESS UNAVAILABLE</h3>
-          <p className="loc-denied-desc">
-            We couldn't access your current location. You can try again or easily select your locality manually.
-          </p>
+          <h3 className="loc-denied-title">{t('report.loc.deniedTitle')}</h3>
+          <p className="loc-denied-desc">{t('report.loc.deniedDesc')}</p>
 
           <div style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '360px' }}>
             <button
@@ -135,7 +132,7 @@ export function LocationStep({ location, onLocationChange }: LocationStepProps) 
               onClick={() => detectGPS()}
               style={{ flex: 1 }}
             >
-              TRY AGAIN
+              {t('report.loc.tryAgain')}
             </button>
             <button
               type="button"
@@ -147,7 +144,7 @@ export function LocationStep({ location, onLocationChange }: LocationStepProps) 
               style={{ flex: 1.4 }}
               id="btn-enter-location-manually"
             >
-              ENTER MANUALLY
+              {t('report.loc.enterManually')}
             </button>
           </div>
         </div>
@@ -163,9 +160,11 @@ export function LocationStep({ location, onLocationChange }: LocationStepProps) 
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                LOCATION DETECTED
+                {t('report.loc.detectedTag')}
               </span>
-              <span className="loc-accuracy-tag">Accuracy: {accuracyInfo.text}</span>
+              <span className="loc-accuracy-tag">
+                {t('report.loc.accuracy').replace('{accuracy}', accuracyInfo.text)}
+              </span>
             </div>
 
             <h3 className="loc-detected-address">📍 {activeGps.address || `Near City Centre, ${city.name}`}</h3>
@@ -179,14 +178,14 @@ export function LocationStep({ location, onLocationChange }: LocationStepProps) 
 
             {accuracyInfo.isLow && (
               <div className="loc-low-accuracy-banner">
-                <span>⚠ Location accuracy is low. We recommend confirming or adjusting the locality below.</span>
+                <span>{t('report.loc.lowAccuracy')}</span>
               </div>
             )}
           </div>
 
           {/* Issue Location Confirmation Question */}
           <div className="loc-confirm-question-card">
-            <h4 className="loc-confirm-question-title">WHERE EXACTLY IS THE ISSUE?</h4>
+            <h4 className="loc-confirm-question-title">{t('report.loc.whereExact')}</h4>
             <div className="loc-confirm-preview-box">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--blue-500)', flexShrink: 0 }}>
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
@@ -196,7 +195,7 @@ export function LocationStep({ location, onLocationChange }: LocationStepProps) 
             </div>
 
             <p className="loc-confirm-question-sub">
-              You can adjust the location if the issue is not exactly where you are standing.
+              {t('report.loc.adjustHint')}
             </p>
 
             <div className="loc-confirm-btn-row">
@@ -206,7 +205,7 @@ export function LocationStep({ location, onLocationChange }: LocationStepProps) 
                 onClick={handleUseDetectedLocation}
                 id="btn-use-detected-location"
               >
-                <span>USE DETECTED LOCATION</span>
+                <span>{t('report.loc.useDetected')}</span>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
@@ -225,7 +224,7 @@ export function LocationStep({ location, onLocationChange }: LocationStepProps) 
                   <circle cx="11" cy="11" r="8" />
                   <path d="M21 21l-4.35-4.35" />
                 </svg>
-                <span>CHANGE / ENTER LOCATION</span>
+                <span>{t('report.loc.changeLocation')}</span>
               </button>
             </div>
           </div>
@@ -249,11 +248,11 @@ export function LocationStep({ location, onLocationChange }: LocationStepProps) 
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  LOCATION CONFIRMED
+                  {t('report.loc.confirmedTag')}
                 </span>
 
                 <span className={`loc-source-badge loc-source-badge--${activeConfirmed.source}`}>
-                  {activeConfirmed.source === 'gps' ? 'GPS DETECTED' : 'MANUALLY SELECTED'}
+                  {activeConfirmed.source === 'gps' ? t('report.loc.sourceGps') : t('report.loc.sourceManual')}
                 </span>
               </div>
 
@@ -263,7 +262,7 @@ export function LocationStep({ location, onLocationChange }: LocationStepProps) 
               </p>
 
               <div className="loc-coords-footer">
-                <span>Issue Coordinates:</span>
+                <span>{t('report.loc.coords')}</span>
                 <code>
                   {activeConfirmed.latitude.toFixed(4)}, {activeConfirmed.longitude.toFixed(4)}
                 </code>
@@ -285,7 +284,7 @@ export function LocationStep({ location, onLocationChange }: LocationStepProps) 
               <circle cx="11" cy="11" r="8" />
               <path d="M21 21l-4.35-4.35" />
             </svg>
-            <span>CHANGE LOCATION</span>
+            <span>{t('report.loc.changeLocation')}</span>
           </button>
         </div>
       )}
@@ -295,7 +294,7 @@ export function LocationStep({ location, onLocationChange }: LocationStepProps) 
         <div className="loc-search-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--slate-900)' }}>
-              SEARCH LOCATION
+              {t('report.loc.searchTitle')}
             </h4>
             {(activeConfirmed || activeGps) && (
               <button
@@ -303,7 +302,7 @@ export function LocationStep({ location, onLocationChange }: LocationStepProps) 
                 style={{ background: 'none', border: 'none', color: 'var(--blue-600)', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer' }}
                 onClick={() => setIsChangingLocation(false)}
               >
-                Cancel
+                {t('action.cancel')}
               </button>
             )}
           </div>
@@ -317,7 +316,7 @@ export function LocationStep({ location, onLocationChange }: LocationStepProps) 
             <input
               type="text"
               className="loc-search-input"
-              placeholder="Search area, landmark or address (e.g. City Centre, Phool Bagh...)"
+              placeholder={t('report.loc.searchPlaceholder')}
               value={searchQuery}
               onChange={handleManualSearchChange}
               autoFocus
@@ -327,7 +326,7 @@ export function LocationStep({ location, onLocationChange }: LocationStepProps) 
           {/* Interactive Map Quick Landmarks */}
           <div>
             <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--slate-500)', letterSpacing: '0.04em' }}>
-              Select on map or tap a landmark:
+              {t('report.loc.selectOnMap')}
             </span>
             <div style={{ marginTop: '8px' }}>
               <LocationPicker
@@ -374,7 +373,7 @@ export function LocationStep({ location, onLocationChange }: LocationStepProps) 
                 <line x1="2" y1="12" x2="6" y2="12" />
                 <line x1="18" y1="12" x2="22" y2="12" />
               </svg>
-              <span>Use Current GPS Location</span>
+              <span>{t('report.loc.useGps')}</span>
             </button>
           )}
         </div>
