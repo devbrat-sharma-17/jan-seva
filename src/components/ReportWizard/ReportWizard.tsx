@@ -47,6 +47,7 @@ export function ReportWizard() {
     setName,
     setLocation,
     nextStep,
+    photoChecking,
     prevStep,
     jumpToStep,
     submitComplaintReport,
@@ -171,6 +172,9 @@ export function ReportWizard() {
 
     let btnLabel = t('report.bottom.continue');
     if (currentStep === 4) btnLabel = t('report.bottom.confirmLocation');
+    // The photo check is a network call. Saying so beats a button that
+    // looks broken for a second.
+    if (photoChecking) btnLabel = t('report.photo.checking');
 
     const isStep1Disabled = currentStep === 1 && draft.photos.length === 0;
     const isStep4Disabled = currentStep === 4 && (!draft.location || !draft.location.confirmed);
@@ -180,8 +184,8 @@ export function ReportWizard() {
         <button
           type="button"
           className="report-btn report-btn--primary"
-          onClick={nextStep}
-          disabled={isStep1Disabled || isStep4Disabled}
+          onClick={() => void nextStep()}
+          disabled={isStep1Disabled || isStep4Disabled || photoChecking}
           id="btn-step-next"
         >
           <span>{btnLabel}</span>

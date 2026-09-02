@@ -284,7 +284,22 @@ function meetsBlockThreshold(ai: ImageIntelligenceResult): boolean {
   const isPortrait = atLeast(ai.faceDominance, 'HIGH') && atLeast(ai.portraitLikelihood, 'HIGH');
   const isScreenshot = atLeast(ai.screenshotLikelihood, 'HIGH');
 
-  return isPortrait || isScreenshot;
+  /* Synthetic imagery, held to the same guard as the other two: it only
+     reaches this line when civic relevance is already VERY_LOW.
+
+     That ordering is the safeguard. AI detectors false-positive on
+     ordinary photographs — compression, motion blur and low light all
+     read as "generated" to some of them — and a citizen whose real
+     pothole is called fake has no way to argue. Requiring "no civic
+     content in the image" first means a genuine road photo survives a
+     wrong AI verdict, and only an image that is BOTH not-civic AND
+     confidently synthetic is refused. A generated picture that does
+     show a convincing pothole still gets through here and is caught by
+     risk scoring and moderation instead — which is the right place for
+     a judgement this uncertain (spec §14, §47). */
+  const isSynthetic = ai.suspiciousSignals.includes('AI_GENERATED');
+
+  return isPortrait || isScreenshot || isSynthetic;
 }
 
 export interface DecisionOptions {

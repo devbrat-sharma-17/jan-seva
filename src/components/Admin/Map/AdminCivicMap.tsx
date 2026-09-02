@@ -9,6 +9,7 @@ import { useLiveData } from '../../../hooks/useLiveData';
 import { getCivicHotspots } from '../../../services/adminService';
 import { DEPARTMENTS } from '../../../data/departments';
 import { StatusPill } from '../../TrackComplaint/StatusPill';
+import { CivicMap, type CivicMapMarker } from '../../shared/CivicMap/CivicMap';
 import type { Complaint } from '../../../types';
 import type { DepartmentId } from '../../../types/department';
 import type { CivicHotspot } from '../../../types/admin';
@@ -56,22 +57,25 @@ export function AdminCivicMap() {
     return allComplaints.find((c) => c.id === selectedComplaintId) || null;
   }, [allComplaints, selectedComplaintId]);
 
-  const pinPosition = (lat: number, lng: number, index: number) => {
-    const top = Math.min(88, Math.max(12, 50 - (lat - GWALIOR_CENTRE.lat) * 650 + (index % 3) * 4));
-    const left = Math.min(
-      88,
-      Math.max(12, 50 + (lng - GWALIOR_CENTRE.lng) * 650 + (index % 4) * 3),
-    );
-    return { top: `${top}%`, left: `${left}%` };
-  };
-
-  const getPinTone = (complaint: Complaint) => {
+  const getPinTone = (complaint: Complaint): CivicMapMarker['tone'] => {
     if (complaint.status === 'resolved') return 'resolved';
     const sev = complaint.aiAnalysis?.severity;
     if (sev === 'critical') return 'critical';
     if (sev === 'high') return 'high';
     return 'medium';
   };
+
+  const mapMarkers = useMemo<CivicMapMarker[]>(
+    () =>
+      filteredComplaints.map((c) => ({
+        id: c.id,
+        lat: c.location.latitude,
+        lng: c.location.longitude,
+        tone: getPinTone(c),
+        title: `${c.id}: ${c.issue.title}`,
+      })),
+    [filteredComplaints],
+  );
 
   return (
     <div className="admin-map-page">
@@ -126,24 +130,21 @@ export function AdminCivicMap() {
       {/* Map Container */}
       <div className="admin-map-container">
         {' '}
-        <div className="admin-map-grid" /> {/* Ambient SVG city roads network */}
-        <svg className="admin-map-roads" viewBox="0 0 800 600" preserveAspectRatio="none">
-          {' '}
-          <path
-            d="M 50 150 Q 250 200 400 300 T 750 450"
-            stroke="var(--slate-700)"
-            strokeWidth="6"
-            fill="none"
-          />{' '}
-          <path
-            d="M 200 50 Q 300 250 400 300 T 600 550"
-            stroke="var(--slate-700)"
-            strokeWidth="5"
-            fill="none"
-          />{' '}
-          <path d="M 100 500 Q 400 300 700 150" stroke="var(--navy-700)" strokeWidth="4" fill="none" />{' '}
-          <circle cx="400" cy="300" r="14" fill="var(--navy-700)" stroke="var(--color-civic-blue)" strokeWidth="2" />{' '}
-        </svg>{' '}
+        <CivicMap
+          center={[GWALIOR_CENTRE.lat, GWALIOR_CENTRE.lng]}
+          zoom={12}
+          basemap="dark"
+          fitToMarkers
+          zoomPosition="topright"
+          attributionPosition="bottomleft"
+          ariaLabel="City-wide civic complaint map"
+          markers={mapMarkers}
+          selectedId={selectedComplaintId}
+          onMarkerClick={(id) => {
+            setSelectedComplaintId(id);
+            setSelectedHotspot(null);
+          }}
+        />{' '}
         {/* Legend */}
         <div className="admin-map-legend">
           {' '}
@@ -169,29 +170,6 @@ export function AdminCivicMap() {
             <span>Resolved</span>{' '}
           </div>{' '}
         </div>{' '}
-        {/* Complaint Pins */}
-        {filteredComplaints.map((c, index) => {
-          const tone = getPinTone(c);
-          const pos = pinPosition(c.location.latitude, c.location.longitude, index);
-          const isSelected = selectedComplaintId === c.id;
-
-          return (
-            <button
-              key={c.id}
-              type="button"
-              className={`admin-map-pin admin-map-pin--${tone} ${isSelected ? 'admin-map-pin--selected' : ''}`}
-              style={{ top: pos.top, left: pos.left }}
-              onClick={() => {
-                setSelectedComplaintId(c.id);
-                setSelectedHotspot(null);
-              }}
-              title={`${c.id}: ${c.issue.title}`}
-            >
-              {' '}
-              {tone === 'resolved' ? '✓' : tone === 'critical' ? '!' : tone === 'high' ? '▲' : '•'}
-            </button>
-          );
-        })}
         {/* Pin Detail Popover */}
         {selectedComplaint && (
           <div className="admin-pin-popover">

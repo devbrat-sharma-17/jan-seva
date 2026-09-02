@@ -13,7 +13,7 @@ import {
 } from '../services/complaintService';
 import { StorageQuotaError } from '../services/storage';
 import { analyzeReportMock } from '../services/aiService';
-import { screenSubmission, recordFlaggedSubmission } from '../services/screeningPipeline';
+import { screenSubmission, screenPhoto, recordFlaggedSubmission } from '../services/screeningPipeline';
 import type { Complaint } from '../types';
 
 const INITIAL_DRAFT: ReportDraft = {
@@ -45,6 +45,8 @@ export function useReportWizard(cityId: string = 'gwalior', initialCategory?: st
   const [jumpedFromReview, setJumpedFromReview] = useState<boolean>(false);
   const [draftSaveFailed, setDraftSaveFailed] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  /** True while the photo step's screening call is in flight. */
+  const [photoChecking, setPhotoChecking] = useState<boolean>(false);
 
   // Check for saved draft on initial mount
   useEffect(() => {
@@ -208,8 +210,40 @@ export function useReportWizard(cityId: string = 'gwalior', initialCategory?: st
   }, [currentStep, draft]);
 
   // Next step navigation
-  const nextStep = useCallback(() => {
+  const nextStep = useCallback(async () => {
     if (!validateCurrentStep()) return;
+
+    /* ----------------------------------------------------------
+       Photo screening, at the photo step.
+
+       Leaving the photo step is the last moment a bad photo costs the
+       citizen only a retake. After this they write a description,
+       verify an OTP and confirm a location — so a selfie caught at
+       submit costs all four of those, and the citizen has already
+       given us their phone number by then.
+
+       Only the image is judged here; the description does not exist
+       yet, and `screenSubmission` still runs at submit with it. This
+       fails open: no provider, a timeout or an unsure model all
+       continue to step 2.
+       ---------------------------------------------------------- */
+    if (currentStep === 1) {
+      const photo = draft.photos[0]?.url;
+      if (photo) {
+        setPhotoChecking(true);
+        try {
+          const check = await screenPhoto(photo, {
+            localityHint: draft.location?.locality,
+          });
+          if (check.blocked) {
+            setStepError(check.message ?? null);
+            return;
+          }
+        } finally {
+          setPhotoChecking(false);
+        }
+      }
+    }
 
     if (jumpedFromReview) {
       setJumpedFromReview(false);
@@ -221,7 +255,7 @@ export function useReportWizard(cityId: string = 'gwalior', initialCategory?: st
     else if (currentStep === 2) setCurrentStep(3);
     else if (currentStep === 3) setCurrentStep(4);
     else if (currentStep === 4) setCurrentStep(5);
-  }, [currentStep, validateCurrentStep, jumpedFromReview]);
+  }, [currentStep, validateCurrentStep, jumpedFromReview, draft.photos, draft.location]);
 
   // Previous step navigation
   const prevStep = useCallback(() => {
@@ -369,6 +403,7 @@ export function useReportWizard(cityId: string = 'gwalior', initialCategory?: st
     setName,
     setLocation,
     nextStep,
+    photoChecking,
     prevStep,
     jumpToStep,
     submitComplaintReport,

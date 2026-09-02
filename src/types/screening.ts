@@ -41,6 +41,18 @@ export const SUSPICIOUS_SIGNALS = [
   'NO_IDENTIFIABLE_SCENE',
   'DESCRIPTION_MISMATCH',
   'STOCK_OR_PROMOTIONAL',
+  /**
+   * The image looks generated or heavily synthesised rather than
+   * photographed.
+   *
+   * Treated as a SIGNAL, never as proof. No detector — this one
+   * included — can establish that an image is synthetic, and the
+   * failure mode is ugly: an ordinary phone photo degraded by
+   * compression or low light reads as "generated" to many of them.
+   * It contributes to blocking only when the image also has no civic
+   * content at all (see `meetsBlockThreshold`).
+   */
+  'AI_GENERATED',
 ] as const;
 
 export type SuspiciousSignal = (typeof SUSPICIOUS_SIGNALS)[number];

@@ -594,21 +594,41 @@ export async function runScreeningSuite(): Promise<void> {
     null
   );
 
-  // ---- A suspicious report is filed AND flagged -------------------
+  // ---- A confident selfie is refused before a complaint exists ----
+  intelligence.clearAnalysisCache();
+  checkEqual(
+    'E2E: blocking is ON by default',
+    flags.PRE_SUBMIT_NON_CIVIC_BLOCK_ENABLED,
+    true
+  );
+  const blockedScreening = await pipeline.screenSubmission(draftFor('Streetlight kharab hai'), {
+    provider: providerReturning(selfie),
+  });
+  checkEqual(
+    'E2E: a confidently-graded selfie is blocked, not filed',
+    blockedScreening.decision.action,
+    'BLOCK'
+  );
+  check(
+    'E2E: and the citizen is told what to photograph rather than accused',
+    typeof blockedScreening.citizenMessage === 'string' &&
+      !/fraud|fake|lying|false/i.test(blockedScreening.citizenMessage)
+  );
+
+  /* ---- A report the model is UNSURE about is filed AND flagged ----
+
+     The moderation path needs a submission that survives the gate but
+     still scores risk. A low-confidence assessment is exactly that, and
+     it is the realistic case now that blocking is on: what reaches a
+     human reviewer is what the model could not call confidently. */
   intelligence.clearAnalysisCache();
   const suspectDraft = draftFor('Streetlight kharab hai');
   const suspectScreening = await pipeline.screenSubmission(suspectDraft, {
-    provider: providerReturning(selfie),
+    provider: providerReturning(unsure),
   });
 
-  // With the production default (blocking OFF) this must flag, not block.
   checkEqual(
-    'E2E: with blocking off by default, a selfie is flagged rather than blocked',
-    flags.PRE_SUBMIT_NON_CIVIC_BLOCK_ENABLED,
-    false
-  );
-  checkEqual(
-    'E2E: the suspicious submission is allowed and flagged',
+    'E2E: the unsure submission is allowed and flagged',
     suspectScreening.decision.action,
     'ALLOW_AND_FLAG'
   );

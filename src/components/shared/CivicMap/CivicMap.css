@@ -1,0 +1,106 @@
+/* ============================================================
+   CivicMap — shared Leaflet surface
+   ============================================================ */
+
+.civic-map {
+  position: absolute;
+  inset: 0;
+  /* A stacking context so Leaflet's internal panes (z-index up to
+     ~700) stay contained and the host's overlays paint on top. */
+  z-index: 1;
+  background: #e8edf2;
+}
+
+.civic-map .leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  font: inherit;
+  outline: none;
+}
+
+/* The app sets a global `img { max-width: 100% }`, which shifts tiles
+   and marker anchors. Leaflet needs the natural size. */
+.civic-map .leaflet-container img {
+  max-width: none !important;
+}
+
+.civic-map .leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.82);
+  color: #475569;
+  font-size: 10px;
+  padding: 1px 6px;
+}
+
+.civic-map .leaflet-control-attribution a {
+  color: #2563eb;
+}
+
+.civic-map .leaflet-bar a {
+  color: #1e293b;
+}
+
+/* ---- markers ------------------------------------------------ */
+
+.leaflet-marker-icon.civic-marker {
+  background: transparent;
+  border: none;
+}
+
+.civic-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  border: 2px solid #ffffff;
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.35);
+  color: #ffffff;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.civic-pin > svg {
+  transform: rotate(45deg);
+}
+
+.civic-pin--critical { background: #ef4444; }
+.civic-pin--high     { background: #f59e0b; }
+.civic-pin--medium   { background: #3b82f6; }
+.civic-pin--resolved { background: #22c55e; }
+.civic-pin--issue    { background: #e8722a; }
+
+.civic-pin--selected {
+  transform: rotate(-45deg) scale(1.28);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.5);
+}
+
+.civic-dot {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #2563eb;
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.5);
+}
+
+.civic-dot__pulse {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid #3b82f6;
+  animation: civicPulse 1.8s ease-out infinite;
+}
+
+@keyframes civicPulse {
+  0% { transform: scale(0.7); opacity: 0.9; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .civic-pin { transition: none; }
+  .civic-dot__pulse { animation: none; }
+}

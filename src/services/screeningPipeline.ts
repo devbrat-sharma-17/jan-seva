@@ -188,6 +188,68 @@ export async function screenSubmission(
 }
 
 /**
+ * Screens the PHOTO ALONE, at the photo step, before the citizen has
+ * written anything.
+ *
+ * Why this exists separately from `screenSubmission`: at step 1 there is
+ * no description yet, so the photo-vs-description question cannot be
+ * asked. What CAN be answered from the image by itself is the part that
+ * wastes the most of a citizen's time if it is left to the end — a
+ * selfie, a screenshot, or a picture with no civic content at all. Being
+ * told that at the shutter costs one retake; being told it after four
+ * more steps costs the whole form.
+ *
+ * `screenSubmission` still runs at submit and is still the gate that
+ * sees the description. This does not replace it.
+ *
+ *   Fails OPEN, like everything else here. No model, no key, a timeout,
+ *   a low-confidence answer — all of them return ALLOW. The only thing
+ *   that stops a citizen is a model that is confident, on a usable
+ *   image, that there is no civic content in it.
+ */
+export async function screenPhoto(
+  imageDataUrl: string,
+  options: ScreenOptions & { localityHint?: string } = {}
+): Promise<{ blocked: boolean; message?: string; ai: ImageIntelligenceResult }> {
+  const now = options.now ?? Date.now();
+
+  let ai: ImageIntelligenceResult;
+  try {
+    ai = await analyzeCitizenSubmission(
+      {
+        imageDataUrl,
+        // No description exists yet. Sending an empty one is honest: the
+        // model is being asked "is this a civic scene?", not "does this
+        // match what they wrote?".
+        description: '',
+        localityHint: options.localityHint,
+      },
+      options.provider
+    );
+  } catch {
+    ai = { available: false, reason: 'PROVIDER_ERROR', analyzedAt: new Date(now).toISOString() };
+  }
+
+  // Risk scoring is deliberately not run here. Reuse and frequency
+  // signals belong to a submission, not to a photograph, and the
+  // moderation case they feed cannot exist before a complaint does.
+  const decision = decideSubmission(
+    { level: 'LOW', score: 0, signals: [], assessedAt: new Date(now).toISOString() },
+    ai,
+    { blockingEnabled: PRE_SUBMIT_NON_CIVIC_BLOCK_ENABLED, now }
+  );
+
+  if (decision.action !== 'BLOCK') return { blocked: false, ai };
+
+  return {
+    blocked: true,
+    message:
+      getLocale() === 'hi' ? decision.citizenMessageHindi : decision.citizenMessage,
+    ai,
+  };
+}
+
+/**
  * Opens a moderation case for a complaint that was allowed but flagged.
  *
  * Called after the complaint is safely stored. A failure here must not

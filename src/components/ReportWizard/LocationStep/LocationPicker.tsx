@@ -1,5 +1,9 @@
+import { useState } from 'react';
 import type { GPSLocation, ConfirmedLocation } from '../../../types/report';
-import { GWALIOR_LOCALITIES } from '../../../services/locationService';
+import { GWALIOR_LOCALITIES, reverseGeocode } from '../../../services/locationService';
+import { CivicMap, type CivicMapMarker } from '../../shared/CivicMap/CivicMap';
+
+const GWALIOR_CENTRE: [number, number] = [26.2183, 78.1828];
 
 interface LocationPickerProps {
   gpsLocation: GPSLocation | null;
@@ -14,6 +18,8 @@ export function LocationPicker({
   onSelectLocality,
   interactive = false,
 }: LocationPickerProps) {
+  const [resolving, setResolving] = useState(false);
+
   const isDifferent =
     gpsLocation &&
     confirmedLocation &&
@@ -21,14 +27,60 @@ export function LocationPicker({
     (Math.abs(gpsLocation.latitude - confirmedLocation.latitude) > 0.0001 ||
       Math.abs(gpsLocation.longitude - confirmedLocation.longitude) > 0.0001);
 
+  const center: [number, number] = confirmedLocation
+    ? [confirmedLocation.latitude, confirmedLocation.longitude]
+    : gpsLocation
+    ? [gpsLocation.latitude, gpsLocation.longitude]
+    : GWALIOR_CENTRE;
+
+  const markers: CivicMapMarker[] = [];
+  if (gpsLocation) {
+    markers.push({
+      id: 'gps',
+      lat: gpsLocation.latitude,
+      lng: gpsLocation.longitude,
+      tone: 'gps',
+      title: 'Your current position',
+    });
+  }
+  if (confirmedLocation) {
+    markers.push({
+      id: 'issue',
+      lat: confirmedLocation.latitude,
+      lng: confirmedLocation.longitude,
+      tone: 'issue',
+      title: 'Issue location',
+      draggable: interactive && !!onSelectLocality,
+    });
+  }
+
+  const handleDragEnd = async (_id: string, lat: number, lng: number) => {
+    if (!onSelectLocality) return;
+    setResolving(true);
+    try {
+      const resolved = await reverseGeocode(lat, lng);
+      onSelectLocality(resolved);
+    } finally {
+      setResolving(false);
+    }
+  };
+
   return (
     <div className="loc-picker-container">
-      {/* Map Surface */}
-      <div className="loc-picker-map" aria-label="Interactive Civic Map Preview">
-        {/* Animated Road Network Grid */}
-        <div className="loc-picker-grid" />
+      {/* Real slippy map (OpenStreetMap / CARTO tiles) */}
+      <div className="loc-picker-map" aria-label="Interactive civic map">
+        <CivicMap
+          center={center}
+          zoom={confirmedLocation || gpsLocation ? 15 : 12}
+          scrollWheelZoom={false}
+          zoomPosition="topright"
+          attributionPosition="bottomleft"
+          ariaLabel="Issue location map"
+          markers={markers}
+          onMarkerDragEnd={handleDragEnd}
+        />
 
-        {/* Major Landmarks in Gwalior on Map */}
+        {/* Quick-pick landmarks stay as an overlay above the map */}
         {interactive && (
           <div className="loc-picker-landmarks">
             {GWALIOR_LOCALITIES.slice(0, 4).map((loc) => {
@@ -59,28 +111,9 @@ export function LocationPicker({
           </div>
         )}
 
-        {/* GPS Device Location Pin (Blue Radar Pulse) */}
-        {gpsLocation && (
-          <div className="loc-gps-pin-marker" title="Device GPS Position">
-            <div className="loc-gps-pulse-ring" />
-            <div className="loc-gps-center-dot" />
-            {isDifferent && <span className="loc-pin-label">You</span>}
-          </div>
-        )}
-
-        {/* Issue Location Pin (Orange / Red Civic Pin) */}
-        {confirmedLocation && (
-          <div
-            className={`loc-issue-pin-marker ${isDifferent ? 'loc-issue-pin-marker--offset' : ''}`}
-            title="Confirmed Issue Location"
-          >
-            <div className="loc-issue-pin-bubble">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z" />
-                <circle cx="12" cy="10" r="3" />
-              </svg>
-            </div>
-            {isDifferent && <span className="loc-pin-label loc-pin-label--issue">Issue</span>}
+        {interactive && onSelectLocality && (
+          <div className="loc-picker-hint">
+            {resolving ? 'Locating address…' : 'Drag the orange pin to fine-tune'}
           </div>
         )}
 

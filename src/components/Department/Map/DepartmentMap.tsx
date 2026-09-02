@@ -5,6 +5,7 @@ import { getCurrentDepartmentUser } from '../../../services/authService';
 import { getDepartmentConfig } from '../../../data/departments';
 import { getComplaintsByDepartment, subscribeToComplaints } from '../../../services/complaintService';
 import { explainPriority } from '../../../services/aiService';
+import { CivicMap, type CivicMapMarker } from '../../shared/CivicMap/CivicMap';
 import type { Complaint } from '../../../types';
 import type { DepartmentUser } from '../../../types/department';
 import './DepartmentMap.css';
@@ -51,11 +52,19 @@ export function DepartmentMap() {
   // keep showing a stale copy of a complaint after the store updates.
   const selected = filtered.find((c) => c.id === selectedId) ?? null;
 
-  const pinPosition = (lat: number, lng: number, index: number) => {
-    const top = Math.min(86, Math.max(12, 50 - (lat - GWALIOR_CENTRE.lat) * 700 + (index % 3) * 4));
-    const left = Math.min(88, Math.max(12, 50 + (lng - GWALIOR_CENTRE.lng) * 700 + (index % 4) * 3));
-    return { top: `${top}%`, left: `${left}%` };
+  const toneFor = (c: Complaint): CivicMapMarker['tone'] => {
+    if (c.status === 'resolved') return 'resolved';
+    const level = explainPriority(c).level;
+    return level === 'critical' ? 'critical' : level === 'high' ? 'high' : 'medium';
   };
+
+  const mapMarkers: CivicMapMarker[] = filtered.map((c) => ({
+    id: c.id,
+    lat: c.location.latitude,
+    lng: c.location.longitude,
+    tone: toneFor(c),
+    title: `${c.id}: ${c.issue.title}`,
+  }));
 
   const filters: Array<{ id: StatusFilter; label: string; count: number }> = [
     { id: 'active', label: 'Active', count: complaints.filter((c) => c.status !== 'resolved').length },
@@ -91,7 +100,16 @@ export function DepartmentMap() {
 
       <div className="dept-map-wrap">
         <div className="dept-map">
-          <div className="dept-map__canvas" aria-hidden="true" />
+          <CivicMap
+            center={[GWALIOR_CENTRE.lat, GWALIOR_CENTRE.lng]}
+            zoom={12}
+            fitToMarkers
+            zoomPosition="topleft"
+            ariaLabel={`${deptConfig.shortName} complaints map`}
+            markers={mapMarkers}
+            selectedId={selectedId}
+            onMarkerClick={setSelectedId}
+          />
 
         <ul className="dept-map__legend">
           {LEGEND.map((item) => (
@@ -101,36 +119,6 @@ export function DepartmentMap() {
             </li>
           ))}
         </ul>
-
-        {filtered.map((c, index) => {
-          const priority = explainPriority(c);
-          const tone =
-            c.status === 'resolved'
-              ? 'resolved'
-              : priority.level === 'critical'
-              ? 'critical'
-              : priority.level === 'high'
-              ? 'high'
-              : 'medium';
-
-          return (
-            <button
-              key={c.id}
-              type="button"
-              className={`dept-map__pin${selectedId === c.id ? ' is-selected' : ''}`}
-              style={pinPosition(c.location.latitude, c.location.longitude, index)}
-              onClick={() => setSelectedId(c.id)}
-              aria-label={`${c.id}: ${c.issue.title}`}
-            >
-              <span className={`dept-map__pin-badge dept-map__pin-badge--${tone}`} aria-hidden="true">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-              </span>
-            </button>
-          );
-        })}
 
         {filtered.length === 0 && (
           <p className="dept-map__empty">No complaints match this filter.</p>

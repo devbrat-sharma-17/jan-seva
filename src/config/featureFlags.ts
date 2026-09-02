@@ -48,14 +48,25 @@ export const AI_SCREENING_ENABLED = readFlag('VITE_AI_SCREENING_ENABLED', true);
 /**
  * Let the gate refuse a submission before a complaint exists.
  *
- * OFF by default. This is the only path in the product where software
- * alone stops a citizen from filing, and it is switched on deliberately
- * after the false-positive suite has been run against real photographs
- * from the city — not inherited from a default.
+ * ON by default, switched on deliberately: this is the only path in the
+ * product where software alone stops a citizen from filing.
+ *
+ *   WHAT MAKES THAT DEFENSIBLE IS THE THRESHOLD, NOT THIS FLAG.
+ *   `meetsBlockThreshold` refuses only when the model is HIGH confident,
+ *   the image is usable, civic relevance is VERY_LOW, and it is a
+ *   portrait, a screenshot or confidently synthetic. A photo with a
+ *   person standing next to a pothole has civic content and is never
+ *   refused. With no provider configured the result is UNAVAILABLE,
+ *   which allows — so a missing key costs screening, never a complaint.
+ *
+ *   Still owed: the false-positive suite against real photographs from
+ *   Gwalior. Until that has run, this is a reasoned default and not a
+ *   measured one. Set VITE_PRE_SUBMIT_BLOCK_ENABLED=false to switch it
+ *   back off without a deploy.
  */
 export const PRE_SUBMIT_NON_CIVIC_BLOCK_ENABLED = readFlag(
   'VITE_PRE_SUBMIT_BLOCK_ENABLED',
-  false
+  true
 );
 
 /** Score submissions and open moderation cases. Observation; ON. */

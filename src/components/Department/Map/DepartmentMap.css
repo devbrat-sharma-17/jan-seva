@@ -143,12 +143,17 @@
 .dept-map__empty {
   position: absolute;
   inset: 0;
+  z-index: 3;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0;
   font-size: var(--text-sm);
   color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
 }
 
 /* ------------------------------------------------------------
