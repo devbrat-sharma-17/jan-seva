@@ -12,15 +12,15 @@
 //   "does this number exist in your system" is worth money to a
 //   harvester and nothing to a citizen.
 
-import { apiError, apiOk, readJsonBody, withErrorHandling } from '../_lib/errors.ts';
-import { insert, isDbConfigured, dbUnavailable } from '../_lib/db.ts';
+import { apiError, apiOk, readJsonBody, withErrorHandling } from '../_lib/errors';
+import { insert, isDbConfigured, dbUnavailable } from '../_lib/db';
 import {
   deriveIdentityReference,
   isValidMobile,
   maskIdentity,
-} from '../_lib/identity.ts';
-import { clientAddress, consume } from '../_lib/rateLimit.ts';
-import { resolveProvider, OtpProviderError } from '../_lib/otpProviders.ts';
+} from '../_lib/identity';
+import { clientAddress, consume } from '../_lib/rateLimit';
+import { resolveProvider, OtpProviderError } from '../_lib/otpProviders';
 
 /**
  * Web-standard handler — see api/complaints/create.ts for the full note.

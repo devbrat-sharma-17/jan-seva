@@ -10,12 +10,12 @@
 // distinguishing them tells an attacker which half of the guess was
 // right (spec §12).
 
-import { apiError, apiOk, readJsonBody, withErrorHandling } from '../_lib/errors.ts';
-import { select, update, isDbConfigured, dbUnavailable } from '../_lib/db.ts';
-import { deriveIdentityReference, isValidMobile } from '../_lib/identity.ts';
-import { consume } from '../_lib/rateLimit.ts';
-import { resolveProvider } from '../_lib/otpProviders.ts';
-import { issueAttestation, ATTESTATION_TTL_SECONDS } from '../_lib/attestation.ts';
+import { apiError, apiOk, readJsonBody, withErrorHandling } from '../_lib/errors';
+import { select, update, isDbConfigured, dbUnavailable } from '../_lib/db';
+import { deriveIdentityReference, isValidMobile } from '../_lib/identity';
+import { consume } from '../_lib/rateLimit';
+import { resolveProvider } from '../_lib/otpProviders';
+import { issueAttestation, ATTESTATION_TTL_SECONDS } from '../_lib/attestation';
 
 /**
  * Web-standard handler — see api/complaints/create.ts for the full note.

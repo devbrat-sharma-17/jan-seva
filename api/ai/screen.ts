@@ -17,14 +17,14 @@
 // environment, used in a header, and is not present in any response
 // (spec §31).
 
-import { apiError, apiOk, readJsonBody, withErrorHandling } from '../_lib/errors.ts';
-import { clientAddress, consume } from '../_lib/rateLimit.ts';
-import { analyzeWithGemini, billingTierAcknowledged } from '../_lib/gemini.ts';
+import { apiError, apiOk, readJsonBody, withErrorHandling } from '../_lib/errors';
+import { clientAddress, consume } from '../_lib/rateLimit';
+import { analyzeWithGemini, billingTierAcknowledged } from '../_lib/gemini';
 import {
   SUSPICIOUS_SIGNALS,
   type ImageIntelligenceResult,
   type SuspiciousSignal,
-} from '../../src/types/screening.ts';
+} from '../../src/types/screening';
 
 /**
  * Web-standard handler — see api/complaints/create.ts for the full note.

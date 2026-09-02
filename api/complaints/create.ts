@@ -19,10 +19,10 @@
 // requests would leave a complaint with no audit row the first time a
 // cold start timed out halfway through.
 
-import { apiError, apiOk, readJsonBody, withErrorHandling } from '../_lib/errors.ts';
-import { rpc, isDbConfigured, dbUnavailable, DbRequestError } from '../_lib/db.ts';
-import { clientAddress, consume } from '../_lib/rateLimit.ts';
-import { verifyAttestation } from '../_lib/attestation.ts';
+import { apiError, apiOk, readJsonBody, withErrorHandling } from '../_lib/errors';
+import { rpc, isDbConfigured, dbUnavailable, DbRequestError } from '../_lib/db';
+import { clientAddress, consume } from '../_lib/rateLimit';
+import { verifyAttestation } from '../_lib/attestation';
 
 /**
  * WEB-STANDARD HANDLER, SO THE RUNTIME HAS TO BE DECLARED.

@@ -13,8 +13,8 @@
 // here and would not be for a payment API, so it is written down rather
 // than papered over.
 
-import { rpc } from './db.ts';
-import { hashSubject } from './identity.ts';
+import { rpc } from './db';
+import { hashSubject } from './identity';
 
 export interface RateLimitRule {
   /** Requests permitted per window. */

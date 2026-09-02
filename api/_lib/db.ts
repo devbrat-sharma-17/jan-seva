@@ -17,7 +17,7 @@
 // deploy fails on the request that needed a database, with a 503 the UI
 // can render, instead of crashing the whole function bundle at import.
 
-import { apiError } from './errors.ts';
+import { apiError } from './errors';
 
 export class DbNotConfiguredError extends Error {
   constructor() {

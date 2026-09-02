@@ -42,7 +42,7 @@
 // A second copy of this list would drift, and the drift would be silent:
 // the schema would permit a signal the risk engine no longer knows about.
 // The module is pure types plus this one array, with no browser imports.
-import { SUSPICIOUS_SIGNALS } from '../../src/types/screening.ts';
+import { SUSPICIOUS_SIGNALS } from '../../src/types/screening';
 
 export const GEMINI_ENDPOINT =
   'https://generativelanguage.googleapis.com/v1beta/interactions';

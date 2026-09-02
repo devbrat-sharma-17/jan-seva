@@ -18,8 +18,8 @@
 //   someone decides otherwise — the default for civic data has to be
 //   "not published", and a deny-list inverts that with no warning.
 
-import { apiError, apiOk, withErrorHandling } from '../_lib/errors.ts';
-import { select, isDbConfigured, dbUnavailable } from '../_lib/db.ts';
+import { apiError, apiOk, withErrorHandling } from '../_lib/errors';
+import { select, isDbConfigured, dbUnavailable } from '../_lib/db';
 
 /** Web-standard handler — see api/complaints/create.ts. */
 export const config = { runtime: 'edge' };
