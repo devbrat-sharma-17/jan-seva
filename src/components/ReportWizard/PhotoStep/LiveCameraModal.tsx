@@ -106,6 +106,9 @@ export function LiveCameraModal({ onCapture, onClose, onFallbackToFile }: LiveCa
         url: dataUrl,
         name: `Civic_Photo_${new Date().toISOString().slice(0, 10)}.jpg`,
         timestamp: Date.now(),
+        // This frame was drawn from the live MediaStream by the line above.
+        captureMethod: 'LIVE_CAMERA',
+        capturedAtClient: new Date().toISOString(),
       };
 
       stopStream();

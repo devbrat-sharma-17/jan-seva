@@ -19,10 +19,14 @@ export function PhotoStep({
   onReplacePhoto,
 }: PhotoStepProps) {
   const { t } = useTranslation();
+  /* One input, and it asks for the camera. The gallery picker and the
+     separate "replace from storage" picker are gone: evidence for a civic
+     complaint is photographed at the issue, not chosen from a camera roll
+     (spec §1, §3). This input is only reached when getUserMedia is
+     unavailable, and `capture="environment"` makes it a camera request —
+     which is an intent the browser may honour, not a guarantee (spec §2). */
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
-  const replaceInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
   const [replacingPhotoId, setReplacingPhotoId] = useState<string | null>(null);
   const [isLiveCameraOpen, setIsLiveCameraOpen] = useState<boolean>(false);
@@ -57,6 +61,10 @@ export function PhotoStep({
             name: file.name,
             size: compressed.bytes,
             timestamp: Date.now(),
+            /* The only file input left asks for the camera, so this is a
+               camera intent — recorded as exactly that and no stronger. */
+            captureMethod: 'NATIVE_CAMERA_INTENT',
+            capturedAtClient: new Date().toISOString(),
           };
 
           if (isReplacing && replacingPhotoId) {
@@ -78,17 +86,7 @@ export function PhotoStep({
   };
 
   const handleCameraChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    void processFiles(e.target.files);
-    if (e.target) e.target.value = '';
-  };
-
-  const handleGalleryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    void processFiles(e.target.files);
-    if (e.target) e.target.value = '';
-  };
-
-  const handleReplaceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    void processFiles(e.target.files, true);
+    void processFiles(e.target.files, replacingPhotoId !== null);
     if (e.target) e.target.value = '';
   };
 
@@ -100,20 +98,19 @@ export function PhotoStep({
     cameraInputRef.current?.click();
   };
 
-  const triggerGallery = () => {
-    galleryInputRef.current?.click();
-  };
-
+  /* Replacing a photo takes another photo. It used to open the file
+     picker, which made "replace" the one path in the wizard that could
+     still attach anything on the device. */
   const triggerReplace = (photoId: string) => {
     setReplacingPhotoId(photoId);
-    replaceInputRef.current?.click();
+    setIsLiveCameraOpen(true);
   };
 
   const activePhoto = photos[selectedPhotoIndex] || photos[0];
 
   return (
     <div className="photo-step">
-      {/* Hidden File Inputs */}
+      {/* Camera fallback only, used when the in-app viewfinder cannot run. */}
       <input
         type="file"
         ref={cameraInputRef}
@@ -122,23 +119,6 @@ export function PhotoStep({
         onChange={handleCameraChange}
         style={{ display: 'none' }}
         id="native-camera-input"
-      />
-      <input
-        type="file"
-        ref={galleryInputRef}
-        accept="image/*"
-        multiple
-        onChange={handleGalleryChange}
-        style={{ display: 'none' }}
-        id="native-gallery-input"
-      />
-      <input
-        type="file"
-        ref={replaceInputRef}
-        accept="image/*"
-        onChange={handleReplaceChange}
-        style={{ display: 'none' }}
-        id="native-replace-input"
       />
 
       <div className="step-heading">
@@ -189,20 +169,7 @@ export function PhotoStep({
               <span>{t('report.photo.takePhoto')}</span>
             </button>
 
-            <button
-              type="button"
-              className="report-btn report-btn--secondary"
-              onClick={triggerGallery}
-              disabled={isCompressing}
-              id="btn-choose-gallery"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-              <span>{t('report.photo.chooseGallery')}</span>
-            </button>
+            <p className="photo-capture-note">{t('report.photo.cameraOnly')}</p>
           </div>
         </div>
       ) : (

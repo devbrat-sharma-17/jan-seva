@@ -3,6 +3,7 @@
 // ============================================================
 
 import type { CaptureIntegrity, CaptureIntegrityGrade } from './proof';
+import type { PhotoCaptureMethod } from './report';
 
 /**
  * One deferred durability check on a confirmed resolution.
@@ -168,6 +169,20 @@ export interface Complaint {
   };
 
   photos: string[];
+
+  /**
+   * How each entry in `photos` was captured, index-aligned (spec §19).
+   *
+   * Kept beside `photos` rather than turning that into an array of
+   * objects: every existing record, seed and reader treats it as a list
+   * of data URLs. Absent on complaints filed before provenance was
+   * recorded, which reads as UNKNOWN and never as a confirmed capture.
+   */
+  photoProvenance?: Array<{
+    captureMethod: PhotoCaptureMethod;
+    /** Device clock at capture. Not authoritative on its own. */
+    capturedAtClient?: string;
+  }>;
 
   location: {
     latitude: number;

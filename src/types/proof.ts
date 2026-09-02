@@ -57,6 +57,16 @@ export interface CaptureCheck {
   severity: 'blocking' | 'advisory';
 }
 
+/**
+ * How a candidate image compared against everything accepted before.
+ *
+ *   EXACT_REUSE   byte-identical to an earlier accepted image (SHA-256).
+ *   NEAR_REUSE    the same scene, recompressed/cropped/resized (dHash).
+ *   NO_MATCH      novel as far as the index can tell.
+ *   CHECK_UNAVAILABLE  the comparison could not run.
+ */
+export type ReuseVerdict = 'EXACT_REUSE' | 'NEAR_REUSE' | 'NO_MATCH' | 'CHECK_UNAVAILABLE';
+
 export interface CaptureIntegrity {
   grade: CaptureIntegrityGrade;
   checks: CaptureCheck[];
@@ -66,6 +76,18 @@ export interface CaptureIntegrity {
   distanceMetres: number | null;
   /** 64-bit dHash, as 16 hex characters. The key into the reuse index. */
   perceptualHash: string;
+  /**
+   * SHA-256 of the image bytes, for exact identity (spec §12). The dHash
+   * answers "same scene?"; this answers "same file?", and only this one is
+   * a cryptographic hash — the dHash is a similarity metric and is not
+   * load-bearing for integrity on its own.
+   *
+   * Undefined where SubtleCrypto is unavailable (an insecure origin), which
+   * is recorded as CHECK_UNAVAILABLE rather than as a pass.
+   */
+  sha256?: string;
+  /** Outcome of the reuse comparison. */
+  reuseVerdict: ReuseVerdict;
   /**
    * If this hash was seen before, the complaint it was accepted against.
    * The single strongest signal in the whole pipeline.
@@ -88,6 +110,8 @@ export interface EvidenceCapture {
 /** One entry in the city-wide evidence hash index. */
 export interface EvidenceHashRecord {
   hash: string;
+  /** Exact-identity hash. Absent on records written before §12. */
+  sha256?: string;
   complaintId: string;
   recordedAt: string;
   assetId?: string;

@@ -86,6 +86,49 @@ export const REPEAT_ABUSE_RESTRICTION_ENABLED = readFlag(
   false
 );
 
+// ============================================================
+// Evidence capture (spec §48)
+// ============================================================
+//
+// Same asymmetry, applied to evidence. The flags that decide whether
+// evidence is CHECKED default ON — a check is observation. The flags
+// that decide whether a citizen or an officer is REFUSED default to the
+// value that keeps them working, because a missing environment variable
+// must not be what stops a real pothole being reported or a real repair
+// being filed.
+//
+// The exception is RESOLUTION_CAMERA_ONLY. It defaults ON, and refusing
+// is the point: a department closing complaints with gallery photos is
+// the failure this whole module exists to prevent, and the officer has
+// an immediate remedy — take the photo. That is not the same class of
+// harm as blocking a citizen's complaint.
+
+/** The in-app camera path at all. Off would mean falling back to file inputs. */
+export const LIVE_CAMERA_EVIDENCE_ENABLED = readFlag('VITE_LIVE_CAMERA_ENABLED', true);
+
+/** Hide the gallery picker in the citizen report wizard. */
+export const CITIZEN_CAMERA_ONLY = readFlag('VITE_CITIZEN_CAMERA_ONLY', true);
+
+/** Refuse non-live captures as proof of repair. */
+export const RESOLUTION_CAMERA_ONLY = readFlag('VITE_RESOLUTION_CAMERA_ONLY', true);
+
+/** Compare new evidence against the hash index. Observation; ON. */
+export const IMAGE_REUSE_CHECK_ENABLED = readFlag('VITE_IMAGE_REUSE_CHECK_ENABLED', true);
+
+/** Run integrity screening on evidence images. Observation; ON. */
+export const AI_IMAGE_INTEGRITY_ENABLED = readFlag('VITE_AI_IMAGE_INTEGRITY_ENABLED', true);
+
+/** Request and record location at capture. Observation; ON. */
+export const LOCATION_EVIDENCE_ENABLED = readFlag('VITE_LOCATION_EVIDENCE_ENABLED', true);
+
+/**
+ * Require at least one evidence photo before a resolution can be filed.
+ *
+ * ON: this is the §23 gate, and a resolution with no proof is the state
+ * the product exists to make impossible.
+ */
+export const RESOLUTION_EVIDENCE_REQUIRED = readFlag('VITE_RESOLUTION_EVIDENCE_REQUIRED', true);
+
 /** Everything, for the moderation screen's own status panel. */
 export function screeningFlagSnapshot(): Record<string, boolean> {
   return {
@@ -95,5 +138,12 @@ export function screeningFlagSnapshot(): Record<string, boolean> {
     MODERATION_ENABLED,
     CITIZEN_WARNING_ENABLED,
     REPEAT_ABUSE_RESTRICTION_ENABLED,
+    LIVE_CAMERA_EVIDENCE_ENABLED,
+    CITIZEN_CAMERA_ONLY,
+    RESOLUTION_CAMERA_ONLY,
+    IMAGE_REUSE_CHECK_ENABLED,
+    AI_IMAGE_INTEGRITY_ENABLED,
+    LOCATION_EVIDENCE_ENABLED,
+    RESOLUTION_EVIDENCE_REQUIRED,
   };
 }

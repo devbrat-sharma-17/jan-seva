@@ -2,6 +2,23 @@
 // JAN-SEVA — Report an Issue Type Definitions
 // ============================================================
 
+/**
+ * How a photo entered the report.
+ *
+ *   LIVE_CAMERA           the in-app viewfinder; the app drew the frame.
+ *   NATIVE_CAMERA_INTENT  a `capture="environment"` file input. The
+ *                         browser was ASKED for the camera; on most
+ *                         mobile platforms that is what opens, but no
+ *                         browser reports back what the user actually
+ *                         picked, so this is an intent, not a proof.
+ *   UNKNOWN               provenance was not established.
+ *
+ * There is deliberately no value meaning "confirmed genuine". A browser
+ * cannot establish that, and a field named as if it could would be cited
+ * as if it had (spec §19, §47).
+ */
+export type PhotoCaptureMethod = 'LIVE_CAMERA' | 'NATIVE_CAMERA_INTENT' | 'UNKNOWN';
+
 export interface ReportPhoto {
   id: string;
   url: string;
@@ -9,6 +26,10 @@ export interface ReportPhoto {
   size?: number;
   file?: File;
   timestamp: number;
+  /** Provenance recorded at the shutter. Absent on drafts saved before this existed. */
+  captureMethod?: PhotoCaptureMethod;
+  /** Device wall clock at capture. Not authoritative — the server's receipt time is. */
+  capturedAtClient?: string;
 }
 
 export interface GPSLocation {

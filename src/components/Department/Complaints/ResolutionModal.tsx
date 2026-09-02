@@ -3,8 +3,7 @@ import { DeptModal } from './DeptModal';
 import { useProofCapture } from '../../../hooks/useProofCapture';
 import { ProofCameraModal } from '../../proof/ProofCameraModal';
 import { IntegrityBadge, IntegrityChecklist } from '../../proof/IntegrityBadge';
-import { CAPTURE_RADIUS_METRES } from '../../../services/proofService';
-import { EVIDENCE_ACCEPT } from '../../../services/imageService';
+import { captureRadiusFor } from '../../../services/proofService';
 import type { CaptureIntegrity } from '../../../types/proof';
 import type { Complaint } from '../../../types';
 
@@ -54,7 +53,10 @@ export function ResolutionModal({
     },
     complaintId: complaint.id,
     maxPhotos: MAX_PHOTOS,
+    category: complaint.issue.category,
   });
+
+  const radius = captureRadiusFor(complaint.issue.category);
 
   const handleClose = () => {
     setNote('');
@@ -131,7 +133,7 @@ export function ResolutionModal({
             </span>
             <span className="dept-field__hint">
               Up to {MAX_PHOTOS} shots of the completed work, taken here, now, within{' '}
-              {CAPTURE_RADIUS_METRES} m of the reported location.
+              {radius} m of the reported location.
             </span>
 
             <div className="proof-evidence-list">
@@ -189,27 +191,21 @@ export function ResolutionModal({
                 </button>
 
                 {/* ----------------------------------------------------
-                    The gallery path is kept and refused, not hidden.
-                    An absent button teaches nobody the rule. A button
-                    that accepts the file, grades it and then explains
-                    why it cannot close a complaint teaches the officer
-                    exactly what is required — and shows a reviewer that
-                    the rule is enforced rather than merely stated.
+                    There is no storage-attach button here (spec §4, §35).
+                    Proof of repair is photographed at the repair.
+
+                    The earlier version kept the control and refused the
+                    file, on the reasoning that a refusal with a reason
+                    teaches the rule better than an absent button. The
+                    rule is now stated in the hint above instead, and the
+                    refusal still exists one layer down: `live-capture` is
+                    a blocking check in proofService, so a file that
+                    reaches the grader by any route is still graded
+                    `disputed` and cannot close a complaint.
                     ---------------------------------------------------- */}
-                <label className="proof-capture-btn proof-capture-btn--ghost">
-                  <input
-                    type="file"
-                    accept={EVIDENCE_ACCEPT}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) void capture.addFromFile(file);
-                      e.target.value = '';
-                    }}
-                    hidden
-                  />
-                  <span>Attach from storage</span>
-                  <span className="proof-capture-btn__tag">will not verify</span>
-                </label>
+                <p className="proof-capture-note">
+                  Camera only. A photo from device storage cannot close a complaint.
+                </p>
               </div>
             )}
           </div>

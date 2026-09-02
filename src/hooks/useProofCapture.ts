@@ -47,6 +47,8 @@ export interface ProofCaptureOptions {
   reportedAt: LatLng;
   complaintId: string;
   maxPhotos?: number;
+  /** Issue category, which selects the capture radius (spec §9). */
+  category?: string;
 }
 
 export function useProofCapture(options: ProofCaptureOptions): UseProofCaptureResult {
@@ -122,6 +124,7 @@ export function useProofCapture(options: ProofCaptureOptions): UseProofCaptureRe
               ? performance.now() - sessionOrigin.current
               : undefined,
           complaintId: options.complaintId,
+          category: options.category,
         });
 
         setPhotos((current) => [...current, { dataUrl, integrity, liveCapture: live }]);
@@ -141,7 +144,14 @@ export function useProofCapture(options: ProofCaptureOptions): UseProofCaptureRe
         setBusy(false);
       }
     },
-    [maxPhotos, options.complaintId, options.reportedAt, photos.length, readPosition]
+    [
+      maxPhotos,
+      options.complaintId,
+      options.reportedAt,
+      options.category,
+      photos.length,
+      readPosition,
+    ]
   );
 
   /**

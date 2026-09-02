@@ -313,6 +313,10 @@ export async function submitReport(
       description: draft.description,
     },
     photos: draft.photos.map((p) => p.url),
+    photoProvenance: draft.photos.map((p) => ({
+      captureMethod: p.captureMethod ?? 'UNKNOWN',
+      capturedAtClient: p.capturedAtClient,
+    })),
     // The location the citizen confirmed on the report's location step is
     // what gets stored as the official complaint location.
     // The device GPS position is preserved separately for auditing/GIS validation.
@@ -812,6 +816,10 @@ export function saveDraftStorage(draft: ReportDraft): void {
       name: p.name,
       size: p.size,
       timestamp: p.timestamp,
+      // Provenance survives the draft. Losing it on a resumed report
+      // would silently downgrade a live capture to "unknown origin".
+      captureMethod: p.captureMethod,
+      capturedAtClient: p.capturedAtClient,
     })),
     aadhaarNumber: '',
     otp: '',
@@ -1460,7 +1468,7 @@ export async function submitDepartmentResolution(
       // Index every accepted photo, so the same image cannot close a
       // second complaint anywhere in the city.
       for (const capture of integrity ?? []) {
-        recordEvidenceHash(capture.perceptualHash, existing.id, asset?.id);
+        recordEvidenceHash(capture.perceptualHash, existing.id, asset?.id, capture.sha256);
       }
 
       // A shared issue is closed PROVISIONALLY. Every citizen who

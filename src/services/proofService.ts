@@ -33,6 +33,7 @@ import type {
   CaptureIntegrity,
   CaptureIntegrityGrade,
   EvidenceHashRecord,
+  ReuseVerdict,
 } from '../types/proof';
 import type { LatLng } from './geoService';
 import { distanceMetres } from './geoService';
@@ -43,13 +44,47 @@ const HASH_INDEX_KEY = 'jan_seva_evidence_hashes_v1';
 /**
  * How far from the reported location an evidence photo may be taken.
  *
- * 120 m is deliberately generous. A crew resurfacing a 300 m stretch
- * legitimately stands well away from the pin, and urban GPS routinely
- * drifts 30-50 m between buildings. A tight radius here produces false
- * accusations against honest field staff, which is the fastest way to
- * lose the department's cooperation entirely.
+ * Default, and the value used for any category not listed below.
+ * Deliberately generous: a crew resurfacing a 300 m stretch legitimately
+ * stands well away from the pin, and urban GPS routinely drifts 30-50 m
+ * between buildings. A tight radius here produces false accusations
+ * against honest field staff, which is the fastest way to lose the
+ * department's cooperation entirely.
  */
 export const CAPTURE_RADIUS_METRES = 120;
+
+/**
+ * Per-category capture radius (spec §9: not one universal radius).
+ *
+ * The radius tracks how spatially extended the work is, not how much we
+ * distrust the officer:
+ *
+ *   a streetlight is a point object — the officer stands under it;
+ *   a road defect is linear and the repair spreads along it;
+ *   a drain or water main is worked along its run.
+ *
+ *   ON THE NUMBERS.
+ *   The spec's illustrative figures (roads 30 m, streetlight 20 m) are
+ *   tighter than consumer GPS is accurate. A handset in a built-up
+ *   street routinely reports a 30-50 m error, so a 20 m gate would fail
+ *   honest captures more often than dishonest ones — and the failure it
+ *   produces is an accusation. These are the same shape as the spec
+ *   asks for, sized against the accuracy actually available. The hard
+ *   radius below is what catches "closed it from the depot".
+ */
+const CATEGORY_RADIUS_METRES: Record<string, number> = {
+  electrical: 60,
+  sanitation: 100,
+  water: 120,
+  infrastructure: 120,
+  roads: 150,
+};
+
+/** Soft radius for a category, falling back to the default. */
+export function captureRadiusFor(category?: string): number {
+  if (!category) return CAPTURE_RADIUS_METRES;
+  return CATEGORY_RADIUS_METRES[category] ?? CAPTURE_RADIUS_METRES;
+}
 
 /** Beyond this, a fix is being photographed somewhere else entirely. */
 export const CAPTURE_HARD_RADIUS_METRES = 500;
@@ -143,6 +178,40 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+// ------------------------------------------------------------
+// SHA-256 (spec §12)
+// ------------------------------------------------------------
+//
+// Exact identity, alongside the perceptual hash rather than instead of
+// it. They answer different questions: this one catches the same FILE
+// resubmitted, the dHash catches the same SCENE re-encoded. Only this
+// one is cryptographic — the dHash is a similarity metric, and treating
+// a 64-bit difference hash as a security primitive would be the "weak
+// non-cryptographic hash" the spec rules out.
+
+/**
+ * SHA-256 of the image bytes, as 64 hex characters.
+ *
+ * Returns null rather than a substitute when SubtleCrypto is missing —
+ * on an insecure origin, say. A fabricated stand-in here would be
+ * indistinguishable from a real digest downstream.
+ */
+export async function sha256OfDataUrl(dataUrl: string): Promise<string | null> {
+  const comma = dataUrl.indexOf(',');
+  if (comma === -1) return null;
+
+  try {
+    const binary = atob(dataUrl.slice(comma + 1));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+
+    const digest = await crypto.subtle.digest('SHA-256', bytes);
+    return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  } catch {
+    return null;
+  }
+}
+
 /** Bit difference between two dHashes. 0 is identical. */
 export function hammingDistance(a: string, b: string): number {
   if (a.length !== b.length) return 64;
@@ -182,24 +251,54 @@ export function getEvidenceHashIndex(): EvidenceHashRecord[] {
 /**
  * Whether this image has been submitted before, anywhere in the city.
  * Returns the earlier record, or null if the image is novel.
+ *
+ * SHA-256 is checked first: an exact byte match is certain, where a dHash
+ * match within the threshold is an inference.
  */
-export function findReuse(hash: string, excludeComplaintId?: string): EvidenceHashRecord | null {
-  for (const record of readHashIndex()) {
-    if (excludeComplaintId && record.complaintId === excludeComplaintId) continue;
-    if (hammingDistance(hash, record.hash) <= REUSE_THRESHOLD_BITS) return record;
+export function findReuse(
+  hash: string,
+  excludeComplaintId?: string,
+  sha256?: string | null
+): { record: EvidenceHashRecord; verdict: 'EXACT_REUSE' | 'NEAR_REUSE' } | null {
+  const index = readHashIndex();
+
+  if (sha256) {
+    for (const record of index) {
+      if (excludeComplaintId && record.complaintId === excludeComplaintId) continue;
+      if (record.sha256 && record.sha256 === sha256) return { record, verdict: 'EXACT_REUSE' };
+    }
   }
+
+  for (const record of index) {
+    if (excludeComplaintId && record.complaintId === excludeComplaintId) continue;
+    if (hammingDistance(hash, record.hash) <= REUSE_THRESHOLD_BITS) {
+      return { record, verdict: 'NEAR_REUSE' };
+    }
+  }
+
   return null;
 }
 
 /** Records an accepted photo so the same image cannot be reused later. */
-export function recordEvidenceHash(hash: string, complaintId: string, assetId?: string): void {
+export function recordEvidenceHash(
+  hash: string,
+  complaintId: string,
+  assetId?: string,
+  sha256?: string | null
+): void {
   const index = readHashIndex();
   if (index.some((r) => r.hash === hash && r.complaintId === complaintId)) return;
 
   // Bounded. This index is a demo-scale artefact in localStorage; the
   // real one belongs in a database with an index on the hash column.
   const next = [
-    { hash, complaintId, recordedAt: new Date().toISOString(), assetId },
+    {
+      hash,
+      sha256: sha256 ?? undefined,
+      complaintId,
+      recordedAt: new Date().toISOString(),
+      assetId,
+    },
     ...index,
   ].slice(0, 500);
 
@@ -231,6 +330,8 @@ export interface CaptureContext {
   mockLocationSuspected?: boolean;
   /** Complaint being closed, so its own earlier photos are not "reuse". */
   complaintId?: string;
+  /** Issue category, which sets the capture radius (spec §9). */
+  category?: string;
 }
 
 /**
@@ -246,6 +347,7 @@ export async function gradeCapture(
   context: CaptureContext
 ): Promise<CaptureIntegrity> {
   const hash = await perceptualHash(dataUrl);
+  const sha256 = await sha256OfDataUrl(dataUrl);
   const checks: CaptureCheck[] = [];
 
   // 1. Live capture. Gallery uploads are the whole Gurugram failure mode.
@@ -262,9 +364,10 @@ export async function gradeCapture(
   // 2. Location. Advisory inside the hard radius, blocking beyond it —
   //    50 m of GPS drift is normal; 3 km is a different neighbourhood.
   let distance: number | null = null;
+  const softRadius = captureRadiusFor(context.category);
   if (context.capturedAt) {
     distance = distanceMetres(context.capturedAt, context.reportedAt);
-    const withinSoft = distance <= CAPTURE_RADIUS_METRES;
+    const withinSoft = distance <= softRadius;
     const withinHard = distance <= CAPTURE_HARD_RADIUS_METRES;
     checks.push({
       id: 'location-match',
@@ -273,7 +376,7 @@ export async function gradeCapture(
       detail: withinSoft
         ? `${distance} m from the reported location.`
         : withinHard
-        ? `${distance} m away — outside the ${CAPTURE_RADIUS_METRES} m capture window.`
+        ? `${distance} m away — outside the ${softRadius} m capture window.`
         : `${(distance / 1000).toFixed(1)} km from the reported location.`,
       severity: withinHard ? 'advisory' : 'blocking',
     });
@@ -314,13 +417,19 @@ export async function gradeCapture(
   }
 
   // 5. Reuse. The strongest single signal available client-side.
-  const reuse = findReuse(hash, context.complaintId);
+  const reuse = findReuse(hash, context.complaintId, sha256);
+  /* NO_MATCH means the similarity comparison ran and found nothing — it
+     always runs, so this is a real result even where SubtleCrypto was
+     missing and the exact-identity half could not. */
+  const reuseVerdict: ReuseVerdict = reuse ? reuse.verdict : 'NO_MATCH';
   checks.push({
     id: 'novel-image',
     label: 'Not submitted before',
     passed: !reuse,
     detail: reuse
-      ? `This image was already accepted against ${reuse.complaintId}.`
+      ? reuse.verdict === 'EXACT_REUSE'
+        ? `This is the same image file already accepted against ${reuse.record.complaintId}.`
+        : `A near-identical image was already accepted against ${reuse.record.complaintId}.`
       : 'No matching image in the city evidence index.',
     severity: 'blocking',
   });
@@ -333,10 +442,12 @@ export async function gradeCapture(
     capturedAt: new Date(context.deviceTimeMs).toISOString(),
     distanceMetres: distance,
     perceptualHash: hash,
-    reusedFromComplaintId: reuse?.complaintId,
+    sha256: sha256 ?? undefined,
+    reuseVerdict,
+    reusedFromComplaintId: reuse?.record.complaintId,
     accuracyMetres: context.accuracyMetres,
     mockLocationSuspected: context.mockLocationSuspected,
-    summary: summarise(grade, distance, context.liveCapture, reuse?.complaintId),
+    summary: summarise(grade, distance, context.liveCapture, softRadius, reuse?.record.complaintId),
   };
 }
 
@@ -378,13 +489,14 @@ function summarise(
   grade: CaptureIntegrityGrade,
   distance: number | null,
   live: boolean,
+  softRadius: number,
   reusedFrom?: string
 ): string {
   if (reusedFrom) return `Image previously submitted against ${reusedFrom}.`;
   if (!live) return 'Image was not captured live in-app.';
   if (grade === 'verified' && distance !== null) return `Captured live, ${distance} m from the report.`;
   if (grade === 'verified') return 'Captured live in-app.';
-  if (distance !== null && distance > CAPTURE_RADIUS_METRES) {
+  if (distance !== null && distance > softRadius) {
     return `Captured live, but ${distance} m from the report.`;
   }
   return 'Captured live; some checks could not be completed.';
