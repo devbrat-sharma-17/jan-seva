@@ -160,25 +160,27 @@
   box-shadow: var(--shadow-xs);
 }
 
+/* Stacked, not side-by-side: the value is a full sentence ("67% of 9
+   confirmed by the reporter"), not a short number, so forcing it onto
+   the label's row left the label squeezed into a sliver and wrapped
+   letter-by-letter. */
 .dept-breakdown__top {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-2);
+  flex-direction: column;
+  gap: 2px;
 }
 
 .dept-breakdown__label {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: var(--font-semibold);
-  color: var(--color-text);
-  min-width: 0;
+  color: var(--color-text-muted);
 }
 
 .dept-breakdown__value {
   font-size: var(--text-sm);
-  font-weight: var(--font-extrabold);
+  font-weight: var(--font-bold);
   color: var(--dept-accent);
-  white-space: nowrap;
+  line-height: var(--leading-snug);
 }
 
 .dept-breakdown__bar {
