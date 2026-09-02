@@ -86,6 +86,17 @@ export interface ReportDraft {
   /** Masked stand-in kept on a restored draft, e.g. "+91 XXXXX 43210". */
   mobileMaskedHint?: string;
   identityVerified: boolean;
+  /**
+   * The server's signed statement that IT verified this citizen, returned
+   * by /api/otp/verify. In-memory only and never persisted with the draft:
+   * it is short-lived, and a token sitting in localStorage outlives the
+   * session it was issued for.
+   *
+   *   THIS, NOT `identityVerified`, IS WHAT THE SERVER TRUSTS.
+   *   `identityVerified` above drives the wizard's own step gating and
+   *   carries no authority once it leaves the browser.
+   */
+  identityAttestation?: string;
   name: string;
   location: LocationData | null;
   category?: string;

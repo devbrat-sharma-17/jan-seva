@@ -52,16 +52,42 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
   };
 }
 
+/**
+ * A failed database request, carrying the detail the caller needs to map
+ * it to a citizen-readable sentence.
+ *
+ *   `detail` IS FOR MAPPING, NEVER FOR RENDERING.
+ *   PostgREST's body names columns, constraints and functions. It must
+ *   reach the endpoint — otherwise a raised `city_not_active` is
+ *   indistinguishable from a genuine outage and every one becomes a 500
+ *   — and it must never reach the response. Callers match on it and
+ *   answer with their own words.
+ */
+export class DbRequestError extends Error {
+  // Declared and assigned separately rather than as constructor parameter
+  // properties: `erasableSyntaxOnly` is on in tsconfig, so this file must
+  // stay valid once the types are stripped and nothing else.
+  readonly status: number;
+  readonly detail: string;
+
+  constructor(status: number, detail: string) {
+    super(`db_request_failed_${status}`);
+    this.name = 'DbRequestError';
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
 async function request<T>(path: string, init: RequestInit): Promise<T> {
   const { url } = config();
   const response = await fetch(`${url}/rest/v1/${path}`, init);
 
   if (!response.ok) {
-    // PostgREST's body names columns and constraints. Useful in a log,
-    // never in a response — it describes the schema to whoever asked.
+    // Logged as well as thrown: the log is where an operator reads it,
+    // and the throw is where the endpoint decides what the citizen sees.
     const detail = await response.text().catch(() => '');
     console.error('[db] request failed', { path, status: response.status, detail: detail.slice(0, 500) });
-    throw new Error(`db_request_failed_${response.status}`);
+    throw new DbRequestError(response.status, detail.slice(0, 500));
   }
 
   if (response.status === 204) return undefined as T;

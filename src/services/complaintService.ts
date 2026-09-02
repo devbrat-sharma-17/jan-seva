@@ -179,13 +179,62 @@ function appendEvent(complaint: Complaint, event: ComplaintTimelineEvent): Compl
  * overload that returns the full record, so the reporter's identity cannot
  * be reached without verifying.
  */
+/**
+ * Public tracking lookup.
+ *
+ * Same mode gate as `submitReport`, and for the same reason: reads and
+ * writes must agree about where complaints live. Splitting them was the
+ * bug this closes — creation went to Postgres while tracking searched
+ * localStorage, so a real submission produced a real ticket number that
+ * `/track` reported as "not found".
+ *
+ *   NO FALLBACK. A failed request is an error, not a reason to go
+ *   looking in localStorage. Answering "not found" from a stale local
+ *   store when the server is merely unreachable tells a citizen their
+ *   complaint does not exist, which is worse than telling them the
+ *   service is down.
+ */
 export async function getById(complaintId: string): Promise<LookupOutcome> {
+  if (!demoSeedDataAllowed()) return getByIdServer(complaintId);
+
   await new Promise((resolve) => setTimeout(resolve, 420));
 
   const cleanId = normaliseId(complaintId);
   const found = readStore().find((c) => c.id.toUpperCase() === cleanId) ?? null;
 
   return resolveLookup(found);
+}
+
+async function getByIdServer(complaintId: string): Promise<LookupOutcome> {
+  const cleanId = normaliseId(complaintId);
+
+  let response: Response;
+  try {
+    response = await fetch(`/api/complaints/${encodeURIComponent(cleanId)}`, {
+      headers: { accept: 'application/json' },
+    });
+  } catch {
+    throw new SubmissionError(
+      'NETWORK_ERROR',
+      'We could not reach the service. Check your connection and try again.'
+    );
+  }
+
+  if (!response.ok) {
+    // 503 and 500 are outages, not answers. Rendering "not found" for
+    // them would be the UI lying about a complaint that exists.
+    throw new SubmissionError(...(await describeSubmissionFailure(response)));
+  }
+
+  const body = (await response.json()) as LookupOutcome;
+
+  // A network boundary: the shape is checked on arrival regardless of
+  // what the endpoint promises. Anything unrecognised is a miss, not a
+  // half-rendered complaint.
+  if (body?.kind === 'found' || body?.kind === 'expired' || body?.kind === 'not-found') {
+    return body;
+  }
+  return { kind: 'not-found' };
 }
 
 /**
@@ -271,7 +320,296 @@ function buildReporter(draft: ReportDraft): Complaint['reporter'] {
  * Throws `StorageQuotaError` if the record does not fit — deliberately not
  * caught, so the success screen is never shown for an unsaved report.
  */
+// ------------------------------------------------------------
+// Submission
+// ------------------------------------------------------------
+//
+// Two implementations behind one function, exactly as otpService does
+// (spec §11). The wizard calls `submitReport` and cannot tell which ran.
+//
+//   demo / development   the in-browser store. What the prototype has
+//                        always done, and what the 337 self-tests and the
+//                        stakeholder build exercise.
+//   production           POST /api/complaints/create. The ticket id, the
+//                        department, the status, the SLA and the identity
+//                        are all decided server-side.
+//
+//   THE DEMO PATH IS NOT A FALLBACK.
+//   If the production path fails, it FAILS — it never quietly writes to
+//   localStorage instead. A citizen who is told their complaint was filed
+//   must have a row in Postgres to show for it, and a silent downgrade
+//   would hand out ticket numbers for reports nobody will ever action.
+
+/**
+ * The idempotency key for the submission currently in flight.
+ *
+ * Created on the first attempt and reused until one SUCCEEDS, so a retry
+ * after a timeout — the case where the server may well have committed the
+ * complaint before the connection dropped — carries the same key and
+ * returns the same ticket instead of filing a duplicate. Cleared on
+ * success so the next report gets its own.
+ *
+ * Deliberately not derived from the draft's contents: a citizen who edits
+ * one word after a failure is still filing the same report.
+ */
+let pendingSubmissionKey: string | null = null;
+
+function submissionKey(): string {
+  if (!pendingSubmissionKey) {
+    pendingSubmissionKey =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `sub-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+  return pendingSubmissionKey;
+}
+
+/** Raised with a message already safe to show a citizen. */
+export class SubmissionError extends Error {
+  readonly code: string;
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = 'SubmissionError';
+    this.code = code;
+  }
+}
+
+interface CreateComplaintResponse {
+  complaintId: string;
+  civicIssueId: string;
+  departmentId: string | null;
+  status: string;
+  slaDueAt: string;
+  createdAt: string;
+  replayed: boolean;
+}
+
+/**
+ * Files the report against the real backend.
+ *
+ * Sends ONLY what a citizen is entitled to assert. `departmentId`,
+ * `status`, `priorityScore`, `slaDueAt` and `isSynthetic` are absent by
+ * construction — the endpoint ignores them anyway, and sending them would
+ * imply the client has a say.
+ */
+async function submitReportServer(
+  draft: ReportDraft,
+  analysis: AIAnalysis,
+  cityId: string
+): Promise<Complaint> {
+  const confirmed = draft.location?.confirmed;
+  const gps = draft.location?.gps;
+
+  const latitude = confirmed?.latitude ?? draft.location?.latitude;
+  const longitude = confirmed?.longitude ?? draft.location?.longitude;
+
+  if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+    throw new SubmissionError('VALIDATION_ERROR', 'Please confirm the location of the issue.');
+  }
+
+  let response: Response;
+  try {
+    response = await fetch('/api/complaints/create', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        idempotencyKey: submissionKey(),
+        cityId,
+        category: analysis.category,
+        title: `${CATEGORY_TITLES[analysis.category] || 'Civic Issue'} at ${
+          confirmed?.locality || draft.location?.locality || defaultCity.name
+        }`,
+        description: draft.description,
+        // The CONFIRMED issue location.
+        lat: latitude,
+        lng: longitude,
+        locality: confirmed?.locality ?? draft.location?.locality,
+        address: confirmed?.address ?? draft.location?.address,
+        locationSource: confirmed?.source ?? 'gps',
+        // Where the DEVICE was. Separate fields, never merged with the above.
+        gpsLat: gps?.latitude,
+        gpsLng: gps?.longitude,
+        gpsAccuracy: gps?.accuracy,
+        gpsCapturedAt: gps?.detectedAt,
+        // The server's own signed statement that it verified this citizen.
+        // Absent means the report is filed anonymously, which is allowed.
+        identityAttestation: draft.identityAttestation,
+      }),
+    });
+  } catch {
+    // A transport failure, not a rejection. The key is deliberately NOT
+    // cleared: the server may have committed before the socket died, and
+    // retrying with the same key returns that complaint rather than a
+    // second one.
+    throw new SubmissionError(
+      'NETWORK_ERROR',
+      'We could not reach the service. Check your connection and try again.'
+    );
+  }
+
+  if (!response.ok) {
+    throw new SubmissionError(...(await describeSubmissionFailure(response)));
+  }
+
+  const body = (await response.json()) as CreateComplaintResponse;
+  if (!body?.complaintId) {
+    throw new SubmissionError('INTERNAL_ERROR', 'We could not file your report just now.');
+  }
+
+  // Filed. The next report starts a new submission.
+  pendingSubmissionKey = null;
+  clearDraftStorage();
+
+  return toComplaintShape(body, draft, analysis, cityId);
+}
+
+/**
+ * Maps a failed response to a code and a sentence the UI can render.
+ *
+ * The endpoint already returns citizen-ready copy, but a proxy, a WAF or
+ * a cold start can return something else entirely, so anything
+ * unrecognised becomes a generic sentence rather than being displayed.
+ */
+async function describeSubmissionFailure(response: Response): Promise<[string, string]> {
+  let code = 'INTERNAL_ERROR';
+  let message = '';
+
+  try {
+    const body = (await response.json()) as { error?: { code?: string; message?: string } };
+    if (typeof body.error?.code === 'string') code = body.error.code;
+    if (typeof body.error?.message === 'string' && body.error.message.length < 300) {
+      message = body.error.message;
+    }
+  } catch {
+    // Not our envelope. Fall through to the status-based defaults.
+  }
+
+  if (message) return [code, message];
+
+  switch (response.status) {
+    case 401:
+      return ['AUTH_REQUIRED', 'Your verification has expired. Please verify again.'];
+    case 403:
+      return ['FORBIDDEN', 'This report could not be accepted.'];
+    case 409:
+      return ['CONFLICT', 'This report has already been filed.'];
+    case 413:
+      return ['STORAGE_ERROR', 'That photo is too large. Please retake it.'];
+    case 422:
+      return ['VALIDATION_ERROR', 'Please check the details and try again.'];
+    case 429:
+      return ['RATE_LIMITED', 'Too many reports just now. Please wait a moment and try again.'];
+    case 503:
+      return ['PROVIDER_UNAVAILABLE', 'This service is not available yet. Please try again later.'];
+    default:
+      return ['INTERNAL_ERROR', 'We could not file your report just now. Please try again.'];
+  }
+}
+
+/**
+ * Dresses the server's answer in the shape `/report` already renders.
+ *
+ * The UI is frozen (spec §1, §44), so the adapter moves rather than the
+ * screen. Every authoritative value here — id, department, status, SLA —
+ * comes from the response; the draft supplies only what the citizen typed
+ * and photographed.
+ */
+function toComplaintShape(
+  body: CreateComplaintResponse,
+  draft: ReportDraft,
+  analysis: AIAnalysis,
+  cityId: string
+): Complaint {
+  const confirmed = draft.location?.confirmed;
+  const gps = draft.location?.gps;
+
+  return {
+    id: body.complaintId,
+    cityId,
+    createdAt: body.createdAt,
+    updatedAt: body.createdAt,
+    status: body.status as ComplaintStatus,
+    issue: {
+      category: analysis.category,
+      title: `${CATEGORY_TITLES[analysis.category] || 'Civic Issue'} at ${
+        confirmed?.locality || draft.location?.locality || defaultCity.name
+      }`,
+      description: draft.description,
+    },
+    photos: draft.photos.map((p) => p.url),
+    photoProvenance: draft.photos.map((p) => ({
+      captureMethod: p.captureMethod ?? 'UNKNOWN',
+      capturedAtClient: p.capturedAtClient,
+    })),
+    location: {
+      latitude: confirmed?.latitude ?? draft.location?.latitude ?? defaultCity.coordinates.lat,
+      longitude: confirmed?.longitude ?? draft.location?.longitude ?? defaultCity.coordinates.lng,
+      address: confirmed?.address || draft.location?.address || `${defaultCity.name} municipal area`,
+      locality: confirmed?.locality || draft.location?.locality || 'City Centre',
+      city: confirmed?.city || draft.location?.city || defaultCity.name,
+      state: confirmed?.state || draft.location?.state || defaultCity.state,
+      source: confirmed?.source || 'gps',
+      gps: gps
+        ? {
+            latitude: gps.latitude,
+            longitude: gps.longitude,
+            accuracy: gps.accuracy,
+            detectedAt: gps.detectedAt,
+          }
+        : undefined,
+    },
+    reporter: buildReporter(draft),
+    aiAnalysis: {
+      category: analysis.category,
+      categoryTitle: analysis.categoryTitle,
+      severity: analysis.severity,
+      priorityScore: analysis.priorityScore,
+      department: analysis.department,
+    },
+    department: {
+      // The SERVER's routing decision, not the client's guess. Null means
+      // general triage, and the UI says so rather than naming a department
+      // nobody has assigned.
+      id: body.departmentId ?? undefined,
+      name: body.departmentId
+        ? DEPARTMENTS[body.departmentId as DepartmentId]?.name ?? analysis.departmentName
+        : 'Awaiting routing',
+      division: '',
+      helpline: body.departmentId
+        ? DEPARTMENTS[body.departmentId as DepartmentId]?.helpline ?? ''
+        : '',
+    },
+    sla: { dueAt: body.slaDueAt, status: 'normal' },
+    timeline: [
+      {
+        id: `evt-${body.complaintId}-1`,
+        title: 'Complaint received',
+        description: 'Report submitted through JAN-SEVA.',
+        timestamp: body.createdAt,
+        status: 'pending',
+        actor: 'Citizen Portal',
+      },
+    ],
+    latestUpdate: {
+      title: 'Complaint received',
+      description: body.departmentId
+        ? 'Routed for assignment.'
+        : 'In the triage queue for assignment.',
+      timestamp: body.createdAt,
+    },
+  };
+}
+
 export async function submitReport(
+  draft: ReportDraft,
+  analysis: AIAnalysis,
+  cityId: string = defaultCity.id
+): Promise<Complaint> {
+  if (!demoSeedDataAllowed()) return submitReportServer(draft, analysis, cityId);
+  return submitReportDemo(draft, analysis, cityId);
+}
+
+async function submitReportDemo(
   draft: ReportDraft,
   analysis: AIAnalysis,
   cityId: string = defaultCity.id
@@ -826,6 +1164,11 @@ export function saveDraftStorage(draft: ReportDraft): void {
     // Verification does not survive a reload either: a restored draft must
     // not arrive pre-verified without anyone having proved anything.
     identityVerified: false,
+    // And neither does the token that proves it. `...draft` above would
+    // otherwise spread it into localStorage, where a short-lived
+    // attestation would outlive the session it was issued for and sit on
+    // disk for anything with access to the origin to read.
+    identityAttestation: undefined,
     // The mobile number is kept masked so the resumed form can show which
     // number was being used without storing it.
     mobileNumber: '',

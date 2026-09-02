@@ -77,6 +77,26 @@ create table cities (
   created_at    timestamptz not null default now()
 );
 
+-- ⚠ BEFORE THE SECOND CITY IS ADDED, READ THIS.
+--
+-- `id` is a GLOBAL primary key, so 'roads' can exist exactly once across
+-- the whole system — and 0005_reference_data.sql binds it to Gwalior.
+-- src/data/cities.ts already ships Indore and Bhopal, and the header
+-- CitySelector already offers them, so this is a live contradiction
+-- waiting on whoever seeds city number two.
+--
+-- Two ways out, and the choice is not mine to make silently:
+--
+--   a) City-prefixed ids ('gwalior-roads', 'indore-roads'). No schema
+--      change, but src/data/departments.ts uses the bare 'roads' today
+--      and every routing path that compares a department id would have
+--      to move with it.
+--   b) Composite primary key (city_id, id). Truer to the model, and it
+--      rewrites every foreign key that currently points at departments.
+--
+-- Until one is chosen, this schema is single-city and should be seeded
+-- as such. auth_can_access_department() in 0003_rls.sql is already
+-- written to survive either choice — it resolves the city by join.
 create table departments (
   id            text primary key,           -- 'roads' | 'water' | ...
   city_id       text not null references cities(id) on delete restrict,

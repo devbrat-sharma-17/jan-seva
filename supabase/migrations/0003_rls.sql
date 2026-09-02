@@ -73,15 +73,26 @@ $$;
  * The one predicate that matters: may the caller touch a record owned by
  * this department?
  *
- * Admins span their own city and no other. Department staff are locked
- * to the department their account was issued for — regardless of what a
- * URL, a dropdown or a request body asks for.
+ * Admins span their own city AND NO OTHER — enforced here, not merely
+ * intended. An earlier revision returned `true` for any admin, which read
+ * correctly at the time because only Gwalior was seeded, and would have
+ * silently become a cross-city read the moment Indore or Bhopal was
+ * added (both already ship in src/data/cities.ts). The admin branch now
+ * resolves the target department's own city and compares it.
+ *
+ * Department staff are locked to the department their account was issued
+ * for — regardless of what a URL, a dropdown or a request body asks for.
+ * They need no separate city check: their department belongs to exactly
+ * one city by construction.
  *
  * A complaint in general triage (department_id is null) is deliberately
  * NOT visible to every department. It belongs to the triage queue, which
  * admins and nodal officers work; handing an unrouted report to all five
  * departments is how a citizen's description ends up read by people with
- * no business reading it.
+ * no business reading it. Admins keep that access — the null branch is
+ * checked before the city lookup, because an unrouted complaint has no
+ * department whose city could be compared. `complaints_triage_read`
+ * carries the city predicate for that path.
  */
 create or replace function auth_can_access_department(target_department text)
 returns boolean
@@ -92,8 +103,12 @@ set search_path = public
 as $$
   select case
     when auth.uid() is null then false
-    when auth_is_admin() then true
-    when target_department is null then false
+    when target_department is null then auth_is_admin()
+    when auth_is_admin() then exists (
+      select 1 from departments d
+      where d.id = target_department
+        and d.city_id = auth_city_id()
+    )
     else auth_department_id() = target_department
   end
 $$;

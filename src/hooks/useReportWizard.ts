@@ -151,14 +151,20 @@ export function useReportWizard(cityId: string = 'gwalior', initialCategory?: st
     setStepError(null);
   }, []);
 
-  const setIdentityVerified = useCallback((verified: boolean, name?: string) => {
-    setDraft((prev) => ({
-      ...prev,
-      identityVerified: verified,
-      name: name !== undefined ? name : prev.name,
-    }));
-    setStepError(null);
-  }, []);
+  const setIdentityVerified = useCallback(
+    (verified: boolean, name?: string, attestation?: string) => {
+      setDraft((prev) => ({
+        ...prev,
+        identityVerified: verified,
+        // Cleared whenever verification is revoked, so a stale token cannot
+        // outlive the state that justified it.
+        identityAttestation: verified ? attestation ?? prev.identityAttestation : undefined,
+        name: name !== undefined ? name : prev.name,
+      }));
+      setStepError(null);
+    },
+    []
+  );
 
   const setName = useCallback((name: string) => {
     setDraft((prev) => ({ ...prev, name }));

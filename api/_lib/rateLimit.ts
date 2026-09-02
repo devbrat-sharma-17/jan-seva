@@ -13,7 +13,7 @@
 // here and would not be for a payment API, so it is written down rather
 // than papered over.
 
-import { upsert, select } from './db.ts';
+import { rpc } from './db.ts';
 import { hashSubject } from './identity.ts';
 
 export interface RateLimitRule {
@@ -83,19 +83,23 @@ export async function consume(
 
   try {
     const subject = await hashSubject(rawSubject);
-    const filter =
-      `bucket=eq.${encodeURIComponent(bucket)}` +
-      `&subject=eq.${encodeURIComponent(subject)}` +
-      `&window_start=eq.${encodeURIComponent(start.toISOString())}`;
 
-    const existing = await select<{ count: number }>('rate_limits', `${filter}&select=count`);
-    const next = (existing[0]?.count ?? 0) + 1;
-
-    await upsert('rate_limits', 'bucket,subject,window_start', {
-      bucket,
-      subject,
-      window_start: start.toISOString(),
-      count: next,
+    // ONE statement, and it must stay one.
+    //
+    // This was a select, an increment in JavaScript, and an upsert. Three
+    // round trips with no lock between them: concurrent callers all read
+    // the same count and all wrote the same value, so a burst of 25
+    // requests spent one unit of a 15-unit budget and none was refused.
+    // HTTP testing caught it; reading the code did not, because the
+    // sequential path it was written and reviewed against is correct.
+    //
+    // `consume_rate_limit` (0010) does the read-increment-write as a
+    // single `on conflict do update`, which takes a row lock and
+    // serialises the racers.
+    const next = await rpc<number>('consume_rate_limit', {
+      p_bucket: bucket,
+      p_subject: subject,
+      p_window_start: start.toISOString(),
     });
 
     return {

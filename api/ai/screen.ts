@@ -26,6 +26,13 @@ import {
   type SuspiciousSignal,
 } from '../../src/types/screening.ts';
 
+/**
+ * Web-standard handler — see api/complaints/create.ts for the full note.
+ * Vercel's Node runtime would pass an Express-shaped `req` and the first
+ * `request.headers.get(...)` would throw.
+ */
+export const config = { runtime: 'edge' };
+
 const LIKELIHOODS = ['NONE', 'LOW', 'MEDIUM', 'HIGH'] as const;
 const RELEVANCES = ['VERY_LOW', 'LOW', 'MEDIUM', 'HIGH', 'VERY_HIGH'] as const;
 const CONSISTENCIES = ['CONSISTENT', 'PARTIAL', 'INCONSISTENT', 'UNKNOWN'] as const;

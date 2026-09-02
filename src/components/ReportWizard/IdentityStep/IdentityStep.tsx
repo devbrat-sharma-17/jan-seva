@@ -15,7 +15,7 @@ interface IdentityStepProps {
   onAadhaarChange: (val: string) => void;
   onMobileChange: (val: string) => void;
   onOtpChange: (val: string) => void;
-  onVerified: (verified: boolean, name?: string) => void;
+  onVerified: (verified: boolean, name?: string, attestation?: string) => void;
   onNameChange: (name: string) => void;
 }
 
@@ -123,7 +123,13 @@ export function IdentityStep({
       const target = identityMethod === 'aadhaar' ? aadhaarNumber : mobileNumber;
       const res = await verifyOtp(target, otp, identityMethod);
       if (res.success) {
-        onVerified(true, res.verifiedName || (identityMethod === 'aadhaar' ? 'Raj Sharma' : ''));
+        onVerified(
+          true,
+          res.verifiedName || (identityMethod === 'aadhaar' ? 'Raj Sharma' : ''),
+          // Undefined on the demo path — no server verified anything, so
+          // there is nothing to attest to and the report files anonymously.
+          res.identityAttestation
+        );
       } else {
         setErrorMessage(res.message || 'Incorrect code. Please try again.');
       }

@@ -15,6 +15,14 @@ import { select, update, isDbConfigured, dbUnavailable } from '../_lib/db.ts';
 import { deriveIdentityReference, isValidMobile } from '../_lib/identity.ts';
 import { consume } from '../_lib/rateLimit.ts';
 import { resolveProvider } from '../_lib/otpProviders.ts';
+import { issueAttestation, ATTESTATION_TTL_SECONDS } from '../_lib/attestation.ts';
+
+/**
+ * Web-standard handler — see api/complaints/create.ts for the full note.
+ * Vercel's Node runtime would pass an Express-shaped `req` and the first
+ * `request.headers.get(...)` would throw.
+ */
+export const config = { runtime: 'edge' };
 
 const INCORRECT = 'Incorrect verification code.';
 
@@ -130,13 +138,21 @@ async function handler(request: Request): Promise<Response> {
     consumed_at: new Date().toISOString(),
   });
 
+  const identityLabel = `+91 XXXXX ${digits.slice(-5)}`;
+
   return apiOk({
     verified: true,
     identityReference,
     // The mask is rebuilt from the number the caller already sent. We do
     // not hand back anything they did not already have.
-    identityLabel: `+91 XXXXX ${digits.slice(-5)}`,
+    identityLabel,
     method: 'mobile',
+    // The server's signed statement that IT verified this identity, just
+    // now. /api/complaints/create trusts this and nothing else about who
+    // the caller is — `identityReference` above is returned for display
+    // continuity only and carries no authority when sent back to us.
+    identityAttestation: await issueAttestation(identityReference, 'mobile', identityLabel),
+    attestationExpiresInSeconds: ATTESTATION_TTL_SECONDS,
   });
 }
 

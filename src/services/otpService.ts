@@ -52,6 +52,18 @@ export interface VerifyOtpResult {
   identityLabel?: string;
   /** Aadhaar eKYC would return a name; mobile verification does not. */
   verifiedName?: string;
+  /**
+   * The server's signed, short-lived statement that IT verified this
+   * identity. Carried to /api/complaints/create, which trusts this and
+   * nothing else the browser says about who is filing.
+   *
+   * Absent on the demo path: no server verified anything, so there is
+   * nothing to attest to. A demo build therefore files anonymously
+   * against a real backend rather than forging a verification — which is
+   * the honest failure and keeps the demo shortcut from becoming a
+   * production bypass.
+   */
+  identityAttestation?: string;
 }
 
 // ------------------------------------------------------------
@@ -248,6 +260,7 @@ async function verifyServer(
     const body = (await response.json()) as {
       identityReference?: string;
       identityLabel?: string;
+      identityAttestation?: string;
     };
 
     if (!body.identityReference) {
@@ -259,6 +272,7 @@ async function verifyServer(
       message: 'Mobile number verified.',
       identityReference: body.identityReference,
       identityLabel: body.identityLabel,
+      identityAttestation: body.identityAttestation,
     };
   } catch {
     return {

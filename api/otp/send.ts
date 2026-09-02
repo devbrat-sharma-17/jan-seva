@@ -22,6 +22,14 @@ import {
 import { clientAddress, consume } from '../_lib/rateLimit.ts';
 import { resolveProvider, OtpProviderError } from '../_lib/otpProviders.ts';
 
+/**
+ * Web-standard handler — see api/complaints/create.ts for the full note.
+ * Without this, Vercel's Node runtime passes an Express-shaped `req` and
+ * the first `request.headers.get(...)` throws. Everything here (fetch,
+ * crypto.subtle, crypto.getRandomValues, btoa) runs on Edge.
+ */
+export const config = { runtime: 'edge' };
+
 /** Matches the challenge TTL the UI counts down. */
 const OTP_TTL_SECONDS = 5 * 60;
 

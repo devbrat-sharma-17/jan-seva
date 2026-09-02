@@ -89,13 +89,36 @@ export function withErrorHandling(
       return await handler(request);
     } catch (err) {
       console.error('[api] unhandled', {
-        path: new URL(request.url).pathname,
+        path: safePath(request.url),
         method: request.method,
         message: err instanceof Error ? err.message : 'unknown',
       });
       return apiError('INTERNAL_ERROR', 'Something went wrong. Please try again.');
     }
   };
+}
+
+/**
+ * The request path, for a log line, without ever throwing.
+ *
+ *   THIS RAN INSIDE THE CATCH BLOCK AND WAS THE CRASH.
+ *   `request.url` is not guaranteed to be absolute — under `vercel dev`
+ *   it arrives as "/api/complaints/create", and `new URL()` on a
+ *   relative string throws ERR_INVALID_URL. Throwing there meant the
+ *   handler that exists to stop stack traces reaching a citizen was
+ *   itself the thing that produced FUNCTION_INVOCATION_FAILED and the
+ *   platform's own error page — the exact outcome it was written to
+ *   prevent, and only on the paths where something had already failed.
+ *
+ * A base makes a relative path parse; the catch covers the rest. Nothing
+ * in a diagnostic is worth failing a request over.
+ */
+function safePath(rawUrl: string): string {
+  try {
+    return new URL(rawUrl, 'http://localhost').pathname;
+  } catch {
+    return 'unparseable';
+  }
 }
 
 /** Parses a JSON body, refusing anything that is not a plain object. */
