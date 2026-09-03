@@ -30,6 +30,8 @@ export interface ReportPhoto {
   captureMethod?: PhotoCaptureMethod;
   /** Device wall clock at capture. Not authoritative — the server's receipt time is. */
   capturedAtClient?: string;
+  /** GPS Location captured exactly when the photo was taken, for geotagging. */
+  location?: GPSLocation;
 }
 
 export interface GPSLocation {

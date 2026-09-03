@@ -52,6 +52,23 @@ export function PhotoStep({
 
     setIsCompressing(true);
     try {
+      // Start fetching location concurrently
+      let currentLocation: any = null;
+      if (navigator.geolocation) {
+        currentLocation = await new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              accuracy: pos.coords.accuracy,
+              detectedAt: new Date().toISOString()
+            }),
+            () => resolve(null),
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+          );
+        });
+      }
+
       for (const file of filesToProcess) {
         try {
           const compressed = await compressImage(file);
@@ -65,6 +82,7 @@ export function PhotoStep({
                camera intent — recorded as exactly that and no stronger. */
             captureMethod: 'NATIVE_CAMERA_INTENT',
             capturedAtClient: new Date().toISOString(),
+            location: currentLocation || undefined,
           };
 
           if (isReplacing && replacingPhotoId) {

@@ -16,6 +16,7 @@ export function LiveCameraModal({ onCapture, onClose, onFallbackToFile }: LiveCa
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
   const [isFlashing, setIsFlashing] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<any>(null);
 
   // Stop camera tracks
   const stopStream = useCallback(() => {
@@ -34,6 +35,20 @@ export function LiveCameraModal({ onCapture, onClose, onFallbackToFile }: LiveCa
       setCameraError('Camera API is not supported in this browser.');
       onFallbackToFile();
       return;
+    }
+
+    // Start fetching location in background
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setCurrentLocation({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          detectedAt: new Date().toISOString()
+        }),
+        () => console.warn("Could not get location for photo geotag"),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
     }
 
     try {
@@ -75,7 +90,7 @@ export function LiveCameraModal({ onCapture, onClose, onFallbackToFile }: LiveCa
   }, [startCamera, stopStream]);
 
   // Capture Frame
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (!videoRef.current) return;
 
     const video = videoRef.current;
@@ -89,7 +104,7 @@ export function LiveCameraModal({ onCapture, onClose, onFallbackToFile }: LiveCa
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Flash visual feedback
+    // Flash visual feedback immediately
     setIsFlashing(true);
 
     if (facingMode === 'user') {
@@ -100,6 +115,24 @@ export function LiveCameraModal({ onCapture, onClose, onFallbackToFile }: LiveCa
     ctx.drawImage(video, 0, 0, width, height);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
 
+    // After drawing the frame, quickly await GPS if we don't have it yet
+    let loc = currentLocation;
+    if (!loc && navigator.geolocation) {
+      try {
+        const pos: any = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 3000, maximumAge: 0 });
+        });
+        loc = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          detectedAt: new Date().toISOString()
+        };
+      } catch (err) {
+        console.warn('Geotag fallback timeout', err);
+      }
+    }
+
     setTimeout(() => {
       const newPhoto: ReportPhoto = {
         id: `camera_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
@@ -109,12 +142,13 @@ export function LiveCameraModal({ onCapture, onClose, onFallbackToFile }: LiveCa
         // This frame was drawn from the live MediaStream by the line above.
         captureMethod: 'LIVE_CAMERA',
         capturedAtClient: new Date().toISOString(),
+        location: loc || undefined,
       };
 
       stopStream();
       onCapture(newPhoto);
       onClose();
-    }, 250);
+    }, 50);
   };
 
   const toggleFacingMode = () => {

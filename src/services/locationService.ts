@@ -91,7 +91,9 @@ export async function detectCurrentLocation(
     };
 
     if (typeof window !== 'undefined' && 'geolocation' in navigator) {
-      const timeoutId = setTimeout(() => resolveWithFallback(), 5000);
+      const timeoutId = setTimeout(() => {
+        reject(new Error('Location detection timed out'));
+      }, 5000);
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
@@ -99,15 +101,17 @@ export async function detectCurrentLocation(
           const { latitude, longitude, accuracy } = position.coords;
           
           try {
-            // Use Nominatim for reverse geocoding
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
+            // Use Nominatim for reverse geocoding with zoom=18 for street-level accuracy
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=18`);
             const data = await res.json();
             
-            const locality = data.address?.suburb || data.address?.neighbourhood || data.address?.road || 'Unknown Locality';
-            const city = data.address?.city || data.address?.county || cityName;
+            const locality = data.address?.suburb || data.address?.neighbourhood || data.address?.road || data.address?.village || 'Unknown Locality';
+            const city = data.address?.city || data.address?.town || data.address?.county || cityName;
             const state = data.address?.state || stateName;
             const pincode = data.address?.postcode || 'Unknown';
-            const address = data.display_name || `${locality}, ${city}`;
+            
+            const parts = [data.address?.road, data.address?.neighbourhood, data.address?.suburb, city].filter(Boolean);
+            const address = parts.length > 1 ? parts.join(', ') : (data.display_name || `${locality}, ${city}`);
 
             resolve({
               gps: {
@@ -149,12 +153,12 @@ export async function detectCurrentLocation(
         },
         (_error) => {
           clearTimeout(timeoutId);
-          resolveWithFallback();
+          reject(new Error('Location detection failed or permission denied'));
         },
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 }
       );
     } else {
-      resolveWithFallback();
+      reject(new Error('Geolocation is not supported by this browser'));
     }
   });
 }
@@ -169,14 +173,17 @@ export async function reverseGeocode(
   stateName: string = 'Madhya Pradesh'
 ): Promise<ConfirmedLocation> {
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+    // Use zoom=18 for street-level accuracy
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18`);
     const data = await res.json();
     
-    const locality = data.address?.suburb || data.address?.neighbourhood || data.address?.road || 'Unknown Locality';
-    const city = data.address?.city || data.address?.county || cityName;
+    const locality = data.address?.suburb || data.address?.neighbourhood || data.address?.road || data.address?.village || 'Unknown Locality';
+    const city = data.address?.city || data.address?.town || data.address?.county || cityName;
     const state = data.address?.state || stateName;
     const pincode = data.address?.postcode || '474001';
-    const address = data.display_name || `${locality}, ${city}`;
+    
+    const parts = [data.address?.road, data.address?.neighbourhood, data.address?.suburb, city].filter(Boolean);
+    const address = parts.length > 1 ? parts.join(', ') : (data.display_name || `${locality}, ${city}`);
 
     return {
       latitude: lat,

@@ -97,10 +97,38 @@ export function useReportWizard(cityId: string = 'gwalior', initialCategory?: st
   const addPhoto = useCallback((photo: ReportPhoto) => {
     setDraft((prev) => {
       if (prev.photos.length >= 3) return prev;
-      return {
+      
+      const newDraft = {
         ...prev,
         photos: [...prev.photos, photo],
       };
+
+      // Automatically pre-fill location if the photo was geotagged and location is empty
+      if (photo.location && !prev.location) {
+        newDraft.location = {
+          gps: photo.location,
+          latitude: photo.location.latitude,
+          longitude: photo.location.longitude,
+          address: photo.location.address || 'Detected from photo',
+          locality: photo.location.locality || 'Photo Location',
+          city: photo.location.city || 'Gwalior',
+          state: photo.location.state || 'Madhya Pradesh',
+          pincode: '474001',
+          confirmed: {
+            latitude: photo.location.latitude,
+            longitude: photo.location.longitude,
+            address: photo.location.address || 'Detected from photo',
+            locality: photo.location.locality || 'Photo Location',
+            city: photo.location.city || 'Gwalior',
+            state: photo.location.state || 'Madhya Pradesh',
+            pincode: '474001',
+            source: 'gps',
+            confirmedAt: new Date().toISOString(),
+          }
+        };
+      }
+      
+      return newDraft;
     });
     setStepError(null);
   }, []);
